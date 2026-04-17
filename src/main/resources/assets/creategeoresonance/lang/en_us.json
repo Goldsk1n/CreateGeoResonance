@@ -1,0 +1,6 @@
+{
+  "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
+  "item.creategeoresonance.seismic_hammer.no_pressure": "Backtank pressure depleted",
+  "item.creategeoresonance.seismic_hammer.tooltip.1": "Consumes backtank pressure to read shallow cavities and liquids.",
+  "item.creategeoresonance.seismic_hammer.tooltip.2": "Low pressure weakens scan depth and increases noise."
+}

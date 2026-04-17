@@ -1,0 +1,4 @@
+package net.goldskinmc.creategeoresonance.seismic;
+
+public record SeismicAnomaly(SeismicAnomalyType type, int offsetX, int offsetZ, int depth, float confidence) {
+}

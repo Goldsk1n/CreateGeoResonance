@@ -1,0 +1,225 @@
+package net.goldskinmc.creategeoresonance.seismic;
+
+import net.goldskinmc.creategeoresonance.Config;
+import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.event.TickEvent;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Deque;
+
+public final class SeismicScanQueue {
+    private static final Deque<SeismicScanJob> JOBS = new ArrayDeque<>();
+
+    private SeismicScanQueue() {
+    }
+
+    public static void enqueue(SeismicScanRequest request) {
+        JOBS.addLast(new SeismicScanJob(request));
+    }
+
+    public static void clear() {
+        JOBS.clear();
+    }
+
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || JOBS.isEmpty()) {
+            return;
+        }
+
+        int budget = Config.SCAN_BLOCK_BUDGET_PER_TICK.get();
+        int maxPerJob = Config.SCAN_SLICE_PER_JOB.get();
+        int rotations = JOBS.size();
+
+        while (budget > 0 && rotations-- > 0 && !JOBS.isEmpty()) {
+            SeismicScanJob job = JOBS.pollFirst();
+            int consumed = job.process(Math.min(maxPerJob, budget));
+            budget -= consumed;
+
+            if (job.isComplete()) {
+                job.finish();
+            } else {
+                JOBS.addLast(job);
+            }
+        }
+    }
+
+    public record SeismicScanRequest(
+        ServerLevel level,
+        BlockPos origin,
+        int scannerEntityId,
+        int radius,
+        int depth,
+        float noise,
+        boolean netheriteBonus,
+        long startTick,
+        boolean lowPressure
+    ) {
+    }
+
+    private static final class SeismicScanJob {
+        private final SeismicScanRequest request;
+        private final RandomSource random;
+        private final int width;
+        private final int totalCells;
+        private final Map<Integer, Aggregate> aggregates;
+        private int index;
+
+        private SeismicScanJob(SeismicScanRequest request) {
+            this.request = request;
+            this.random = RandomSource.create(request.origin().asLong() ^ request.startTick());
+            this.width = request.radius() * 2 + 1;
+            this.totalCells = width * width * request.depth();
+            this.aggregates = new HashMap<>();
+            this.index = 0;
+        }
+
+        private int process(int budget) {
+            int consumed = 0;
+            while (consumed < budget && index < totalCells) {
+                int depthIndex = index / (width * width);
+                int horizontalIndex = index % (width * width);
+                int dx = horizontalIndex % width - request.radius();
+                int dz = horizontalIndex / width - request.radius();
+                index++;
+                consumed++;
+
+                if (dx * dx + dz * dz > request.radius() * request.radius()) {
+                    continue;
+                }
+
+                BlockPos scanPos = request.origin().offset(dx, -(depthIndex + 1), dz);
+                if (!request.level().isLoaded(scanPos)) {
+                    continue;
+                }
+
+                BlockState state = request.level().getBlockState(scanPos);
+                FluidState fluid = state.getFluidState();
+                SeismicAnomalyType type;
+                if (!fluid.isEmpty()) {
+                    type = SeismicAnomalyType.LIQUID;
+                } else if (state.isAir()) {
+                    type = SeismicAnomalyType.VOID;
+                } else {
+                    continue;
+                }
+
+                float depthRatio = (depthIndex + 1) / (float) request.depth();
+                float distance = Mth.sqrt(dx * dx + dz * dz);
+                float distanceRatio = distance / request.radius();
+                float attenuationExponent = request.netheriteBonus() ? 1.2F : 1.55F;
+                float distanceFactor = Mth.clamp(1.0F - (float) Math.pow(distanceRatio, attenuationExponent), 0.0F, 1.0F);
+                float depthFactor = 1.0F - depthRatio;
+                float noise = (random.nextFloat() - 0.5F) * request.noise();
+                float weight = Mth.clamp(depthFactor * (0.4F + distanceFactor * 0.6F) + noise, 0.0F, 1.0F);
+                if (weight <= 0.02F) {
+                    continue;
+                }
+
+                int cellSize = 4;
+                int cellX = Math.floorDiv(dx + request.radius(), cellSize);
+                int cellZ = Math.floorDiv(dz + request.radius(), cellSize);
+                int key = (type.ordinal() << 28) | (cellX << 14) | cellZ;
+                aggregates.computeIfAbsent(key, ignored -> new Aggregate(type))
+                    .add(dx, dz, depthIndex + 1, weight);
+            }
+            return consumed;
+        }
+
+        private boolean isComplete() {
+            return index >= totalCells;
+        }
+
+        private void finish() {
+            List<SeismicAnomaly> anomalies = buildAnomalies(aggregates.values());
+            GeoResonancePackets.sendSeismicResult(
+                request.level(),
+                request.origin(),
+                request.scannerEntityId(),
+                request.lowPressure(),
+                request.depth(),
+                anomalies
+            );
+        }
+
+        private List<SeismicAnomaly> buildAnomalies(Collection<Aggregate> values) {
+            List<SeismicAnomaly> anomalies = new ArrayList<>();
+            float netheriteBonus = request.netheriteBonus() ? Config.NETHERITE_CLARITY_BONUS.get().floatValue() : 0.0F;
+
+            for (Aggregate aggregate : values) {
+                if (aggregate.samples == 0 || aggregate.totalWeight <= 0.0F) {
+                    continue;
+                }
+
+                float avgDx = aggregate.weightedDx / aggregate.totalWeight;
+                float avgDz = aggregate.weightedDz / aggregate.totalWeight;
+                float avgDepth = aggregate.weightedDepth / aggregate.totalWeight;
+                float distance = Mth.sqrt(avgDx * avgDx + avgDz * avgDz);
+                float distanceRatio = Mth.clamp(distance / request.radius(), 0.0F, 1.0F);
+                float baseConfidence = aggregate.totalWeight / Math.max(1.0F, aggregate.samples * 0.7F);
+                float clarity = Mth.clamp(1.0F - distanceRatio + netheriteBonus * distanceRatio, 0.0F, 1.0F);
+                float confidence = Mth.clamp(baseConfidence * (0.5F + clarity * 0.5F), 0.04F, 1.0F);
+
+                anomalies.add(new SeismicAnomaly(
+                    aggregate.type,
+                    Mth.floor(avgDx),
+                    Mth.floor(avgDz),
+                    Mth.clamp(Math.round(avgDepth), 1, request.depth()),
+                    confidence
+                ));
+            }
+
+            anomalies.sort(Comparator.comparingDouble(SeismicAnomaly::confidence).reversed());
+            if (anomalies.size() > Config.MAX_ECHOES.get()) {
+                anomalies = new ArrayList<>(anomalies.subList(0, Config.MAX_ECHOES.get()));
+            }
+            if (anomalies.isEmpty()) {
+                anomalies.add(new SeismicAnomaly(
+                    SeismicAnomalyType.SOLID,
+                    0,
+                    0,
+                    Math.max(1, request.depth() / 3),
+                    0.35F
+                ));
+            }
+            return anomalies;
+        }
+    }
+
+    private static final class Aggregate {
+        private final SeismicAnomalyType type;
+        private float weightedDx;
+        private float weightedDz;
+        private float weightedDepth;
+        private float totalWeight;
+        private int samples;
+
+        private Aggregate(SeismicAnomalyType type) {
+            this.type = type;
+            this.weightedDx = 0.0F;
+            this.weightedDz = 0.0F;
+            this.weightedDepth = 0.0F;
+            this.totalWeight = 0.0F;
+            this.samples = 0;
+        }
+
+        private void add(int dx, int dz, int depth, float weight) {
+            weightedDx += dx * weight;
+            weightedDz += dz * weight;
+            weightedDepth += depth * weight;
+            totalWeight += weight;
+            samples++;
+        }
+    }
+}
