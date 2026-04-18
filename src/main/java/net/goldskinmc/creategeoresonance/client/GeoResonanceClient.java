@@ -16,6 +16,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -47,17 +48,19 @@ public final class GeoResonanceClient {
             return;
         }
 
-        Vec3 center = Vec3.atCenterOf(packet.origin());
+        Vec3 center = surfaceCenter(level, packet.origin());
         float blur = packet.lowPressure() ? 0.45F : 0.2F;
         float opacity = packet.lowPressure() ? 0.55F : 0.75F;
         spawnWave(level, center, 0xC2C2C2, opacity, blur, 16, 6.5F);
 
-        SoundEvent impactSound = soundOrFallback(ResourceLocation.fromNamespaceAndPath("create", "mechanical_press_activation"),
-            SoundEvents.ZOMBIE_ATTACK_IRON_DOOR);
-        level.playLocalSound(center.x, center.y, center.z, impactSound, SoundSource.PLAYERS, 1.0F,
-            packet.lowPressure() ? 0.82F : 0.95F, false);
-        level.playLocalSound(center.x, center.y, center.z, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 0.65F,
-            packet.lowPressure() ? 0.48F : 0.58F, false);
+        if (packet.lowPressure()) {
+            level.playLocalSound(center.x, center.y, center.z, SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.8F, 1.25F, false);
+        } else {
+            SoundEvent impactSound = soundOrFallback(ResourceLocation.fromNamespaceAndPath("create", "mechanical_press_activation"),
+                SoundEvents.ZOMBIE_ATTACK_IRON_DOOR);
+            level.playLocalSound(center.x, center.y, center.z, impactSound, SoundSource.PLAYERS, 1.0F, 0.95F, false);
+            level.playLocalSound(center.x, center.y, center.z, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 0.65F, 0.58F, false);
+        }
 
         addShakeForLocalPlayer(packet.scannerEntityId(), center, 1.0F, 0.2F, 8, level.getGameTime());
     }
@@ -72,7 +75,7 @@ public final class GeoResonanceClient {
         long now = level.getGameTime();
         for (SeismicAnomaly anomaly : packet.anomalies()) {
             int delay = Math.max(1, Math.round((anomaly.depth() / (float) packet.maxDepth()) * Config.MAX_ECHO_DELAY_TICKS.get()));
-            PENDING_ECHOES.add(new ScheduledEcho(packet.origin(), packet.scannerEntityId(), packet.maxDepth(), anomaly, now + delay));
+            PENDING_ECHOES.add(new ScheduledEcho(packet.origin(), packet.scannerEntityId(), packet.maxDepth(), packet.lowPressure(), anomaly, now + delay));
         }
     }
 
@@ -118,30 +121,38 @@ public final class GeoResonanceClient {
     private static void playEcho(ClientLevel level, ScheduledEcho scheduled) {
         SeismicAnomaly anomaly = scheduled.anomaly();
         BlockPos echoPos = scheduled.origin().offset(anomaly.offsetX(), 0, anomaly.offsetZ());
-        Vec3 center = Vec3.atCenterOf(echoPos);
+        Vec3 center = surfaceCenter(level, echoPos);
 
         float confidence = Mth.clamp(anomaly.confidence(), 0.0F, 1.0F);
-        float blur = 1.0F - confidence;
-        int color = switch (anomaly.type()) {
-            case VOID -> 0x64E4FF;
-            case LIQUID -> 0x33BFC8;
+        float blur = Math.max(0.05F, 1.0F - confidence);
+        if (scheduled.lowPressure()) {
+            blur = Math.max(blur, 0.6F);
+        }
+        int color = scheduled.lowPressure() ? 0x8A8A8A : switch (anomaly.type()) {
+            case CAVE -> 0xB0B0B0;
+            case WATER -> 0x3EA4F2;
+            case LAVA -> 0xFF8A33;
             case SOLID -> 0x8E8378;
         };
-        spawnWave(level, center, color, 0.35F + confidence * 0.65F, blur, 12, 3.0F + confidence * 4.0F + blur * 1.5F);
+        float opacity = scheduled.lowPressure() ? 0.25F + confidence * 0.3F : 0.35F + confidence * 0.65F;
+        float radius = Math.max(2.0F, anomaly.radius() + confidence * 2.0F + blur);
+        spawnWave(level, center, color, opacity, blur, 12, radius);
 
         float depthRatio = scheduled.maxDepth() > 0 ? anomaly.depth() / (float) scheduled.maxDepth() : 1.0F;
-        SoundEvent echoSound = switch (anomaly.type()) {
-            case VOID -> SoundEvents.BELL_BLOCK;
-            case LIQUID -> SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT;
+        SoundEvent echoSound = scheduled.lowPressure() ? SoundEvents.NOTE_BLOCK_HAT.value() : switch (anomaly.type()) {
+            case CAVE -> SoundEvents.BELL_BLOCK;
+            case WATER -> SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT;
+            case LAVA -> SoundEvents.LAVA_POP;
             case SOLID -> SoundEvents.NOTE_BLOCK_BASS.value();
         };
-        float basePitch = switch (anomaly.type()) {
-            case VOID -> 1.2F;
-            case LIQUID -> 0.82F;
+        float basePitch = scheduled.lowPressure() ? 0.9F : switch (anomaly.type()) {
+            case CAVE -> 1.12F;
+            case WATER -> 0.84F;
+            case LAVA -> 0.66F;
             case SOLID -> 0.56F;
         };
         float pitch = Mth.clamp(basePitch - depthRatio * 0.22F, 0.25F, 2.0F);
-        level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, 0.8F, pitch, false);
+        level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, scheduled.lowPressure() ? 0.6F : 0.8F, pitch, false);
 
         addShakeForLocalPlayer(scheduled.scannerEntityId(), center, 0.18F * confidence, 0.05F * confidence, 6, level.getGameTime());
     }
@@ -226,7 +237,17 @@ public final class GeoResonanceClient {
         return sound == null ? fallback : sound;
     }
 
-    private record ScheduledEcho(BlockPos origin, int scannerEntityId, int maxDepth, SeismicAnomaly anomaly, long executeTick) {
+    private static Vec3 surfaceCenter(ClientLevel level, BlockPos reference) {
+        int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, reference.getX(), reference.getZ());
+        int minY = level.getMinBuildHeight();
+        if (surfaceY <= minY) {
+            surfaceY = reference.getY() + 1;
+        }
+        return new Vec3(reference.getX() + 0.5D, surfaceY + 0.05D, reference.getZ() + 0.5D);
+    }
+
+    private record ScheduledEcho(BlockPos origin, int scannerEntityId, int maxDepth, boolean lowPressure, SeismicAnomaly anomaly,
+                                 long executeTick) {
     }
 
     private record ActiveEffect(SeismicWaveEffect effect, long expiresAtTick) {

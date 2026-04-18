@@ -1,7 +1,8 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 public enum SeismicAnomalyType {
-    VOID,
-    LIQUID,
+    CAVE,
+    WATER,
+    LAVA,
     SOLID
 }

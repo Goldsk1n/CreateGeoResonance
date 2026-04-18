@@ -12,11 +12,15 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.tags.BlockTags;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,9 +56,17 @@ public class SeismicHammerItem extends Item {
         BacktankUtil.consumeAir(player, pressure.backtank(), pressure.airCost());
         boolean lowPressure = pressure.lowPressure();
         int depth = lowPressure ? Math.max(1, Config.DEPTH.get() / 2) : Config.DEPTH.get();
+        BlockState struckState = level.getBlockState(context.getClickedPos());
+        if (!pressure.netheriteBonus() && isSoftImpactBlock(struckState)) {
+            depth = Math.max(1, Mth.floor(depth * Config.SOFT_BLOCK_DEPTH_MULTIPLIER.get().floatValue()));
+        }
         float noise = (float) (Config.BASE_NOISE.get() * (lowPressure ? 2.0D : 1.0D));
+        if (pressure.netheriteBonus()) {
+            noise *= 0.75F;
+        }
 
         player.getCooldowns().addCooldown(this, Config.COOLDOWN_TICKS.get());
+        applyStandingRecoil(player);
         GeoResonancePackets.sendSeismicImpact(level, context.getClickedPos(), player.getId(), lowPressure);
         SeismicScanQueue.enqueue(new SeismicScanQueue.SeismicScanRequest(
             level,
@@ -91,6 +103,25 @@ public class SeismicHammerItem extends Item {
             .withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.2")
             .withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.3")
+            .withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    private static boolean isSoftImpactBlock(BlockState state) {
+        return state.is(BlockTags.DIRT) || state.is(BlockTags.SAND) || state.is(Blocks.GRAVEL);
+    }
+
+    private static void applyStandingRecoil(Player player) {
+        if (!player.onGround()) {
+            return;
+        }
+        double horizontalSpeedSqr = player.getDeltaMovement().x * player.getDeltaMovement().x
+            + player.getDeltaMovement().z * player.getDeltaMovement().z;
+        if (horizontalSpeedSqr > 0.0025D) {
+            return;
+        }
+        player.push(0.0D, 0.11D, 0.0D);
+        player.hurtMarked = true;
     }
 
     private record PressureState(ItemStack backtank, float air, float maxAir, boolean lowPressure, boolean netheriteBonus) {

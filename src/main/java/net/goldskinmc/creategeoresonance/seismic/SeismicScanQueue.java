@@ -4,6 +4,7 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.material.FluidState;
@@ -108,9 +109,9 @@ public final class SeismicScanQueue {
                 FluidState fluid = state.getFluidState();
                 SeismicAnomalyType type;
                 if (!fluid.isEmpty()) {
-                    type = SeismicAnomalyType.LIQUID;
+                    type = fluid.is(FluidTags.LAVA) ? SeismicAnomalyType.LAVA : SeismicAnomalyType.WATER;
                 } else if (state.isAir()) {
-                    type = SeismicAnomalyType.VOID;
+                    type = SeismicAnomalyType.CAVE;
                 } else {
                     continue;
                 }
@@ -118,7 +119,7 @@ public final class SeismicScanQueue {
                 float depthRatio = (depthIndex + 1) / (float) request.depth();
                 float distance = Mth.sqrt(dx * dx + dz * dz);
                 float distanceRatio = distance / request.radius();
-                float attenuationExponent = request.netheriteBonus() ? 1.2F : 1.55F;
+                float attenuationExponent = request.netheriteBonus() ? 0.9F : 1.9F;
                 float distanceFactor = Mth.clamp(1.0F - (float) Math.pow(distanceRatio, attenuationExponent), 0.0F, 1.0F);
                 float depthFactor = 1.0F - depthRatio;
                 float noise = (random.nextFloat() - 0.5F) * request.noise();
@@ -170,12 +171,16 @@ public final class SeismicScanQueue {
                 float baseConfidence = aggregate.totalWeight / Math.max(1.0F, aggregate.samples * 0.7F);
                 float clarity = Mth.clamp(1.0F - distanceRatio + netheriteBonus * distanceRatio, 0.0F, 1.0F);
                 float confidence = Mth.clamp(baseConfidence * (0.5F + clarity * 0.5F), 0.04F, 1.0F);
+                int spanX = aggregate.maxDx - aggregate.minDx;
+                int spanZ = aggregate.maxDz - aggregate.minDz;
+                int radius = Mth.clamp(Math.max(1, Math.max(spanX, spanZ) / 2 + 1), 1, request.radius());
 
                 anomalies.add(new SeismicAnomaly(
                     aggregate.type,
                     Mth.floor(avgDx),
                     Mth.floor(avgDz),
                     Mth.clamp(Math.round(avgDepth), 1, request.depth()),
+                    radius,
                     confidence
                 ));
             }
@@ -190,6 +195,7 @@ public final class SeismicScanQueue {
                     0,
                     0,
                     Math.max(1, request.depth() / 3),
+                    2,
                     0.35F
                 ));
             }
@@ -204,6 +210,10 @@ public final class SeismicScanQueue {
         private float weightedDepth;
         private float totalWeight;
         private int samples;
+        private int minDx;
+        private int maxDx;
+        private int minDz;
+        private int maxDz;
 
         private Aggregate(SeismicAnomalyType type) {
             this.type = type;
@@ -212,6 +222,10 @@ public final class SeismicScanQueue {
             this.weightedDepth = 0.0F;
             this.totalWeight = 0.0F;
             this.samples = 0;
+            this.minDx = Integer.MAX_VALUE;
+            this.maxDx = Integer.MIN_VALUE;
+            this.minDz = Integer.MAX_VALUE;
+            this.maxDz = Integer.MIN_VALUE;
         }
 
         private void add(int dx, int dz, int depth, float weight) {
@@ -220,6 +234,10 @@ public final class SeismicScanQueue {
             weightedDepth += depth * weight;
             totalWeight += weight;
             samples++;
+            minDx = Math.min(minDx, dx);
+            maxDx = Math.max(maxDx, dx);
+            minDz = Math.min(minDz, dz);
+            maxDz = Math.max(maxDz, dz);
         }
     }
 }

@@ -33,12 +33,15 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue LOW_PRESSURE_THRESHOLD = STAGE1
         .comment("Backtank fill ratio below which scans become weak.")
         .defineInRange("lowPressureThreshold", 0.25D, 0.01D, 1.0D);
+    public static final ForgeConfigSpec.DoubleValue SOFT_BLOCK_DEPTH_MULTIPLIER = STAGE1
+        .comment("Depth multiplier when the hammer strikes soft terrain (sand/dirt/gravel).")
+        .defineInRange("softBlockDepthMultiplier", 0.7D, 0.1D, 1.0D);
     public static final ForgeConfigSpec.DoubleValue BASE_NOISE = STAGE1
         .comment("Baseline confidence jitter for anomaly evaluation.")
         .defineInRange("baseNoise", 0.1D, 0.0D, 1.0D);
     public static final ForgeConfigSpec.DoubleValue NETHERITE_CLARITY_BONUS = STAGE1
         .comment("Extra confidence scaling for edge anomalies with netherite backtank.")
-        .defineInRange("netheriteClarityBonus", 0.15D, 0.0D, 1.0D);
+        .defineInRange("netheriteClarityBonus", 0.3D, 0.0D, 1.0D);
 
     static {
         STAGE1.pop();

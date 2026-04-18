@@ -25,6 +25,7 @@ public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boole
             buffer.writeVarInt(anomaly.offsetX());
             buffer.writeVarInt(anomaly.offsetZ());
             buffer.writeVarInt(anomaly.depth());
+            buffer.writeVarInt(anomaly.radius());
             buffer.writeFloat(anomaly.confidence());
         }
     }
@@ -41,8 +42,9 @@ public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boole
             int offsetX = buffer.readVarInt();
             int offsetZ = buffer.readVarInt();
             int depth = buffer.readVarInt();
+            int radius = buffer.readVarInt();
             float confidence = buffer.readFloat();
-            anomalies.add(new SeismicAnomaly(type, offsetX, offsetZ, depth, confidence));
+            anomalies.add(new SeismicAnomaly(type, offsetX, offsetZ, depth, radius, confidence));
         }
         return new S2CSeismicResultPacket(origin, scannerEntityId, lowPressure, maxDepth, anomalies);
     }
