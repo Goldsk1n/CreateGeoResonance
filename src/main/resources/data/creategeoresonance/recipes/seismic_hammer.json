@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     " S ",
-    " TS",
+    " TA",
     " P "
   ],
   "key": {
@@ -11,6 +11,9 @@
     },
     "T": {
       "tag": "create:pressurized_air_sources"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
     },
     "P": {
       "item": "create:iron_sheet"
