@@ -1,22 +1,19 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "AA ",
-    " BI",
-    "T  "
+    " S ",
+    " TS",
+    " P "
   ],
   "key": {
-    "A": {
-      "item": "create:andesite_alloy"
-    },
-    "B": {
-      "item": "minecraft:iron_block"
-    },
-    "I": {
-      "item": "minecraft:iron_ingot"
+    "S": {
+      "item": "create:shaft"
     },
     "T": {
       "tag": "create:pressurized_air_sources"
+    },
+    "P": {
+      "item": "create:iron_sheet"
     }
   },
   "result": {
