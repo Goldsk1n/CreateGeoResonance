@@ -1,7 +1,9 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.equipment.armor.BacktankUtil;
+import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import net.goldskinmc.creategeoresonance.Config;
+import net.goldskinmc.creategeoresonance.client.render.SeismicHammerItemRenderer;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -21,10 +23,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.tags.BlockTags;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class SeismicHammerItem extends Item {
     private static final ResourceLocation NETHERITE_BACKTANK_ID = ResourceLocation.fromNamespaceAndPath("create", "netherite_backtank");
@@ -36,10 +42,10 @@ public class SeismicHammerItem extends Item {
     @Override
     public InteractionResult useOn(UseOnContext context) {
         if (!(context.getPlayer() instanceof ServerPlayer player)) {
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
         if (!(context.getLevel() instanceof ServerLevel level)) {
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
         if (player.getCooldowns().isOnCooldown(this)) {
             return InteractionResult.CONSUME;
@@ -50,7 +56,7 @@ public class SeismicHammerItem extends Item {
             level.playSound(null, player.blockPosition(), SoundEvents.FLINTANDSTEEL_USE, SoundSource.PLAYERS, 0.9f, 0.65f);
             player.displayClientMessage(Component.translatable("item.creategeoresonance.seismic_hammer.no_pressure")
                 .withStyle(ChatFormatting.RED), true);
-            return InteractionResult.SUCCESS;
+            return InteractionResult.CONSUME;
         }
 
         BacktankUtil.consumeAir(player, pressure.backtank(), pressure.airCost());
@@ -79,7 +85,7 @@ public class SeismicHammerItem extends Item {
             level.getGameTime(),
             lowPressure
         ));
-        return InteractionResult.SUCCESS;
+        return InteractionResult.CONSUME;
     }
 
     @Override
@@ -122,6 +128,12 @@ public class SeismicHammerItem extends Item {
         }
         player.push(0.0D, 0.11D, 0.0D);
         player.hurtMarked = true;
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(SimpleCustomRenderer.create(this, new SeismicHammerItemRenderer()));
     }
 
     private record PressureState(ItemStack backtank, float air, float maxAir, boolean lowPressure, boolean netheriteBonus) {
