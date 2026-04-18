@@ -11,8 +11,6 @@ public final class GeoResonanceItems {
     public static final ItemEntry<SeismicHammerItem> SEISMIC_HAMMER = REGISTRATE
         .item("seismic_hammer", SeismicHammerItem::new)
         .properties(properties -> properties.stacksTo(1))
-        .model((context, provider) -> provider.withExistingParent(context.getName(), provider.mcLoc("item/handheld"))
-            .texture("layer0", provider.modLoc("item/" + context.getName())))
         .register();
 
     private GeoResonanceItems() {
