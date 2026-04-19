@@ -1,22 +1,22 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " S ",
-    " TA",
-    " P "
+    "T  ",
+    "SA ",
+    "P  "
   ],
   "key": {
     "S": {
       "item": "create:shaft"
     },
     "T": {
-      "tag": "create:pressurized_air_sources"
+      "item": "create:copper_backtank"
     },
     "A": {
       "item": "create:andesite_alloy"
     },
     "P": {
-      "item": "create:iron_sheet"
+      "item": "minecraft:heavy_weighted_pressure_plate"
     }
   },
   "result": {
