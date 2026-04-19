@@ -37,6 +37,7 @@ public final class GeoResonanceClient {
     }
 
     public static void register() {
+        GeoResonancePartialModels.init();
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
     }

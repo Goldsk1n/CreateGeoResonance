@@ -3,8 +3,8 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"0": "create:seismic_hammer",
-		"particle": "create:seismic_hammer"
+		"0": "creategeoresonance:item/seismic_hammer",
+		"particle": "creategeoresonance:item/seismic_hammer"
 	},
 	"elements": [
 		{

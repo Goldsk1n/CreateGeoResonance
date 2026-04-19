@@ -1,12 +1,18 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.particle.AirParticleData;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
@@ -34,6 +40,17 @@ public class PlacedSeismicHammerBlockEntity extends KineticBlockEntity {
         }
 
         float maxPressure = SeismicPressureStorage.maxPressure();
+        if (level.isClientSide) {
+            if (storedPressure == maxPressure) {
+                return;
+            }
+            Vec3 center = VecHelper.getCenterOf(worldPosition);
+            Vec3 spawnPos = VecHelper.offsetRandomly(center, level.random, .65f);
+            Vec3 motion = center.subtract(spawnPos);
+            level.addParticle(new AirParticleData(1, .05f), spawnPos.x, spawnPos.y, spawnPos.z, motion.x, motion.y, motion.z);
+            return;
+        }
+
         if (storedPressure >= maxPressure) {
             return;
         }
@@ -76,7 +93,27 @@ public class PlacedSeismicHammerBlockEntity extends KineticBlockEntity {
     @Override
     protected void read(CompoundTag compound, boolean clientPacket) {
         super.read(compound, clientPacket);
+        float previousPressure = storedPressure;
         storedPressure = Mth.clamp(compound.getFloat(SeismicPressureStorage.STORED_PRESSURE_TAG), 0.0F, SeismicPressureStorage.maxPressure());
         chargeTimer = compound.getInt("ChargeTimer");
+        if (clientPacket && previousPressure > 0.0F && previousPressure != storedPressure
+            && storedPressure == SeismicPressureStorage.maxPressure()) {
+            playFilledEffect();
+        }
+    }
+
+    private void playFilledEffect() {
+        if (level == null) {
+            return;
+        }
+        AllSoundEvents.CONFIRM.playAt(level, worldPosition, 0.4f, 1, true);
+        Vec3 baseMotion = new Vec3(.25, 0.1, 0);
+        Vec3 center = VecHelper.getCenterOf(worldPosition);
+        for (int i = 0; i < 360; i += 10) {
+            Vec3 rotatedMotion = VecHelper.rotate(baseMotion, i, Axis.Y);
+            Vec3 spawnPos = center.add(rotatedMotion.normalize().scale(.25f));
+            level.addParticle(ParticleTypes.SPIT, spawnPos.x, spawnPos.y, spawnPos.z,
+                rotatedMotion.x, rotatedMotion.y, rotatedMotion.z);
+        }
     }
 }
