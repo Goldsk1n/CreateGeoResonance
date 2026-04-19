@@ -1,8 +1,9 @@
 {
   "block.creategeoresonance.placed_seismic_hammer": "Placed Seismic Hammer",
   "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
-  "item.creategeoresonance.seismic_hammer.no_pressure": "Backtank pressure depleted",
-  "item.creategeoresonance.seismic_hammer.tooltip.1": "Consumes backtank pressure to read shallow cavities and liquids.",
+  "item.creategeoresonance.seismic_hammer.no_pressure": "Hammer pressure depleted",
+  "item.creategeoresonance.seismic_hammer.tooltip.1": "Consumes internal pressure to read shallow cavities and liquids.",
   "item.creategeoresonance.seismic_hammer.tooltip.2": "Low pressure returns become ambiguous and less reliable.",
-  "item.creategeoresonance.seismic_hammer.tooltip.3": "Soft ground dampens depth unless powered by a Netherite Backtank."
+  "item.creategeoresonance.seismic_hammer.tooltip.3": "Soft ground dampens depth unless powered by a Netherite Backtank.",
+  "item.creategeoresonance.seismic_hammer.tooltip.4": "Automatically refills from a worn pressurized backtank."
 }

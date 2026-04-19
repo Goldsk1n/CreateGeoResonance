@@ -1,5 +1,6 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import com.simibubi.create.AllTags;
 import com.simibubi.create.content.equipment.armor.BacktankUtil;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import net.goldskinmc.creategeoresonance.Config;
@@ -15,6 +16,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +28,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.tags.BlockTags;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -37,6 +41,7 @@ import java.util.function.Consumer;
 
 public class SeismicHammerItem extends Item {
     private static final ResourceLocation NETHERITE_BACKTANK_ID = ResourceLocation.fromNamespaceAndPath("create", "netherite_backtank");
+    private static final String STORED_PRESSURE_TAG = "StoredPressure";
 
     public SeismicHammerItem(Properties properties) {
         super(properties);
@@ -59,7 +64,10 @@ public class SeismicHammerItem extends Item {
             return InteractionResult.CONSUME;
         }
 
-        PressureState pressure = PressureState.from(player);
+        ItemStack hammerStack = context.getItemInHand();
+        refillFromBacktank(hammerStack, player);
+
+        PressureState pressure = PressureState.from(player, hammerStack);
         if (!pressure.canScan()) {
             level.playSound(null, player.blockPosition(), SoundEvents.FLINTANDSTEEL_USE, SoundSource.PLAYERS, 0.9f, 0.65f);
             player.displayClientMessage(Component.translatable("item.creategeoresonance.seismic_hammer.no_pressure")
@@ -67,7 +75,7 @@ public class SeismicHammerItem extends Item {
             return InteractionResult.CONSUME;
         }
 
-        BacktankUtil.consumeAir(player, pressure.backtank(), pressure.airCost());
+        setStoredPressure(hammerStack, pressure.air() - pressure.airCost());
         boolean lowPressure = pressure.lowPressure();
         int depth = lowPressure ? Math.max(1, Config.DEPTH.get() / 2) : Config.DEPTH.get();
         BlockState struckState = level.getBlockState(context.getClickedPos());
@@ -128,17 +136,19 @@ public class SeismicHammerItem extends Item {
 
     @Override
     public boolean isBarVisible(ItemStack stack) {
-        return BacktankUtil.isBarVisible(stack, Config.SCANS_PER_BACKTANK.get());
+        return true;
     }
 
     @Override
     public int getBarWidth(ItemStack stack) {
-        return BacktankUtil.getBarWidth(stack, Config.SCANS_PER_BACKTANK.get());
+        float fill = getStoredPressure(stack) / maxHammerPressure();
+        return Mth.clamp(Math.round(fill * 13.0F), 0, 13);
     }
 
     @Override
     public int getBarColor(ItemStack stack) {
-        return BacktankUtil.getBarColor(stack, Config.SCANS_PER_BACKTANK.get());
+        float fill = Mth.clamp(getStoredPressure(stack) / maxHammerPressure(), 0.0F, 1.0F);
+        return Mth.hsvToRgb(fill / 3.0F, 1.0F, 1.0F);
     }
 
     @Override
@@ -149,10 +159,68 @@ public class SeismicHammerItem extends Item {
             .withStyle(ChatFormatting.DARK_GRAY));
         tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.3")
             .withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.4")
+            .withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (!level.isClientSide && entity instanceof Player player) {
+            refillFromBacktank(stack, player);
+        }
+        super.inventoryTick(stack, level, entity, slotId, isSelected);
     }
 
     private static boolean isSoftImpactBlock(BlockState state) {
         return state.is(BlockTags.DIRT) || state.is(BlockTags.SAND) || state.is(Blocks.GRAVEL);
+    }
+
+    private static void refillFromBacktank(ItemStack hammerStack, Player player) {
+        float currentPressure = getStoredPressure(hammerStack);
+        float maxPressure = maxHammerPressure();
+        if (currentPressure >= maxPressure) {
+            return;
+        }
+
+        ItemStack chestStack = player.getItemBySlot(EquipmentSlot.CHEST);
+        if (chestStack.isEmpty() || !AllTags.AllItemTags.PRESSURIZED_AIR_SOURCES.matches(chestStack)) {
+            return;
+        }
+
+        float backtankAir = BacktankUtil.getAir(chestStack);
+        if (backtankAir <= 0.0F) {
+            return;
+        }
+
+        float transfer = Math.min(maxPressure - currentPressure, backtankAir);
+        if (transfer <= 0.0F) {
+            return;
+        }
+
+        setStoredPressure(hammerStack, currentPressure + transfer);
+        setBacktankAir(chestStack, backtankAir - transfer);
+    }
+
+    private static void setBacktankAir(ItemStack backtank, float air) {
+        CompoundTag tag = backtank.getOrCreateTag();
+        tag.putFloat("Air", Mth.clamp(air, 0.0F, BacktankUtil.maxAir(backtank)));
+        backtank.setTag(tag);
+    }
+
+    private static float maxHammerPressure() {
+        return Math.max(1.0F, BacktankUtil.maxAirWithoutEnchants());
+    }
+
+    private static float getStoredPressure(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(STORED_PRESSURE_TAG)) {
+            return 0.0F;
+        }
+        return Mth.clamp(tag.getFloat(STORED_PRESSURE_TAG), 0.0F, maxHammerPressure());
+    }
+
+    private static void setStoredPressure(ItemStack stack, float pressure) {
+        stack.getOrCreateTag().putFloat(STORED_PRESSURE_TAG, Mth.clamp(pressure, 0.0F, maxHammerPressure()));
     }
 
     private static void applyStandingRecoil(Player player) {
@@ -174,23 +242,18 @@ public class SeismicHammerItem extends Item {
         consumer.accept(SimpleCustomRenderer.create(this, new SeismicHammerItemRenderer()));
     }
 
-    private record PressureState(ItemStack backtank, float air, float maxAir, boolean lowPressure, boolean netheriteBonus) {
-        private static PressureState from(ServerPlayer player) {
-            List<ItemStack> tanks = BacktankUtil.getAllWithAir(player);
-            if (tanks.isEmpty()) {
-                return new PressureState(ItemStack.EMPTY, 0.0F, 1.0F, false, false);
-            }
-            ItemStack selected = tanks.get(0);
-            float maxAir = Math.max(1.0F, BacktankUtil.maxAir(selected));
-            float air = BacktankUtil.getAir(selected);
+    private record PressureState(float air, float maxAir, boolean lowPressure, boolean netheriteBonus) {
+        private static PressureState from(ServerPlayer player, ItemStack hammerStack) {
+            float maxAir = maxHammerPressure();
+            float air = getStoredPressure(hammerStack);
             boolean lowPressure = air / maxAir < Config.LOW_PRESSURE_THRESHOLD.get().floatValue();
-            ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(selected.getItem());
-            boolean netheriteBonus = NETHERITE_BACKTANK_ID.equals(itemId);
-            return new PressureState(selected, air, maxAir, lowPressure, netheriteBonus);
+            ResourceLocation chestItemId = ForgeRegistries.ITEMS.getKey(player.getItemBySlot(EquipmentSlot.CHEST).getItem());
+            boolean netheriteBonus = NETHERITE_BACKTANK_ID.equals(chestItemId);
+            return new PressureState(air, maxAir, lowPressure, netheriteBonus);
         }
 
         private boolean canScan() {
-            return !backtank.isEmpty() && air > 0.0F;
+            return air > 0.0F;
         }
 
         private float airCost() {
