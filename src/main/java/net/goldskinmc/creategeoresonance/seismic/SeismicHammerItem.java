@@ -18,10 +18,12 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -41,6 +43,8 @@ import java.util.function.Consumer;
 
 public class SeismicHammerItem extends Item {
     private static final ResourceLocation NETHERITE_BACKTANK_ID = ResourceLocation.fromNamespaceAndPath("create", "netherite_backtank");
+    private static final float PUNCH_DAMAGE = 10.0F;
+    private static final double PUNCH_KNOCKBACK = 2.25D;
 
     public SeismicHammerItem(Properties properties) {
         super(properties);
@@ -100,6 +104,29 @@ public class SeismicHammerItem extends Item {
             level.getGameTime(),
             lowPressure
         ));
+        return InteractionResult.CONSUME;
+    }
+
+    @Override
+    public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target, InteractionHand usedHand) {
+        if (usedHand != InteractionHand.MAIN_HAND) {
+            return InteractionResult.PASS;
+        }
+        if (player.getCooldowns().isOnCooldown(this)) {
+            return InteractionResult.PASS;
+        }
+        if (player.level().isClientSide) {
+            return InteractionResult.CONSUME;
+        }
+
+        if (!target.hurt(player.damageSources().playerAttack(player), PUNCH_DAMAGE)) {
+            return InteractionResult.PASS;
+        }
+
+        float yawRadians = player.getYRot() * ((float) Math.PI / 180F);
+        target.knockback(PUNCH_KNOCKBACK, Mth.sin(yawRadians), -Mth.cos(yawRadians));
+        player.getCooldowns().addCooldown(this, Config.COOLDOWN_TICKS.get());
+        player.level().playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 0.8F, 0.85F);
         return InteractionResult.CONSUME;
     }
 
