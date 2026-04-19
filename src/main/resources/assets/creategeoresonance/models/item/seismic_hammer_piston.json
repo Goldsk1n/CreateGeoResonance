@@ -2,8 +2,8 @@
 	"format_version": "1.9.0",
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "create:seismic_hammer",
-		"particle": "create:seismic_hammer"
+		"0": "creategeoresonance:item/seismic_hammer",
+		"particle": "creategeoresonance:item/seismic_hammer"
 	},
 	"elements": [
 		{
