@@ -41,7 +41,6 @@ import java.util.function.Consumer;
 
 public class SeismicHammerItem extends Item {
     private static final ResourceLocation NETHERITE_BACKTANK_ID = ResourceLocation.fromNamespaceAndPath("create", "netherite_backtank");
-    private static final String STORED_PRESSURE_TAG = "StoredPressure";
 
     public SeismicHammerItem(Properties properties) {
         super(properties);
@@ -75,7 +74,7 @@ public class SeismicHammerItem extends Item {
             return InteractionResult.CONSUME;
         }
 
-        setStoredPressure(hammerStack, pressure.air() - pressure.airCost());
+        SeismicPressureStorage.setStoredPressure(hammerStack, pressure.air() - pressure.airCost());
         boolean lowPressure = pressure.lowPressure();
         int depth = lowPressure ? Math.max(1, Config.DEPTH.get() / 2) : Config.DEPTH.get();
         BlockState struckState = level.getBlockState(context.getClickedPos());
@@ -126,6 +125,7 @@ public class SeismicHammerItem extends Item {
         if (!level.setBlock(placeContext.getClickedPos(), placeState, Block.UPDATE_ALL)) {
             return InteractionResult.PASS;
         }
+        placeState.getBlock().setPlacedBy(level, placeContext.getClickedPos(), placeState, player, context.getItemInHand());
 
         level.playSound(null, placeContext.getClickedPos(), SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.7F, 1.2F);
         if (!player.getAbilities().instabuild) {
@@ -141,13 +141,13 @@ public class SeismicHammerItem extends Item {
 
     @Override
     public int getBarWidth(ItemStack stack) {
-        float fill = getStoredPressure(stack) / maxHammerPressure();
+        float fill = SeismicPressureStorage.getStoredPressure(stack) / SeismicPressureStorage.maxPressure();
         return Mth.clamp(Math.round(fill * 13.0F), 0, 13);
     }
 
     @Override
     public int getBarColor(ItemStack stack) {
-        float fill = Mth.clamp(getStoredPressure(stack) / maxHammerPressure(), 0.0F, 1.0F);
+        float fill = Mth.clamp(SeismicPressureStorage.getStoredPressure(stack) / SeismicPressureStorage.maxPressure(), 0.0F, 1.0F);
         return Mth.hsvToRgb(fill / 3.0F, 1.0F, 1.0F);
     }
 
@@ -176,8 +176,8 @@ public class SeismicHammerItem extends Item {
     }
 
     private static void refillFromBacktank(ItemStack hammerStack, Player player) {
-        float currentPressure = getStoredPressure(hammerStack);
-        float maxPressure = maxHammerPressure();
+        float currentPressure = SeismicPressureStorage.getStoredPressure(hammerStack);
+        float maxPressure = SeismicPressureStorage.maxPressure();
         if (currentPressure >= maxPressure) {
             return;
         }
@@ -197,7 +197,7 @@ public class SeismicHammerItem extends Item {
             return;
         }
 
-        setStoredPressure(hammerStack, currentPressure + transfer);
+        SeismicPressureStorage.setStoredPressure(hammerStack, currentPressure + transfer);
         setBacktankAir(chestStack, backtankAir - transfer);
     }
 
@@ -205,22 +205,6 @@ public class SeismicHammerItem extends Item {
         CompoundTag tag = backtank.getOrCreateTag();
         tag.putFloat("Air", Mth.clamp(air, 0.0F, BacktankUtil.maxAir(backtank)));
         backtank.setTag(tag);
-    }
-
-    private static float maxHammerPressure() {
-        return Math.max(1.0F, BacktankUtil.maxAirWithoutEnchants());
-    }
-
-    private static float getStoredPressure(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        if (tag == null || !tag.contains(STORED_PRESSURE_TAG)) {
-            return 0.0F;
-        }
-        return Mth.clamp(tag.getFloat(STORED_PRESSURE_TAG), 0.0F, maxHammerPressure());
-    }
-
-    private static void setStoredPressure(ItemStack stack, float pressure) {
-        stack.getOrCreateTag().putFloat(STORED_PRESSURE_TAG, Mth.clamp(pressure, 0.0F, maxHammerPressure()));
     }
 
     private static void applyStandingRecoil(Player player) {
@@ -244,8 +228,8 @@ public class SeismicHammerItem extends Item {
 
     private record PressureState(float air, float maxAir, boolean lowPressure, boolean netheriteBonus) {
         private static PressureState from(ServerPlayer player, ItemStack hammerStack) {
-            float maxAir = maxHammerPressure();
-            float air = getStoredPressure(hammerStack);
+            float maxAir = SeismicPressureStorage.maxPressure();
+            float air = SeismicPressureStorage.getStoredPressure(hammerStack);
             boolean lowPressure = air / maxAir < Config.LOW_PRESSURE_THRESHOLD.get().floatValue();
             ResourceLocation chestItemId = ForgeRegistries.ITEMS.getKey(player.getItemBySlot(EquipmentSlot.CHEST).getItem());
             boolean netheriteBonus = NETHERITE_BACKTANK_ID.equals(chestItemId);

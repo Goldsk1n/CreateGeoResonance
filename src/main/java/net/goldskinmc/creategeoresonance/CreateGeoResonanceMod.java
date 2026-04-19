@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance;
 
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
@@ -23,6 +24,7 @@ public class CreateGeoResonanceMod {
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         GeoResonanceRegistrate.init();
         GeoResonanceBlocks.register();
+        GeoResonanceBlockEntityTypes.register();
         GeoResonanceItems.register();
         GeoResonancePackets.register();
 

@@ -2,11 +2,25 @@
   "type": "minecraft:block",
   "pools": [
     {
+      "bonus_rolls": 0.0,
       "rolls": 1,
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "creategeoresonance:seismic_hammer"
+          "name": "creategeoresonance:seismic_hammer",
+          "functions": [
+            {
+              "function": "minecraft:copy_nbt",
+              "source": "block_entity",
+              "ops": [
+                {
+                  "op": "replace",
+                  "source": "StoredPressure",
+                  "target": "StoredPressure"
+                }
+              ]
+            }
+          ]
         }
       ],
       "conditions": [
