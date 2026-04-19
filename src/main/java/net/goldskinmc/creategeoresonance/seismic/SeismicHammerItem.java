@@ -5,6 +5,7 @@ import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.render.SeismicHammerItemRenderer;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -18,8 +19,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.tags.BlockTags;
@@ -41,7 +44,12 @@ public class SeismicHammerItem extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
-        if (!(context.getPlayer() instanceof ServerPlayer player)) {
+        Player actor = context.getPlayer();
+        if (actor != null && actor.isShiftKeyDown()) {
+            return tryPlaceAsBlock(context, actor);
+        }
+
+        if (!(actor instanceof ServerPlayer player)) {
             return InteractionResult.CONSUME;
         }
         if (!(context.getLevel() instanceof ServerLevel level)) {
@@ -85,6 +93,36 @@ public class SeismicHammerItem extends Item {
             level.getGameTime(),
             lowPressure
         ));
+        return InteractionResult.CONSUME;
+    }
+
+    private InteractionResult tryPlaceAsBlock(UseOnContext context, Player actor) {
+        if (context.getLevel().isClientSide) {
+            return InteractionResult.CONSUME;
+        }
+        if (!(actor instanceof ServerPlayer player)) {
+            return InteractionResult.CONSUME;
+        }
+        if (!(context.getLevel() instanceof ServerLevel level)) {
+            return InteractionResult.CONSUME;
+        }
+
+        BlockPlaceContext placeContext = new BlockPlaceContext(context);
+        if (!placeContext.canPlace() || !level.getWorldBorder().isWithinBounds(placeContext.getClickedPos())) {
+            return InteractionResult.PASS;
+        }
+        BlockState placeState = GeoResonanceBlocks.PLACED_SEISMIC_HAMMER.get().getStateForPlacement(placeContext);
+        if (placeState == null) {
+            return InteractionResult.PASS;
+        }
+        if (!level.setBlock(placeContext.getClickedPos(), placeState, Block.UPDATE_ALL)) {
+            return InteractionResult.PASS;
+        }
+
+        level.playSound(null, placeContext.getClickedPos(), SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.7F, 1.2F);
+        if (!player.getAbilities().instabuild) {
+            context.getItemInHand().shrink(1);
+        }
         return InteractionResult.CONSUME;
     }
 

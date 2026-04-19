@@ -1,4 +1,5 @@
 {
+  "block.creategeoresonance.placed_seismic_hammer": "Placed Seismic Hammer",
   "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
   "item.creategeoresonance.seismic_hammer.no_pressure": "Backtank pressure depleted",
   "item.creategeoresonance.seismic_hammer.tooltip.1": "Consumes backtank pressure to read shallow cavities and liquids.",

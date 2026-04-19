@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance;
 
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -21,6 +22,7 @@ public class CreateGeoResonanceMod {
         context.getModEventBus().addListener(this::onBuildCreativeTab);
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         GeoResonanceRegistrate.init();
+        GeoResonanceBlocks.register();
         GeoResonanceItems.register();
         GeoResonancePackets.register();
 

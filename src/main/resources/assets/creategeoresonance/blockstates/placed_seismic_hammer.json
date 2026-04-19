@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "creategeoresonance:block/placed_seismic_hammer"
+    },
+    "facing=east": {
+      "model": "creategeoresonance:block/placed_seismic_hammer",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "creategeoresonance:block/placed_seismic_hammer",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "creategeoresonance:block/placed_seismic_hammer",
+      "y": 270
+    }
+  }
+}
