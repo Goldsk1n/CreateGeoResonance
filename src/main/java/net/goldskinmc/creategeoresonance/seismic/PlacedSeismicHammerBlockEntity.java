@@ -1,14 +1,18 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.content.kinetics.base.IRotate.SpeedLevel;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.particle.AirParticleData;
+import com.simibubi.create.foundation.utility.CreateLang;
 import net.createmod.catnip.math.VecHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -26,6 +30,27 @@ public class PlacedSeismicHammerBlockEntity extends KineticBlockEntity {
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+    }
+
+    @Override
+    public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+        boolean added = super.addToGoggleTooltip(tooltip, isPlayerSneaking);
+        if (!added) {
+            CreateLang.translate("gui.goggles.kinetic_stats").forGoggles(tooltip);
+        }
+
+        SpeedLevel.getFormattedSpeedText(getTheoreticalSpeed(), isOverStressed()).forGoggles(tooltip, 1);
+
+        CreateLang.builder()
+            .add(Component.translatable("creategeoresonance.gui.goggles.pressure")
+                .withStyle(ChatFormatting.GRAY))
+            .forGoggles(tooltip, 1);
+        CreateLang.builder()
+            .add(CreateLang.number(Mth.floor(storedPressure)).style(ChatFormatting.AQUA))
+            .text(ChatFormatting.GRAY, " / ")
+            .add(CreateLang.number(Mth.floor(SeismicPressureStorage.maxPressure())).style(ChatFormatting.DARK_GRAY))
+            .forGoggles(tooltip, 2);
+        return true;
     }
 
     @Override
@@ -59,12 +84,11 @@ public class PlacedSeismicHammerBlockEntity extends KineticBlockEntity {
         float absSpeed = Math.abs(getSpeed());
         int increment = Mth.clamp(((int) absSpeed - 100) / 20, 1, 5);
         storedPressure = Math.min(maxPressure, storedPressure + increment);
+        setChanged();
+        sendData();
 
         if (level != null && getComparatorOutput() != previousComparatorLevel) {
             level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
-        }
-        if (storedPressure >= maxPressure) {
-            sendData();
         }
         chargeTimer = Mth.clamp((int) (128f - absSpeed / 5f) - 108, 0, 20);
     }
