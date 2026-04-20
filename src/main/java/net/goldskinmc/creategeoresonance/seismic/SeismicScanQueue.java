@@ -189,16 +189,6 @@ public final class SeismicScanQueue {
             if (anomalies.size() > Config.MAX_ECHOES.get()) {
                 anomalies = new ArrayList<>(anomalies.subList(0, Config.MAX_ECHOES.get()));
             }
-            if (anomalies.isEmpty()) {
-                anomalies.add(new SeismicAnomaly(
-                    SeismicAnomalyType.SOLID,
-                    0,
-                    0,
-                    Math.max(1, request.depth() / 3),
-                    2,
-                    0.35F
-                ));
-            }
             return anomalies;
         }
 
