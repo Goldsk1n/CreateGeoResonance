@@ -8,8 +8,8 @@ import dev.engine_room.flywheel.lib.instance.TransformedInstance;
 import dev.engine_room.flywheel.lib.model.Models;
 import dev.engine_room.flywheel.lib.visual.AbstractVisual;
 import dev.engine_room.flywheel.lib.visual.SimpleDynamicVisual;
+import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 public final class SeismicWaveVisual extends AbstractVisual implements EffectVisual<SeismicWaveEffect>, SimpleDynamicVisual {
@@ -20,7 +20,7 @@ public final class SeismicWaveVisual extends AbstractVisual implements EffectVis
         super(context, effect.clientLevel(), partialTick);
         this.effect = effect;
         this.wave = instancerProvider()
-            .instancer(InstanceTypes.TRANSFORMED, Models.block(Blocks.WHITE_STAINED_GLASS.defaultBlockState()), 4)
+            .instancer(InstanceTypes.TRANSFORMED, Models.partial(GeoResonancePartialModels.SEISMIC_WAVE), 4)
             .createInstance();
         updateTransform(partialTick);
     }

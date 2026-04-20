@@ -7,6 +7,8 @@ import net.minecraft.resources.ResourceLocation;
 public final class GeoResonancePartialModels {
     public static final PartialModel PLACED_SEISMIC_HAMMER_ROTOR = PartialModel.of(
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/placed_seismic_hammer_rotor"));
+    public static final PartialModel SEISMIC_WAVE = PartialModel.of(
+        ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_wave"));
 
     private GeoResonancePartialModels() {
     }
