@@ -21,6 +21,9 @@ public class Config {
     public static final ForgeConfigSpec.IntValue MAX_ECHOES = STAGE1
         .comment("Maximum anomalies sent to clients for rendering.")
         .defineInRange("maxEchoes", 8, 1, 32);
+    public static final ForgeConfigSpec.IntValue ECHO_MERGE_DISTANCE = STAGE1
+        .comment("Minimum horizontal distance in blocks used to merge nearby anomalies into one echo.")
+        .defineInRange("echoMergeDistance", 5, 1, 32);
     public static final ForgeConfigSpec.IntValue SCAN_BLOCK_BUDGET_PER_TICK = STAGE1
         .comment("Total scan block checks processed globally per server tick.")
         .defineInRange("scanBlockBudgetPerTick", 2400, 64, 250000);
