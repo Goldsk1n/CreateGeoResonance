@@ -7,6 +7,7 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.render.SeismicHammerItemRenderer;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -72,7 +73,8 @@ public class SeismicHammerItem extends Item {
 
         PressureState pressure = PressureState.from(player, hammerStack);
         if (!pressure.canScan()) {
-            level.playSound(null, player.blockPosition(), SoundEvents.FLINTANDSTEEL_USE, SoundSource.PLAYERS, 0.9f, 0.65f);
+            level.playSound(null, player.blockPosition(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.88F, 1.22F);
+            level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 0.5F, 1.45F);
             player.displayClientMessage(Component.translatable("item.creategeoresonance.seismic_hammer.no_pressure")
                 .withStyle(ChatFormatting.RED), true);
             return InteractionResult.CONSUME;
@@ -126,7 +128,7 @@ public class SeismicHammerItem extends Item {
         float yawRadians = player.getYRot() * ((float) Math.PI / 180F);
         target.knockback(PUNCH_KNOCKBACK, Mth.sin(yawRadians), -Mth.cos(yawRadians));
         player.getCooldowns().addCooldown(this, Config.COOLDOWN_TICKS.get());
-        player.level().playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 0.8F, 0.85F);
+        player.level().playSound(null, target.blockPosition(), GeoResonanceSoundEvents.SEISMIC_HAMMER_HIT.get(), SoundSource.PLAYERS, 0.9F, 0.98F);
         return InteractionResult.CONSUME;
     }
 

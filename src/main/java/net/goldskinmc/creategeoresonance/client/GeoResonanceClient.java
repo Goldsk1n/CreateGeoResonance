@@ -5,13 +5,13 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.effect.SeismicWaveEffect;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -21,7 +21,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -30,6 +29,7 @@ import java.util.List;
 
 public final class GeoResonanceClient {
     private static final List<ScheduledEcho> PENDING_ECHOES = new ArrayList<>();
+    private static final List<ScheduledSound> PENDING_SOUNDS = new ArrayList<>();
     private static final List<ActiveEffect> ACTIVE_EFFECTS = new ArrayList<>();
     private static final List<ActiveShake> ACTIVE_SHAKES = new ArrayList<>();
 
@@ -55,11 +55,10 @@ public final class GeoResonanceClient {
         spawnWave(level, center, 0xC2C2C2, opacity, blur, 16, 6.5F);
 
         if (packet.lowPressure()) {
+            level.playLocalSound(center.x, center.y, center.z, GeoResonanceSoundEvents.SEISMIC_HAMMER_HIT.get(), SoundSource.PLAYERS, 0.8F, 1.2F, false);
             level.playLocalSound(center.x, center.y, center.z, SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.8F, 1.25F, false);
         } else {
-            SoundEvent impactSound = soundOrFallback(ResourceLocation.fromNamespaceAndPath("create", "mechanical_press_activation"),
-                SoundEvents.ZOMBIE_ATTACK_IRON_DOOR);
-            level.playLocalSound(center.x, center.y, center.z, impactSound, SoundSource.PLAYERS, 1.0F, 0.95F, false);
+            level.playLocalSound(center.x, center.y, center.z, GeoResonanceSoundEvents.SEISMIC_HAMMER_HIT.get(), SoundSource.PLAYERS, 1.25F, 0.95F, false);
             level.playLocalSound(center.x, center.y, center.z, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 0.65F, 0.58F, false);
         }
 
@@ -89,12 +88,23 @@ public final class GeoResonanceClient {
         ClientLevel level = minecraft.level;
         if (level == null) {
             PENDING_ECHOES.clear();
+            PENDING_SOUNDS.clear();
             ACTIVE_EFFECTS.clear();
             ACTIVE_SHAKES.clear();
             return;
         }
 
         long now = level.getGameTime();
+        for (Iterator<ScheduledSound> iterator = PENDING_SOUNDS.iterator(); iterator.hasNext(); ) {
+            ScheduledSound scheduledSound = iterator.next();
+            if (now < scheduledSound.executeTick()) {
+                continue;
+            }
+            level.playLocalSound(scheduledSound.x(), scheduledSound.y(), scheduledSound.z(), scheduledSound.sound(),
+                SoundSource.PLAYERS, scheduledSound.volume(), scheduledSound.pitch(), false);
+            iterator.remove();
+        }
+
         for (Iterator<ScheduledEcho> iterator = PENDING_ECHOES.iterator(); iterator.hasNext(); ) {
             ScheduledEcho echo = iterator.next();
             if (now < echo.executeTick()) {
@@ -153,9 +163,26 @@ public final class GeoResonanceClient {
             case SOLID -> 0.56F;
         };
         float pitch = Mth.clamp(basePitch - depthRatio * 0.22F, 0.25F, 2.0F);
-        level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, scheduled.lowPressure() ? 0.6F : 0.8F, pitch, false);
+        if (scheduled.lowPressure()) {
+            level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, 0.6F, pitch, false);
+        } else if (anomaly.type() == SeismicAnomalyType.WATER) {
+            level.playLocalSound(center.x, center.y, center.z, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT, SoundSource.PLAYERS, 0.95F, pitch, false);
+        } else if (anomaly.type() == SeismicAnomalyType.LAVA) {
+            float pitchA = Mth.clamp(pitch, 0.25F, 2.0F);
+            float pitchB = Mth.clamp(pitch + 0.13F, 0.25F, 2.0F);
+            float pitchC = Mth.clamp(pitch - 0.1F, 0.25F, 2.0F);
+            level.playLocalSound(center.x, center.y, center.z, SoundEvents.LAVA_POP, SoundSource.PLAYERS, 1.1F, pitchA, false);
+            scheduleLocalSound(level.getGameTime() + 4, center, SoundEvents.LAVA_POP, 0.95F, pitchB);
+            scheduleLocalSound(level.getGameTime() + 8, center, SoundEvents.LAVA_POP, 0.8F, pitchC);
+        } else {
+            level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, 0.8F, pitch, false);
+        }
 
         addShakeForLocalPlayer(scheduled.scannerEntityId(), center, 0.18F * confidence, 0.05F * confidence, 6, level.getGameTime());
+    }
+
+    private static void scheduleLocalSound(long executeTick, Vec3 center, SoundEvent sound, float volume, float pitch) {
+        PENDING_SOUNDS.add(new ScheduledSound(executeTick, center.x, center.y, center.z, sound, volume, pitch));
     }
 
     private static void spawnWave(ClientLevel level, Vec3 center, int rgb, float opacity, float blur, int lifetimeTicks, float maxRadius) {
@@ -233,11 +260,6 @@ public final class GeoResonanceClient {
         event.setPitch(event.getPitch() + pitchOffset);
     }
 
-    private static SoundEvent soundOrFallback(ResourceLocation id, SoundEvent fallback) {
-        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(id);
-        return sound == null ? fallback : sound;
-    }
-
     private static Vec3 surfaceCenter(ClientLevel level, BlockPos reference) {
         int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, reference.getX(), reference.getZ());
         int minY = level.getMinBuildHeight();
@@ -249,6 +271,9 @@ public final class GeoResonanceClient {
 
     private record ScheduledEcho(BlockPos origin, int scannerEntityId, int maxDepth, boolean lowPressure, SeismicAnomaly anomaly,
                                  long executeTick) {
+    }
+
+    private record ScheduledSound(long executeTick, double x, double y, double z, SoundEvent sound, float volume, float pitch) {
     }
 
     private record ActiveEffect(SeismicWaveEffect effect, long expiresAtTick) {

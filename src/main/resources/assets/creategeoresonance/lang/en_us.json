@@ -6,5 +6,6 @@
   "item.creategeoresonance.seismic_hammer.tooltip.2": "Low pressure returns become ambiguous and less reliable.",
   "item.creategeoresonance.seismic_hammer.tooltip.3": "Soft ground dampens depth unless powered by a Netherite Backtank.",
   "item.creategeoresonance.seismic_hammer.tooltip.4": "Automatically refills from a worn pressurized backtank.",
-  "creategeoresonance.gui.goggles.pressure": "Pressure:"
+  "creategeoresonance.gui.goggles.pressure": "Pressure:",
+  "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
 }

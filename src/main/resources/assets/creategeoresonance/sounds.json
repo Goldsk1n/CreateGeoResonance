@@ -1,0 +1,10 @@
+{
+  "seismic_hammer_hit": {
+    "subtitle": "subtitles.creategeoresonance.seismic_hammer_hit",
+    "sounds": [
+      {
+        "name": "creategeoresonance:seismic_hammer_hit"
+      }
+    ]
+  }
+}
