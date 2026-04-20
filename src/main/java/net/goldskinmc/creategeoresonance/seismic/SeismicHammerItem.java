@@ -120,11 +120,25 @@ public class SeismicHammerItem extends Item {
         if (player.level().isClientSide) {
             return InteractionResult.CONSUME;
         }
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return InteractionResult.PASS;
+        }
+
+        refillFromBacktank(stack, serverPlayer);
+        PressureState pressure = PressureState.from(serverPlayer, stack);
+        if (!pressure.canScan()) {
+            serverPlayer.level().playSound(null, serverPlayer.blockPosition(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.88F, 1.22F);
+            serverPlayer.level().playSound(null, serverPlayer.blockPosition(), SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 0.5F, 1.45F);
+            serverPlayer.displayClientMessage(Component.translatable("item.creategeoresonance.seismic_hammer.no_pressure")
+                .withStyle(ChatFormatting.RED), true);
+            return InteractionResult.CONSUME;
+        }
 
         if (!target.hurt(player.damageSources().playerAttack(player), PUNCH_DAMAGE)) {
             return InteractionResult.PASS;
         }
 
+        SeismicPressureStorage.setStoredPressure(stack, pressure.air() - pressure.airCost());
         float yawRadians = player.getYRot() * ((float) Math.PI / 180F);
         target.knockback(PUNCH_KNOCKBACK, Mth.sin(yawRadians), -Mth.cos(yawRadians));
         player.getCooldowns().addCooldown(this, Config.COOLDOWN_TICKS.get());
