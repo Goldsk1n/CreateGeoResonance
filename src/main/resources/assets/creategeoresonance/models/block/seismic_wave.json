@@ -1,7 +1,16 @@
 {
   "render_type": "translucent",
-  "parent": "minecraft:block/cube_all",
   "textures": {
-    "all": "creategeoresonance:block/seismic_wave_clear"
-  }
+    "wave": "creategeoresonance:block/seismic_wave_clear"
+  },
+  "elements": [
+    {
+      "from": [ 0, 0, 0 ],
+      "to": [ 16, 0.2, 16 ],
+      "faces": {
+        "up": { "texture": "#wave", "uv": [ 0, 0, 16, 16 ] },
+        "down": { "texture": "#wave", "uv": [ 0, 0, 16, 16 ] }
+      }
+    }
+  ]
 }
