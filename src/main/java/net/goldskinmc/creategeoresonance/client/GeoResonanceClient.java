@@ -145,7 +145,7 @@ public final class GeoResonanceClient {
             case LAVA -> 0xFF8A33;
             case SOLID -> 0x8E8378;
         };
-        float opacity = scheduled.lowPressure() ? 0.25F + confidence * 0.3F : 0.35F + confidence * 0.65F;
+        float opacity = scheduled.lowPressure() ? 0.35F + confidence * 0.35F : 0.5F + confidence * 0.5F;
         float radius = Math.max(2.0F, anomaly.radius() + confidence * 2.0F + blur);
         spawnWave(level, center, color, opacity, blur, 12, radius);
 
