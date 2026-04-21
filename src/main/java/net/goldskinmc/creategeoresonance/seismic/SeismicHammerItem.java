@@ -2,12 +2,14 @@ package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.AllTags;
 import com.simibubi.create.content.equipment.armor.BacktankUtil;
+import com.simibubi.create.foundation.item.ItemDescription;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.render.SeismicHammerItemRenderer;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
+import net.createmod.catnip.lang.FontHelper.Palette;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -188,15 +190,13 @@ public class SeismicHammerItem extends Item {
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.1")
-            .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.2")
-            .withStyle(ChatFormatting.DARK_GRAY));
-        tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.3")
-            .withStyle(ChatFormatting.DARK_GRAY));
-        tooltip.add(Component.translatable("item.creategeoresonance.seismic_hammer.tooltip.4")
-            .withStyle(ChatFormatting.DARK_GRAY));
+        ItemDescription description = ItemDescription.create(this, Palette.STANDARD_CREATE);
+        if (description == null) {
+            return;
+        }
+        tooltip.addAll(description.getCurrentLines());
     }
 
     @Override
