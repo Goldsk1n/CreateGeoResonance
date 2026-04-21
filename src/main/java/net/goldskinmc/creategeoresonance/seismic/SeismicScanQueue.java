@@ -56,6 +56,82 @@ public final class SeismicScanQueue {
         }
     }
 
+    static List<SeismicAnomaly> prioritizeAndLimitAnomalies(List<SeismicAnomaly> rawAnomalies, int mergeDistance, int maxEchoes) {
+        if (rawAnomalies.isEmpty()) {
+            return rawAnomalies;
+        }
+
+        rawAnomalies.sort((left, right) -> {
+            int priorityCompare = Integer.compare(typePriority(right.type()), typePriority(left.type()));
+            if (priorityCompare != 0) {
+                return priorityCompare;
+            }
+            return Double.compare(anomalyStrength(right), anomalyStrength(left));
+        });
+
+        List<SeismicAnomaly> selected = new ArrayList<>();
+        for (SeismicAnomaly candidate : rawAnomalies) {
+            int overlapIndex = findOverlappingIndex(selected, candidate, mergeDistance);
+            if (overlapIndex < 0) {
+                selected.add(candidate);
+                continue;
+            }
+
+            SeismicAnomaly current = selected.get(overlapIndex);
+            if (shouldReplace(current, candidate)) {
+                selected.set(overlapIndex, candidate);
+            }
+        }
+
+        selected.sort((left, right) -> {
+            int priorityCompare = Integer.compare(typePriority(right.type()), typePriority(left.type()));
+            if (priorityCompare != 0) {
+                return priorityCompare;
+            }
+            return Double.compare(anomalyStrength(right), anomalyStrength(left));
+        });
+
+        if (selected.size() > maxEchoes) {
+            return new ArrayList<>(selected.subList(0, maxEchoes));
+        }
+        return selected;
+    }
+
+    private static int findOverlappingIndex(List<SeismicAnomaly> selected, SeismicAnomaly candidate, int mergeDistance) {
+        for (int i = 0; i < selected.size(); i++) {
+            SeismicAnomaly existing = selected.get(i);
+            int effectiveMergeDistance = Math.max(mergeDistance, (existing.radius() + candidate.radius()) / 2);
+            int dx = existing.offsetX() - candidate.offsetX();
+            int dz = existing.offsetZ() - candidate.offsetZ();
+            if (dx * dx + dz * dz <= effectiveMergeDistance * effectiveMergeDistance) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean shouldReplace(SeismicAnomaly current, SeismicAnomaly candidate) {
+        int currentPriority = typePriority(current.type());
+        int candidatePriority = typePriority(candidate.type());
+        if (candidatePriority != currentPriority) {
+            return candidatePriority > currentPriority;
+        }
+        return anomalyStrength(candidate) > anomalyStrength(current);
+    }
+
+    private static double anomalyStrength(SeismicAnomaly anomaly) {
+        return anomaly.confidence() * (1.0D + anomaly.radius() * 0.2D);
+    }
+
+    private static int typePriority(SeismicAnomalyType type) {
+        return switch (type) {
+            case LAVA -> 3;
+            case WATER -> 2;
+            case CAVE -> 1;
+            case SOLID -> 0;
+        };
+    }
+
     public record SeismicScanRequest(
         ServerLevel level,
         BlockPos origin,
@@ -183,83 +259,7 @@ public final class SeismicScanQueue {
                 ));
             }
 
-            List<SeismicAnomaly> anomalies = consolidateAnomalies(rawAnomalies);
-            if (anomalies.size() > Config.MAX_ECHOES.get()) {
-                anomalies = new ArrayList<>(anomalies.subList(0, Config.MAX_ECHOES.get()));
-            }
-            return anomalies;
-        }
-
-        private List<SeismicAnomaly> consolidateAnomalies(List<SeismicAnomaly> rawAnomalies) {
-            if (rawAnomalies.isEmpty()) {
-                return rawAnomalies;
-            }
-
-            rawAnomalies.sort((left, right) -> {
-                int priorityCompare = Integer.compare(typePriority(right.type()), typePriority(left.type()));
-                if (priorityCompare != 0) {
-                    return priorityCompare;
-                }
-                return Double.compare(anomalyStrength(right), anomalyStrength(left));
-            });
-
-            List<SeismicAnomaly> selected = new ArrayList<>();
-            for (SeismicAnomaly candidate : rawAnomalies) {
-                int overlapIndex = findOverlappingIndex(selected, candidate);
-                if (overlapIndex < 0) {
-                    selected.add(candidate);
-                    continue;
-                }
-
-                SeismicAnomaly current = selected.get(overlapIndex);
-                if (shouldReplace(current, candidate)) {
-                    selected.set(overlapIndex, candidate);
-                }
-            }
-
-            selected.sort((left, right) -> {
-                int priorityCompare = Integer.compare(typePriority(right.type()), typePriority(left.type()));
-                if (priorityCompare != 0) {
-                    return priorityCompare;
-                }
-                return Double.compare(anomalyStrength(right), anomalyStrength(left));
-            });
-            return selected;
-        }
-
-        private int findOverlappingIndex(List<SeismicAnomaly> selected, SeismicAnomaly candidate) {
-            for (int i = 0; i < selected.size(); i++) {
-                SeismicAnomaly existing = selected.get(i);
-                int mergeDistance = Math.max(Config.ECHO_MERGE_DISTANCE.get(), (existing.radius() + candidate.radius()) / 2);
-                int dx = existing.offsetX() - candidate.offsetX();
-                int dz = existing.offsetZ() - candidate.offsetZ();
-                if (dx * dx + dz * dz <= mergeDistance * mergeDistance) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        private boolean shouldReplace(SeismicAnomaly current, SeismicAnomaly candidate) {
-            int currentPriority = typePriority(current.type());
-            int candidatePriority = typePriority(candidate.type());
-            if (candidatePriority != currentPriority) {
-                return candidatePriority > currentPriority;
-            }
-            return anomalyStrength(candidate) > anomalyStrength(current);
-        }
-
-        private double anomalyStrength(SeismicAnomaly anomaly) {
-            return anomaly.confidence() * (1.0D + anomaly.radius() * 0.2D);
-        }
-
-        private int typePriority(SeismicAnomalyType type) {
-            return switch (type) {
-                case LAVA -> 3;
-                case WATER -> 2;
-                case CAVE -> 1;
-                case SOLID -> 0;
-            };
+            return prioritizeAndLimitAnomalies(rawAnomalies, Config.ECHO_MERGE_DISTANCE.get(), Config.MAX_ECHOES.get());
         }
     }
 
