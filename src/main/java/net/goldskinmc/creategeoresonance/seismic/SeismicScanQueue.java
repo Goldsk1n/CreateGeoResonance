@@ -63,7 +63,6 @@ public final class SeismicScanQueue {
         int radius,
         int depth,
         float noise,
-        boolean netheriteBonus,
         long startTick,
         boolean lowPressure
     ) {
@@ -119,7 +118,7 @@ public final class SeismicScanQueue {
                 float depthRatio = (depthIndex + 1) / (float) request.depth();
                 float distance = Mth.sqrt(dx * dx + dz * dz);
                 float distanceRatio = distance / request.radius();
-                float attenuationExponent = request.netheriteBonus() ? 0.9F : 1.9F;
+                float attenuationExponent = 1.9F;
                 float distanceFactor = Mth.clamp(1.0F - (float) Math.pow(distanceRatio, attenuationExponent), 0.0F, 1.0F);
                 float depthFactor = 1.0F - depthRatio;
                 float noise = (random.nextFloat() - 0.5F) * request.noise();
@@ -156,7 +155,6 @@ public final class SeismicScanQueue {
 
         private List<SeismicAnomaly> buildAnomalies(Collection<Aggregate> values) {
             List<SeismicAnomaly> rawAnomalies = new ArrayList<>();
-            float netheriteBonus = request.netheriteBonus() ? Config.NETHERITE_CLARITY_BONUS.get().floatValue() : 0.0F;
 
             for (Aggregate aggregate : values) {
                 if (aggregate.samples == 0 || aggregate.totalWeight <= 0.0F) {
@@ -169,7 +167,7 @@ public final class SeismicScanQueue {
                 float distance = Mth.sqrt(avgDx * avgDx + avgDz * avgDz);
                 float distanceRatio = Mth.clamp(distance / request.radius(), 0.0F, 1.0F);
                 float baseConfidence = aggregate.totalWeight / Math.max(1.0F, aggregate.samples * 0.7F);
-                float clarity = Mth.clamp(1.0F - distanceRatio + netheriteBonus * distanceRatio, 0.0F, 1.0F);
+                float clarity = Mth.clamp(1.0F - distanceRatio, 0.0F, 1.0F);
                 float confidence = Mth.clamp(baseConfidence * (0.5F + clarity * 0.5F), 0.04F, 1.0F);
                 int spanX = aggregate.maxDx - aggregate.minDx;
                 int spanZ = aggregate.maxDz - aggregate.minDz;

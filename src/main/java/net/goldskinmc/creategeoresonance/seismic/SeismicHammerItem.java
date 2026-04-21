@@ -10,7 +10,6 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -36,14 +35,12 @@ import net.minecraft.tags.BlockTags;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public class SeismicHammerItem extends Item {
-    private static final ResourceLocation NETHERITE_BACKTANK_ID = ResourceLocation.fromNamespaceAndPath("create", "netherite_backtank");
     private static final float PUNCH_DAMAGE = 10.0F;
     private static final double PUNCH_KNOCKBACK = 2.25D;
 
@@ -71,7 +68,7 @@ public class SeismicHammerItem extends Item {
         ItemStack hammerStack = context.getItemInHand();
         refillFromBacktank(hammerStack, player);
 
-        PressureState pressure = PressureState.from(player, hammerStack);
+        PressureState pressure = PressureState.from(hammerStack);
         if (!pressure.canScan()) {
             level.playSound(null, player.blockPosition(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.88F, 1.22F);
             level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 0.5F, 1.45F);
@@ -84,13 +81,10 @@ public class SeismicHammerItem extends Item {
         boolean lowPressure = pressure.lowPressure();
         int depth = lowPressure ? Math.max(1, Config.DEPTH.get() / 2) : Config.DEPTH.get();
         BlockState struckState = level.getBlockState(context.getClickedPos());
-        if (!pressure.netheriteBonus() && isSoftImpactBlock(struckState)) {
+        if (isSoftImpactBlock(struckState)) {
             depth = Math.max(1, Mth.floor(depth * Config.SOFT_BLOCK_DEPTH_MULTIPLIER.get().floatValue()));
         }
         float noise = (float) (Config.BASE_NOISE.get() * (lowPressure ? 2.0D : 1.0D));
-        if (pressure.netheriteBonus()) {
-            noise *= 0.75F;
-        }
 
         player.getCooldowns().addCooldown(this, Config.COOLDOWN_TICKS.get());
         applyStandingRecoil(player);
@@ -102,7 +96,6 @@ public class SeismicHammerItem extends Item {
             Config.RADIUS.get(),
             depth,
             noise,
-            pressure.netheriteBonus(),
             level.getGameTime(),
             lowPressure
         ));
@@ -125,7 +118,7 @@ public class SeismicHammerItem extends Item {
         }
 
         refillFromBacktank(stack, serverPlayer);
-        PressureState pressure = PressureState.from(serverPlayer, stack);
+        PressureState pressure = PressureState.from(stack);
         if (!pressure.canScan()) {
             serverPlayer.level().playSound(null, serverPlayer.blockPosition(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.88F, 1.22F);
             serverPlayer.level().playSound(null, serverPlayer.blockPosition(), SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 0.5F, 1.45F);
@@ -269,14 +262,12 @@ public class SeismicHammerItem extends Item {
         consumer.accept(SimpleCustomRenderer.create(this, new SeismicHammerItemRenderer()));
     }
 
-    private record PressureState(float air, float maxAir, boolean lowPressure, boolean netheriteBonus) {
-        private static PressureState from(ServerPlayer player, ItemStack hammerStack) {
+    private record PressureState(float air, float maxAir, boolean lowPressure) {
+        private static PressureState from(ItemStack hammerStack) {
             float maxAir = SeismicPressureStorage.maxPressure();
             float air = SeismicPressureStorage.getStoredPressure(hammerStack);
             boolean lowPressure = air / maxAir < Config.LOW_PRESSURE_THRESHOLD.get().floatValue();
-            ResourceLocation chestItemId = ForgeRegistries.ITEMS.getKey(player.getItemBySlot(EquipmentSlot.CHEST).getItem());
-            boolean netheriteBonus = NETHERITE_BACKTANK_ID.equals(chestItemId);
-            return new PressureState(air, maxAir, lowPressure, netheriteBonus);
+            return new PressureState(air, maxAir, lowPressure);
         }
 
         private boolean canScan() {

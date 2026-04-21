@@ -42,9 +42,6 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue BASE_NOISE = STAGE1
         .comment("Baseline confidence jitter for anomaly evaluation.")
         .defineInRange("baseNoise", 0.1D, 0.0D, 1.0D);
-    public static final ForgeConfigSpec.DoubleValue NETHERITE_CLARITY_BONUS = STAGE1
-        .comment("Extra confidence scaling for edge anomalies with netherite backtank.")
-        .defineInRange("netheriteClarityBonus", 0.3D, 0.0D, 1.0D);
 
     static {
         STAGE1.pop();
