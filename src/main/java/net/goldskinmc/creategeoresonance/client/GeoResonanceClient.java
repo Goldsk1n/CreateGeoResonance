@@ -32,6 +32,8 @@ public final class GeoResonanceClient {
     private static final List<ScheduledSound> PENDING_SOUNDS = new ArrayList<>();
     private static final List<ActiveEffect> ACTIVE_EFFECTS = new ArrayList<>();
     private static final List<ActiveShake> ACTIVE_SHAKES = new ArrayList<>();
+    private static ClientLevel PREWARMED_LEVEL;
+    private static boolean WAVE_RENDERER_PREWARMED;
 
     private GeoResonanceClient() {
     }
@@ -91,10 +93,20 @@ public final class GeoResonanceClient {
             PENDING_SOUNDS.clear();
             ACTIVE_EFFECTS.clear();
             ACTIVE_SHAKES.clear();
+            PREWARMED_LEVEL = null;
+            WAVE_RENDERER_PREWARMED = false;
             return;
         }
 
         long now = level.getGameTime();
+        if (PREWARMED_LEVEL != level) {
+            PREWARMED_LEVEL = level;
+            WAVE_RENDERER_PREWARMED = false;
+        }
+        if (!WAVE_RENDERER_PREWARMED) {
+            prewarmWaveRenderer(level, now);
+        }
+
         for (Iterator<ScheduledSound> iterator = PENDING_SOUNDS.iterator(); iterator.hasNext(); ) {
             ScheduledSound scheduledSound = iterator.next();
             if (now < scheduledSound.executeTick()) {
@@ -183,6 +195,26 @@ public final class GeoResonanceClient {
 
     private static void scheduleLocalSound(long executeTick, Vec3 center, SoundEvent sound, float volume, float pitch) {
         PENDING_SOUNDS.add(new ScheduledSound(executeTick, center.x, center.y, center.z, sound, volume, pitch));
+    }
+
+    private static void prewarmWaveRenderer(ClientLevel level, long now) {
+        if (!VisualizationManager.supportsVisualization(level)) {
+            WAVE_RENDERER_PREWARMED = true;
+            return;
+        }
+        VisualizationManager manager = VisualizationManager.get(level);
+        if (manager == null) {
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        Vec3 center = minecraft.player != null
+            ? minecraft.player.position().add(0.0D, 0.05D, 0.0D)
+            : new Vec3(0.5D, level.getMinBuildHeight() + 1.05D, 0.5D);
+        SeismicWaveEffect effect = new SeismicWaveEffect(level, center, 0xFFFFFF, 0.0F, 0.2F, 1, 0.2F);
+        manager.effects().queueAdd(effect);
+        ACTIVE_EFFECTS.add(new ActiveEffect(effect, now + 2));
+        WAVE_RENDERER_PREWARMED = true;
     }
 
     private static void spawnWave(ClientLevel level, Vec3 center, int rgb, float opacity, float blur, int lifetimeTicks, float maxRadius) {
