@@ -10,6 +10,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.TickEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -132,6 +133,11 @@ public final class SeismicScanQueue {
         };
     }
 
+    @FunctionalInterface
+    public interface ResultConsumer {
+        void accept(SeismicScanRequest request, List<SeismicAnomaly> anomalies);
+    }
+
     public record SeismicScanRequest(
         ServerLevel level,
         BlockPos origin,
@@ -140,8 +146,21 @@ public final class SeismicScanQueue {
         int depth,
         float noise,
         long startTick,
-        boolean lowPressure
+        boolean lowPressure,
+        @Nullable ResultConsumer resultConsumer
     ) {
+        public SeismicScanRequest(
+            ServerLevel level,
+            BlockPos origin,
+            int scannerEntityId,
+            int radius,
+            int depth,
+            float noise,
+            long startTick,
+            boolean lowPressure
+        ) {
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, null);
+        }
     }
 
     private static final class SeismicScanJob {
@@ -219,14 +238,18 @@ public final class SeismicScanQueue {
 
         private void finish() {
             List<SeismicAnomaly> anomalies = buildAnomalies(aggregates.values());
-            GeoResonancePackets.sendSeismicResult(
-                request.level(),
-                request.origin(),
-                request.scannerEntityId(),
-                request.lowPressure(),
-                request.depth(),
-                anomalies
-            );
+            if (request.resultConsumer() != null) {
+                request.resultConsumer().accept(request, anomalies);
+            } else {
+                GeoResonancePackets.sendSeismicResult(
+                    request.level(),
+                    request.origin(),
+                    request.scannerEntityId(),
+                    request.lowPressure(),
+                    request.depth(),
+                    anomalies
+                );
+            }
         }
 
         private List<SeismicAnomaly> buildAnomalies(Collection<Aggregate> values) {

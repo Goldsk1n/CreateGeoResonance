@@ -4,6 +4,7 @@ import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceMenus;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -27,6 +28,7 @@ public class CreateGeoResonanceMod {
         GeoResonanceBlocks.register();
         GeoResonanceBlockEntityTypes.register();
         GeoResonanceItems.register();
+        GeoResonanceMenus.register();
         GeoResonanceSoundEvents.register();
         GeoResonancePackets.register();
 
@@ -40,6 +42,7 @@ public class CreateGeoResonanceMod {
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(GeoResonanceItems.SEISMIC_HAMMER.get());
+            event.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
         }
     }
 }

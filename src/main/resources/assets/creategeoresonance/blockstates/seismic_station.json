@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "creategeoresonance:block/seismic_station"
+    },
+    "facing=south": {
+      "model": "creategeoresonance:block/seismic_station",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "creategeoresonance:block/seismic_station",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "creategeoresonance:block/seismic_station",
+      "y": 90
+    }
+  }
+}

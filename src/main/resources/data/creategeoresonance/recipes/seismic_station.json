@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SPS",
+    "AHA",
+    "SCS"
+  ],
+  "key": {
+    "S": {
+      "item": "create:shaft"
+    },
+    "P": {
+      "item": "minecraft:paper"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "H": {
+      "item": "creategeoresonance:seismic_hammer"
+    },
+    "C": {
+      "item": "create:andesite_casing"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:seismic_station",
+    "count": 1
+  }
+}

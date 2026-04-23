@@ -5,6 +5,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 public class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
     private static final ForgeConfigSpec.Builder STAGE1 = BUILDER.comment("Stage 1 seismic hammer tuning").push("stage1");
+    private static final ForgeConfigSpec.Builder STAGE2 = BUILDER.comment("Stage 2 seismic station tuning").push("stage2");
 
     public static final ForgeConfigSpec.IntValue RADIUS = STAGE1
         .comment("Horizontal scan radius in blocks.")
@@ -43,8 +44,25 @@ public class Config {
         .comment("Baseline confidence jitter for anomaly evaluation.")
         .defineInRange("baseNoise", 0.1D, 0.0D, 1.0D);
 
+    public static final ForgeConfigSpec.IntValue STATION_RADIUS = STAGE2
+        .comment("Horizontal scan radius in blocks for the seismic station.")
+        .defineInRange("stationRadius", 16, 1, 96);
+    public static final ForgeConfigSpec.IntValue STATION_DEPTH = STAGE2
+        .comment("Maximum scan depth in blocks for the seismic station.")
+        .defineInRange("stationDepth", 40, 1, 192);
+    public static final ForgeConfigSpec.IntValue STATION_STRIKE_INTERVAL_TICKS = STAGE2
+        .comment("Ticks between consecutive station strikes while replaying anomalies.")
+        .defineInRange("stationStrikeIntervalTicks", 20, 1, 200);
+    public static final ForgeConfigSpec.IntValue STATION_COOLDOWN_TICKS = STAGE2
+        .comment("Cooldown in ticks after a station scan is finished.")
+        .defineInRange("stationCooldownTicks", 200, 0, 2400);
+    public static final ForgeConfigSpec.DoubleValue STATION_NOISE = STAGE2
+        .comment("Confidence jitter used for station anomaly evaluation.")
+        .defineInRange("stationNoise", 0.08D, 0.0D, 1.0D);
+
     static {
         STAGE1.pop();
+        STAGE2.pop();
     }
 
     static final ForgeConfigSpec SPEC = BUILDER.build();

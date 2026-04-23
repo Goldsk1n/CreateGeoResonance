@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "creategeoresonance:seismic_station",
     "creategeoresonance:placed_seismic_hammer"
   ]
 }
