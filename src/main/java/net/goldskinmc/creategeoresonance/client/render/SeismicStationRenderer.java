@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -25,6 +26,8 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     private static final float DRUM_PIVOT_X = -8.0F;
     private static final float DRUM_PIVOT_Y = 11.0F;
     private static final float DRUM_PIVOT_Z = 7.915F;
+    private static final float PISTON_TRAVEL_BLOCKS = 1.0F;
+    private static final float PISTON_RISE_PORTION = 0.75F;
 
     public SeismicStationRenderer(BlockEntityRendererProvider.Context context) {
         super(context);
@@ -45,6 +48,11 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         orientToFacing(shaft, facing);
         shaft.light(light).renderInto(ms, vertexConsumer);
 
+        SuperByteBuffer piston = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_HAMMER_PISTON, state);
+        piston.translate(0.0F, pistonTravelFor(input), 0.0F);
+        orientToFacing(piston, facing);
+        piston.light(light).renderInto(ms, vertexConsumer);
+
         SuperByteBuffer drum = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_DRUM, state);
         orientToFacing(drum, facing);
         rotateAroundLocalPivot(drum, angle, Direction.EAST, DRUM_PIVOT_X, DRUM_PIVOT_Y, DRUM_PIVOT_Z);
@@ -57,6 +65,32 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         }
         float time = AnimationTickHolder.getRenderTime(input.getLevel());
         return ((time * input.getSpeed() * 3f / 10) % 360) / 180f * (float) Math.PI;
+    }
+
+    private static float pistonTravelFor(SeismicStationBoundingBlockEntity input) {
+        if (input == null || input.getLevel() == null) {
+            return 0.0F;
+        }
+        float absSpeed = Math.abs(input.getSpeed());
+        if (absSpeed < 0.01F) {
+            return 0.0F;
+        }
+
+        float timeSeconds = AnimationTickHolder.getRenderTime(input.getLevel()) / 20.0F;
+        float cyclesPerSecond = Math.max(0.25F, absSpeed / 32.0F);
+        float phase = Mth.frac(timeSeconds * cyclesPerSecond);
+        return PISTON_TRAVEL_BLOCKS * pistonCurve(phase);
+    }
+
+    private static float pistonCurve(float phase) {
+        if (phase <= PISTON_RISE_PORTION) {
+            float t = phase / PISTON_RISE_PORTION;
+            return t * t;
+        }
+
+        float t = (phase - PISTON_RISE_PORTION) / (1.0F - PISTON_RISE_PORTION);
+        float oneMinusT = 1.0F - t;
+        return oneMinusT * oneMinusT * oneMinusT;
     }
 
     private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {

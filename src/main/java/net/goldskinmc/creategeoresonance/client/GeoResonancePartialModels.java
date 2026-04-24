@@ -9,6 +9,8 @@ public final class GeoResonancePartialModels {
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/placed_seismic_hammer_rotor"));
     public static final PartialModel SEISMIC_STATION_TOP_SHAFT = PartialModel.of(
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_top_shaft"));
+    public static final PartialModel SEISMIC_STATION_HAMMER_PISTON = PartialModel.of(
+        ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_hammer_piston"));
     public static final PartialModel SEISMIC_STATION_DRUM = PartialModel.of(
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_drum"));
     public static final PartialModel SEISMIC_WAVE = PartialModel.of(

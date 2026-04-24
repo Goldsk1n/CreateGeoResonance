@@ -1,0 +1,148 @@
+{
+	"format_version": "1.9.0",
+	"credit": "Made with Blockbench",
+	"parent": "block/block",
+	"ambientocclusion": false,
+	"render_type": "minecraft:cutout_mipped",
+	"texture_size": [32, 32],
+	"textures": {
+		"6": "creategeoresonance:block/seismic_station/sturdy_hammer_head",
+		"11": "creategeoresonance:block/seismic_station/seismic_hammer_pole"
+	},
+	"elements": [
+		{
+			"name": "Pole1Core",
+			"from": [6, 4, 6],
+			"to": [10, 14, 10],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"east": {"uv": [6, 6, 10, 16], "texture": "#11"},
+				"west": {"uv": [6, 6, 10, 16], "texture": "#11"}
+			}
+		},
+		{
+			"name": "Pole2Core",
+			"from": [6, 14, 6],
+			"to": [10, 20, 10],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"east": {"uv": [6, 7, 10, 13], "texture": "#11"},
+				"west": {"uv": [6, 7, 10, 13], "texture": "#11"},
+				"up": {"uv": [11, 1, 15, 5], "rotation": 180, "texture": "#11"}
+			}
+		},
+		{
+			"name": "Pole1Side",
+			"from": [5, 4, 5],
+			"to": [11, 14, 6],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"north": {"uv": [0, 6, 6, 16], "texture": "#11"},
+				"east": {"uv": [0, 6, 1, 16], "texture": "#11"},
+				"south": {"uv": [0, 6, 6, 16], "texture": "#11"},
+				"west": {"uv": [5, 6, 6, 16], "texture": "#11"}
+			}
+		},
+		{
+			"name": "Pole1Side",
+			"from": [5, 4, 10],
+			"to": [11, 14, 11],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"north": {"uv": [0, 6, 6, 16], "texture": "#11"},
+				"east": {"uv": [0, 6, 1, 16], "texture": "#11"},
+				"south": {"uv": [0, 6, 6, 16], "texture": "#11"},
+				"west": {"uv": [5, 6, 6, 16], "texture": "#11"}
+			}
+		},
+		{
+			"name": "Pole2Side",
+			"from": [5, 14, 10],
+			"to": [11, 20, 11],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"north": {"uv": [0, 7, 6, 13], "texture": "#11"},
+				"east": {"uv": [0, 7, 1, 13], "texture": "#11"},
+				"south": {"uv": [0, 7, 6, 13], "texture": "#11"},
+				"west": {"uv": [5, 7, 6, 13], "texture": "#11"},
+				"up": {"uv": [10, 0, 16, 1], "rotation": 180, "texture": "#11"}
+			}
+		},
+		{
+			"name": "Pole2Side",
+			"from": [5, 14, 5],
+			"to": [11, 20, 6],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"north": {"uv": [0, 7, 6, 13], "texture": "#11"},
+				"east": {"uv": [0, 7, 1, 13], "texture": "#11"},
+				"south": {"uv": [0, 7, 6, 13], "texture": "#11"},
+				"west": {"uv": [5, 7, 6, 13], "texture": "#11"},
+				"up": {"uv": [10, 5, 16, 6], "rotation": 180, "texture": "#11"}
+			}
+		},
+		{
+			"name": "Head",
+			"from": [2, 0, 2],
+			"to": [14, 4, 14],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
+			"faces": {
+				"north": {"uv": [0, 12, 12, 16], "texture": "#6"},
+				"east": {"uv": [0, 12, 12, 16], "texture": "#6"},
+				"south": {"uv": [0, 12, 12, 16], "texture": "#6"},
+				"west": {"uv": [0, 12, 12, 16], "texture": "#6"},
+				"up": {"uv": [0, 0, 12, 12], "texture": "#6"},
+				"down": {"uv": [0, 0, 12, 12], "texture": "#6", "cullface": "down"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"translation": [3, 2.5, 1],
+			"scale": [0.4, 0.4, 0.4]
+		},
+		"thirdperson_lefthand": {
+			"translation": [-3, 2.5, 1],
+			"scale": [0.4, 0.4, 0.4]
+		},
+		"firstperson_righthand": {
+			"translation": [0, 0, 2],
+			"scale": [0.3, 0.3, 0.3]
+		},
+		"firstperson_lefthand": {
+			"translation": [-4.5, 0, 2],
+			"scale": [0.3, 0.3, 0.3]
+		},
+		"ground": {
+			"translation": [4, 2, 0],
+			"scale": [0.4, 0.4, 0.4]
+		},
+		"gui": {
+			"rotation": [15, -180, 0],
+			"translation": [-3.25, -3.25, 0],
+			"scale": [0.4, 0.4, 0.4]
+		},
+		"head": {
+			"translation": [4.1, -2, 0],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"fixed": {
+			"translation": [4, -3.25, -0.7],
+			"scale": [0.4, 0.4, 0.2]
+		},
+		"on_shelf": {
+			"rotation": [0, -180, 0],
+			"translation": [-3.25, -3.25, -1],
+			"scale": [0.4, 0.4, 0.4]
+		}
+	},
+	"groups": [
+		{
+			"name": "piston",
+			"origin": [8, 8, 8],
+			"scope": 0,
+			"color": 0,
+			"children": [0, 1, 2, 3, 4, 5, 6]
+		}
+	]
+}
