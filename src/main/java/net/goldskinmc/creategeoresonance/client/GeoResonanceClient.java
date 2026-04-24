@@ -8,6 +8,7 @@ import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -62,6 +63,10 @@ public final class GeoResonanceClient {
         } else {
             level.playLocalSound(center.x, center.y, center.z, GeoResonanceSoundEvents.SEISMIC_HAMMER_HIT.get(), SoundSource.PLAYERS, 1.25F, 0.95F, false);
             level.playLocalSound(center.x, center.y, center.z, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 0.65F, 0.58F, false);
+        }
+
+        if (packet.scannerEntityId() == -1 && level.getBlockEntity(packet.origin()) instanceof SeismicStationBlockEntity station) {
+            station.onClientStrikeImpact();
         }
 
         addShakeForLocalPlayer(packet.scannerEntityId(), center, 1.0F, 0.2F, 8, level.getGameTime());

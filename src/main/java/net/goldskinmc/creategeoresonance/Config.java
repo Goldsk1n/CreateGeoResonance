@@ -56,9 +56,15 @@ public class Config {
     public static final ForgeConfigSpec.IntValue STATION_MIN_STRIKE_INTERVAL_TICKS = STAGE2
         .comment("Lower bound for strike interval when the station is overdriven.")
         .defineInRange("stationMinStrikeIntervalTicks", 6, 1, 200);
+    public static final ForgeConfigSpec.IntValue STATION_STRIKE_INTERVAL_MULTIPLIER = STAGE2
+        .comment("Global multiplier applied to station strike intervals.")
+        .defineInRange("stationStrikeIntervalMultiplier", 5, 1, 20);
     public static final ForgeConfigSpec.IntValue STATION_COOLDOWN_TICKS = STAGE2
         .comment("Cooldown in ticks after a station scan is finished.")
         .defineInRange("stationCooldownTicks", 200, 0, 2400);
+    public static final ForgeConfigSpec.IntValue STATION_STARTUP_DELAY_TICKS = STAGE2
+        .comment("Small delay before the first strike after scan results are ready.")
+        .defineInRange("stationStartupDelayTicks", 12, 0, 200);
     public static final ForgeConfigSpec.IntValue STATION_MIN_SPEED = STAGE2
         .comment("Minimum absolute RPM required on the station input shaft to start scanning.")
         .defineInRange("stationMinSpeed", 24, 1, 512);

@@ -17,6 +17,7 @@
   "block.creategeoresonance.seismic_station.rhythm": "Rhythm: %.2fs / strike",
   "block.creategeoresonance.seismic_station.status_idle": "Idle",
   "block.creategeoresonance.seismic_station.status_awaiting": "Processing scan...",
+  "block.creategeoresonance.seismic_station.status_starting": "Starting...",
   "block.creategeoresonance.seismic_station.status_scanning": "Replaying echoes...",
   "block.creategeoresonance.seismic_station.status_waiting_speed": "Paused: need %s+ RPM",
   "block.creategeoresonance.seismic_station.status_cooldown": "Cooldown: %.1fs",

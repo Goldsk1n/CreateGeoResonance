@@ -93,6 +93,10 @@ public class SeismicStationMenu extends AbstractContainerMenu {
         return station.isMapReady();
     }
 
+    public boolean isStartingStrikeSequence() {
+        return station.isStartingStrikeSequence();
+    }
+
     public int getCooldownTicks() {
         return station.getCooldownTicks();
     }

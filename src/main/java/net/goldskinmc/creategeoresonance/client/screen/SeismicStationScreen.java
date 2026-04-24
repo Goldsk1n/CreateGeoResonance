@@ -120,6 +120,9 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
             return Component.translatable("block.creategeoresonance.seismic_station.status_awaiting").withStyle(ChatFormatting.YELLOW);
         }
         if (menu.isScanRunning()) {
+            if (menu.isStartingStrikeSequence()) {
+                return Component.translatable("block.creategeoresonance.seismic_station.status_starting").withStyle(ChatFormatting.YELLOW);
+            }
             if (!menu.hasRequiredSpeed()) {
                 return Component.translatable("block.creategeoresonance.seismic_station.status_waiting_speed",
                     Config.STATION_MIN_SPEED.get()).withStyle(ChatFormatting.RED);

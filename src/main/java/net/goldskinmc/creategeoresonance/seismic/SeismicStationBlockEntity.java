@@ -41,6 +41,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String STRIKE_TIMER_TAG = "StrikeTimer";
     private static final String REVEAL_INDEX_TAG = "RevealIndex";
     private static final String COOLDOWN_TAG = "CooldownTicks";
+    private static final float NO_CLIENT_STRIKE_PROGRESS = -1.0F;
 
     private final ItemStackHandler inventory = new ItemStackHandler(1) {
         @Override
@@ -64,6 +65,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int strikeTimer;
     private int revealIndex;
     private int cooldownTicks;
+    private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+    private int clientStrikeIntervalTicks = 1;
 
     public SeismicStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -81,6 +84,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
 
         if (level.isClientSide) {
+            tickClientStrikeAnimation();
             return;
         }
 
@@ -146,6 +150,36 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return calculateStrikeIntervalTicks();
     }
 
+    public boolean isStartingStrikeSequence() {
+        return scanRunning
+            && !awaitingScanResult
+            && revealIndex == 0
+            && strikeTimer > getCurrentStrikeIntervalTicks();
+    }
+
+    public void onClientStrikeImpact() {
+        if (level == null || !level.isClientSide) {
+            return;
+        }
+        startClientStrikeCycle(getCurrentStrikeIntervalTicks());
+    }
+
+    public float getClientStrikeAnimationPhase(float partialTicks) {
+        if (level == null || !level.isClientSide || clientStrikeProgressTicks < 0.0F) {
+            return 0.0F;
+        }
+        float interval = Math.max(1.0F, clientStrikeIntervalTicks);
+        float progress = (clientStrikeProgressTicks + partialTicks) / interval;
+        if (progress >= 1.0F) {
+            return 0.0F;
+        }
+        return Mth.clamp(progress, 0.0F, 1.0F);
+    }
+
+    public int getClientStrikeIntervalTicks() {
+        return Math.max(1, clientStrikeIntervalTicks);
+    }
+
     public boolean tryStartScan(ServerPlayer player) {
         if (scanRunning || awaitingScanResult) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.busy")
@@ -209,7 +243,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         queuedAnomalies.addAll(anomalies);
         queuedAnomalies.sort(Comparator.comparingInt(SeismicAnomaly::depth));
         revealIndex = 0;
-        strikeTimer = 0;
+        strikeTimer = Math.max(0, Config.STATION_STARTUP_DELAY_TICKS.get()) + calculateStrikeIntervalTicks();
         awaitingScanResult = false;
         setChanged();
         sendData();
@@ -265,8 +299,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private int calculateStrikeIntervalTicks() {
-        int baseInterval = Config.STATION_STRIKE_INTERVAL_TICKS.get();
-        int minInterval = Math.min(baseInterval, Config.STATION_MIN_STRIKE_INTERVAL_TICKS.get());
+        int intervalMultiplier = Math.max(1, Config.STATION_STRIKE_INTERVAL_MULTIPLIER.get());
+        int baseInterval = Config.STATION_STRIKE_INTERVAL_TICKS.get() * intervalMultiplier;
+        int minInterval = Math.min(baseInterval, Config.STATION_MIN_STRIKE_INTERVAL_TICKS.get() * intervalMultiplier);
         float minSpeed = Math.max(1.0F, Config.STATION_MIN_SPEED.get());
         float absSpeed = Math.abs(getOperationalSpeed());
         float speedBonus = absSpeed / minSpeed;
@@ -274,6 +309,21 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         float clampedBonus = Mth.clamp(speedBonus, 1.0F, maxBonus);
         int scaledInterval = Mth.ceil(baseInterval / clampedBonus);
         return Mth.clamp(scaledInterval, minInterval, baseInterval);
+    }
+
+    private void tickClientStrikeAnimation() {
+        if (clientStrikeProgressTicks < 0.0F) {
+            return;
+        }
+        clientStrikeProgressTicks++;
+        if (clientStrikeProgressTicks >= Math.max(1, clientStrikeIntervalTicks)) {
+            clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+        }
+    }
+
+    private void startClientStrikeCycle(int intervalTicks) {
+        clientStrikeIntervalTicks = Math.max(1, intervalTicks);
+        clientStrikeProgressTicks = 0.0F;
     }
 
     public SeismicStationBoundingBlockEntity getInputNode() {
@@ -356,6 +406,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     @Override
     protected void read(CompoundTag compound, boolean clientPacket) {
         super.read(compound, clientPacket);
+        boolean previousScanRunning = scanRunning;
+        boolean previousAwaitingResult = awaitingScanResult;
+        int previousRevealIndex = revealIndex;
+        int previousStrikeTimer = strikeTimer;
+
         inventory.deserializeNBT(compound.getCompound(INVENTORY_TAG));
         scanRunning = compound.getBoolean(SCAN_RUNNING_TAG);
         awaitingScanResult = compound.getBoolean(AWAITING_RESULT_TAG);
@@ -370,6 +425,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             CompoundTag entryTag = (CompoundTag) tag;
             SeismicAnomalyType type = SeismicAnomalyType.valueOf(entryTag.getString("Type"));
             mapEntries.add(new MapEntry(type, entryTag.getInt("X"), entryTag.getInt("Z"), entryTag.getInt("Y")));
+        }
+
+        if (clientPacket && level != null && level.isClientSide) {
+            if (scanRunning && !awaitingScanResult && strikeTimer > 0) {
+                boolean enteredReplay = !previousScanRunning || previousAwaitingResult;
+                boolean strikeWindowChanged = revealIndex != previousRevealIndex || strikeTimer != previousStrikeTimer;
+                if (enteredReplay || strikeWindowChanged) {
+                    startClientStrikeCycle(strikeTimer);
+                }
+            } else {
+                clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.render.CachedBuffers;
 import net.createmod.catnip.render.SuperByteBuffer;
+import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlockEntity;
@@ -14,7 +15,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -27,7 +27,7 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     private static final float DRUM_PIVOT_Y = 11.0F;
     private static final float DRUM_PIVOT_Z = 7.915F;
     private static final float PISTON_TRAVEL_BLOCKS = 1.0F;
-    private static final float PISTON_RISE_PORTION = 0.75F;
+    private static final float MAX_SPEED_RISE_PORTION = 0.75F;
 
     public SeismicStationRenderer(BlockEntityRendererProvider.Context context) {
         super(context);
@@ -49,7 +49,7 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         shaft.light(light).renderInto(ms, vertexConsumer);
 
         SuperByteBuffer piston = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_HAMMER_PISTON, state);
-        piston.translate(0.0F, pistonTravelFor(input), 0.0F);
+        piston.translate(0.0F, pistonTravelFor(blockEntity, partialTicks), 0.0F);
         orientToFacing(piston, facing);
         piston.light(light).renderInto(ms, vertexConsumer);
 
@@ -67,30 +67,27 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         return ((time * input.getSpeed() * 3f / 10) % 360) / 180f * (float) Math.PI;
     }
 
-    private static float pistonTravelFor(SeismicStationBoundingBlockEntity input) {
-        if (input == null || input.getLevel() == null) {
+    private static float pistonTravelFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
+        float phase = blockEntity.getClientStrikeAnimationPhase(partialTicks);
+        if (phase <= 0.0F) {
             return 0.0F;
         }
-        float absSpeed = Math.abs(input.getSpeed());
-        if (absSpeed < 0.01F) {
-            return 0.0F;
-        }
-
-        float timeSeconds = AnimationTickHolder.getRenderTime(input.getLevel()) / 20.0F;
-        float cyclesPerSecond = Math.max(0.25F, absSpeed / 32.0F);
-        float phase = Mth.frac(timeSeconds * cyclesPerSecond);
-        return PISTON_TRAVEL_BLOCKS * pistonCurve(phase);
+        return PISTON_TRAVEL_BLOCKS * pistonCurve(phase, blockEntity.getClientStrikeIntervalTicks());
     }
 
-    private static float pistonCurve(float phase) {
-        if (phase <= PISTON_RISE_PORTION) {
-            float t = phase / PISTON_RISE_PORTION;
+    private static float pistonCurve(float phase, int intervalTicks) {
+        int minIntervalTicks = Math.max(1, Config.STATION_MIN_STRIKE_INTERVAL_TICKS.get() * Config.STATION_STRIKE_INTERVAL_MULTIPLIER.get());
+        float descentTicks = (1.0F - MAX_SPEED_RISE_PORTION) * minIntervalTicks;
+        float descentPortion = Math.min(0.95F, Math.max(0.05F, descentTicks / Math.max(1, intervalTicks)));
+        float risePortion = 1.0F - descentPortion;
+
+        if (phase <= risePortion) {
+            float t = phase / risePortion;
             return t * t;
         }
 
-        float t = (phase - PISTON_RISE_PORTION) / (1.0F - PISTON_RISE_PORTION);
-        float oneMinusT = 1.0F - t;
-        return oneMinusT * oneMinusT * oneMinusT;
+        float t = (phase - risePortion) / descentPortion;
+        return 1.0F - (t * t * t);
     }
 
     private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {
