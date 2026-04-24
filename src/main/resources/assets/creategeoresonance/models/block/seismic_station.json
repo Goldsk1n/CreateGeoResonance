@@ -6,19 +6,15 @@
 	"render_type": "minecraft:cutout_mipped",
 	"texture_size": [32, 32],
 	"textures": {
-		"0": "create:block/axis",
-		"1": "create:block/axis_top",
 		"2": "create:block/railway_casing",
 		"3": "creategeoresonance:block/seismic_station/seismic_station_additional",
-		"4": "creategeoresonance:block/seismic_station/seismogram",
 		"5": "creategeoresonance:block/seismic_station/sturdy_block",
 		"6": "creategeoresonance:block/seismic_station/sturdy_hammer_head",
 		"7": "creategeoresonance:block/seismic_station/brass_press_top",
 		"8": "creategeoresonance:block/seismic_station/railway_gearbox",
 		"9": "creategeoresonance:block/seismic_station/seismic_hammer_body_side",
 		"10": "creategeoresonance:block/seismic_station/seismic_hammer_body_inner",
-		"11": "creategeoresonance:block/seismic_station/seismic_hammer_pole",
-		"particle": "create:block/axis_top"
+		"11": "creategeoresonance:block/seismic_station/seismic_hammer_pole"
 	},
 	"elements": [
 		{
@@ -70,20 +66,6 @@
 				"south": {"uv": [0, 0, 1, 16], "texture": "#3"},
 				"west": {"uv": [0, 1, 8, 16], "texture": "#3"},
 				"down": {"uv": [7, 4, 8, 12], "rotation": 180, "texture": "#3"}
-			}
-		},
-		{
-			"name": "Axis",
-			"from": [6, 22, 0],
-			"to": [10, 26, 16],
-			"rotation": {"angle": 0, "axis": "y", "origin": [8, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [6, 6, 10, 10], "rotation": 180, "texture": "#1"},
-				"east": {"uv": [6, 0, 10, 16], "rotation": 90, "texture": "#0"},
-				"south": {"uv": [6, 6, 10, 10], "texture": "#1"},
-				"west": {"uv": [6, 0, 10, 16], "rotation": 270, "texture": "#0"},
-				"up": {"uv": [6, 0, 10, 16], "texture": "#0"},
-				"down": {"uv": [6, 0, 10, 16], "rotation": 180, "texture": "#0"}
 			}
 		},
 		{
@@ -300,76 +282,6 @@
 				"up": {"uv": [12, 14.5, 12.5, 15], "texture": "#3"},
 				"down": {"uv": [12, 15, 12.5, 15.5], "texture": "#3"}
 			}
-		},
-		{
-			"name": "Body1",
-			"from": [-13, 9, 7],
-			"to": [-3, 13, 8.66],
-			"rotation": {"angle": 0, "axis": "y", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [0, 0, 10, 4], "rotation": 180, "texture": "#missing"},
-				"east": {"uv": [15, 12.34, 15.83, 14.34], "rotation": 180, "texture": "#3"},
-				"south": {"uv": [0, 0, 10, 4], "texture": "#missing"},
-				"west": {"uv": [15, 12.5, 15.83, 14.5], "rotation": 180, "texture": "#3"},
-				"up": {"uv": [0.5, 3.15, 2.16, 13.15], "rotation": 270, "texture": "#4"},
-				"down": {"uv": [7.25, 3.15, 8.91, 13.15], "rotation": 90, "texture": "#4"}
-			}
-		},
-		{
-			"name": "Body2",
-			"from": [-13, 11.90112, 1.9907],
-			"to": [-3, 13.56112, 5.9907],
-			"rotation": {"angle": -45, "axis": "x", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [5.5, 3.15, 7.16, 13.15], "rotation": 90, "texture": "#4"},
-				"east": {"uv": [15.17, 12.84, 16, 14.84], "rotation": 90, "texture": "#3"},
-				"south": {"uv": [12.5, 3.15, 14.16, 13.15], "rotation": 270, "texture": "#4"},
-				"west": {"uv": [15.17, 13, 16, 15], "rotation": 90, "texture": "#3"},
-				"up": {"uv": [0, 0, 10, 4], "rotation": 90, "texture": "#missing"},
-				"down": {"uv": [0, 0, 10, 4], "texture": "#missing"}
-			}
-		},
-		{
-			"name": "Body3",
-			"from": [-13, 10.17, 5.83],
-			"to": [-3, 11.83, 9.83],
-			"rotation": {"angle": 0, "axis": "y", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [3.75, 3.15, 5.41, 13.15], "rotation": 90, "texture": "#4"},
-				"east": {"uv": [15, 12.34, 15.83, 14.34], "rotation": 90, "texture": "#3"},
-				"south": {"uv": [10.75, 3.15, 12.41, 13.15], "rotation": 270, "texture": "#4"},
-				"west": {"uv": [15, 12.5, 15.83, 14.5], "rotation": 90, "texture": "#3"},
-				"up": {"uv": [0, 0, 10, 4], "rotation": 90, "texture": "#missing"},
-				"down": {"uv": [0, 0, 10, 4], "texture": "#missing"}
-			}
-		},
-		{
-			"name": "Body4",
-			"from": [-13, 11.6607, 9.76888],
-			"to": [-3, 13.3207, 13.76888],
-			"rotation": {"angle": 45, "axis": "x", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [2.09, 3.15, 3.75, 13.15], "rotation": 90, "texture": "#4"},
-				"east": {"uv": [15.17, 12.34, 16, 14.34], "rotation": 90, "texture": "#3"},
-				"south": {"uv": [9, 3.15, 10.66, 13.15], "rotation": 270, "texture": "#4"},
-				"west": {"uv": [15.17, 12.5, 16, 14.5], "rotation": 90, "texture": "#3"},
-				"up": {"uv": [0, 0, 10, 4], "rotation": 90, "texture": "#missing"},
-				"down": {"uv": [0, 0, 10, 4], "texture": "#missing"}
-			}
-		},
-		{
-			"name": "Axis",
-			"from": [-14, 10, 7],
-			"to": [-2, 12, 9],
-			"rotation": {"angle": 0, "axis": "y", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [7, 4, 9, 16], "rotation": 90, "texture": "#0"},
-				"east": {"uv": [7, 0, 9, 2], "texture": "#0"},
-				"south": {"uv": [7, 4, 9, 16], "rotation": 90, "texture": "#0"},
-				"west": {"uv": [7, 0, 9, 2], "texture": "#0"},
-				"up": {"uv": [7, 4, 9, 16], "rotation": 90, "texture": "#0"},
-				"down": {"uv": [7, 4, 9, 16], "rotation": 90, "texture": "#0"}
-			}
 		}
 	],
 	"display": {
@@ -427,25 +339,18 @@
 					"children": [0, 1, 2, 3]
 				},
 				{
-					"name": "shaft",
-					"origin": [8, 8, 8],
-					"scope": 0,
-					"color": 0,
-					"children": [4]
-				},
-				{
 					"name": "piston",
 					"origin": [8, 8, 8],
 					"scope": 0,
 					"color": 0,
-					"children": [5, 6, 7, 8, 9, 10, 11]
+					"children": [4, 5, 6, 7, 8, 9, 10]
 				},
 				{
 					"name": "SeismographBody",
 					"origin": [8, 8, 8],
 					"scope": 0,
 					"color": 0,
-					"children": [12, 13, 14, 15, 16, 17]
+					"children": [11, 12, 13, 14, 15, 16]
 				},
 				{
 					"name": "Seismograph",
@@ -453,30 +358,14 @@
 					"scope": 0,
 					"color": 0,
 					"children": [
+						17,
 						18,
-						19,
 						{
 							"name": "Pen",
 							"origin": [8, 8, 8],
 							"scope": 0,
 							"color": 0,
-							"children": [20, 21]
-						},
-						{
-							"name": "Drum",
-							"origin": [8, 8, 8],
-							"scope": 0,
-							"color": 0,
-							"children": [
-								{
-									"name": "Body",
-									"origin": [8, 8, 8],
-									"scope": 0,
-									"color": 0,
-									"children": [22, 23, 24, 25]
-								},
-								26
-							]
+							"children": [19, 20]
 						}
 					]
 				}

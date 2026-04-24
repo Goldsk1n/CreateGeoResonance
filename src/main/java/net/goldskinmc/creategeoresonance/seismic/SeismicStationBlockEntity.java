@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
@@ -293,15 +294,34 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private float getOperationalSpeed() {
+        SeismicStationBoundingBlockEntity input = getInputNode();
+        if (input != null) {
+            return input.getSpeed();
+        }
+        return getSpeed();
+    }
+
+    public SeismicStationBoundingBlockEntity getInputNode() {
         if (level == null) {
-            return getSpeed();
+            return null;
         }
         BlockPos inputPos = SeismicStationBlock.getUpperRightPos(worldPosition);
         BlockEntity blockEntity = level.getBlockEntity(inputPos);
         if (blockEntity instanceof SeismicStationBoundingBlockEntity input && input.isInputPart()) {
-            return input.getSpeed();
+            return input;
         }
-        return getSpeed();
+        return null;
+    }
+
+    @Override
+    public AABB getRenderBoundingBox() {
+        Direction facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        BlockPos left = SeismicStationBlock.getLeftPos(worldPosition, facing);
+        int minX = Math.min(worldPosition.getX(), left.getX());
+        int minZ = Math.min(worldPosition.getZ(), left.getZ());
+        int maxX = Math.max(worldPosition.getX(), left.getX()) + 1;
+        int maxZ = Math.max(worldPosition.getZ(), left.getZ()) + 1;
+        return new AABB(minX, worldPosition.getY(), minZ, maxX, worldPosition.getY() + 2, maxZ);
     }
 
     private float scanPressureCost() {
