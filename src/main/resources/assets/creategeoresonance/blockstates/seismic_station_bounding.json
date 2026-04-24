@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=north,part=lower_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=east,part=lower_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=south,part=lower_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=west,part=lower_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=north,part=upper_right": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=east,part=upper_right": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=south,part=upper_right": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=west,part=upper_right": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=north,part=upper_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=east,part=upper_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=south,part=upper_left": { "model": "creategeoresonance:block/seismic_station_bounding" },
+    "facing=west,part=upper_left": { "model": "creategeoresonance:block/seismic_station_bounding" }
+  }
+}

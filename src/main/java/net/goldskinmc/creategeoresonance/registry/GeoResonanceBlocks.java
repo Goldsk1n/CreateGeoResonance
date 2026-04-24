@@ -4,6 +4,7 @@ import com.tterrag.registrate.Registrate;
 import com.tterrag.registrate.util.entry.BlockEntry;
 import net.goldskinmc.creategeoresonance.GeoResonanceRegistrate;
 import net.goldskinmc.creategeoresonance.seismic.PlacedSeismicHammerBlock;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
@@ -17,9 +18,20 @@ public final class GeoResonanceBlocks {
         .properties(properties -> properties
             .strength(2.0F, 6.0F)
             .sound(SoundType.METAL)
-            .requiresCorrectToolForDrops())
+            .requiresCorrectToolForDrops()
+            .noOcclusion())
         .item()
         .build()
+        .register();
+
+    public static final BlockEntry<SeismicStationBoundingBlock> SEISMIC_STATION_BOUNDING = REGISTRATE
+        .block("seismic_station_bounding", SeismicStationBoundingBlock::new)
+        .initialProperties(() -> Blocks.ANDESITE)
+        .properties(properties -> properties
+            .strength(2.0F, 6.0F)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops()
+            .noOcclusion())
         .register();
 
     public static final BlockEntry<PlacedSeismicHammerBlock> PLACED_SEISMIC_HAMMER = REGISTRATE
