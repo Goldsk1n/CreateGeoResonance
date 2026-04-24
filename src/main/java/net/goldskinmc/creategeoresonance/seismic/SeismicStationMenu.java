@@ -97,8 +97,16 @@ public class SeismicStationMenu extends AbstractContainerMenu {
         return station.getCooldownTicks();
     }
 
-    public float getStoredPressure() {
-        return station.getStoredPressure();
+    public float getOperationalSpeed() {
+        return station.getOperationalSpeed();
+    }
+
+    public boolean hasRequiredSpeed() {
+        return station.hasRequiredSpeed();
+    }
+
+    public int getCurrentStrikeIntervalTicks() {
+        return station.getCurrentStrikeIntervalTicks();
     }
 
     public int getStationRadius() {

@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.network.packet.C2SStartSeismicStationPacket;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
@@ -48,11 +49,18 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 8, 5, 0xF0F0F0, false);
         graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.paper"), 8, 40, 0xD0D0D0, false);
-        graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.pressure",
-            (int) menu.getStoredPressure()), 8, 52, 0x8FD8FF, false);
+        float speed = Math.abs(menu.getOperationalSpeed());
+        int roundedSpeed = Math.round(speed);
+        int speedColor = menu.hasRequiredSpeed() ? 0x8FD8FF : 0xFF8C8C;
+        graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.speed",
+            roundedSpeed, Config.STATION_MIN_SPEED.get()), 8, 52, speedColor, false);
+        graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.stress",
+            Math.round((float) (Config.STATION_STRESS_IMPACT.get() * speed))), 8, 64, 0xE5C98A, false);
+        graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.rhythm",
+            menu.getCurrentStrikeIntervalTicks() / 20.0F), 8, 76, 0xC0C0C0, false);
 
         Component status = statusText();
-        graphics.drawString(font, status, 8, 64, 0xFFFFFF, false);
+        graphics.drawString(font, status, 8, 88, 0xFFFFFF, false);
         graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.map"), 80, 5, 0xD0D0D0, false);
 
         List<SeismicStationBlockEntity.MapEntry> entries = menu.getMapEntries();
@@ -112,6 +120,10 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
             return Component.translatable("block.creategeoresonance.seismic_station.status_awaiting").withStyle(ChatFormatting.YELLOW);
         }
         if (menu.isScanRunning()) {
+            if (!menu.hasRequiredSpeed()) {
+                return Component.translatable("block.creategeoresonance.seismic_station.status_waiting_speed",
+                    Config.STATION_MIN_SPEED.get()).withStyle(ChatFormatting.RED);
+            }
             return Component.translatable("block.creategeoresonance.seismic_station.status_scanning").withStyle(ChatFormatting.GOLD);
         }
         if (menu.getCooldownTicks() > 0) {
@@ -120,6 +132,10 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
         }
         if (menu.isMapReady()) {
             return Component.translatable("block.creategeoresonance.seismic_station.status_ready_map").withStyle(ChatFormatting.AQUA);
+        }
+        if (!menu.hasRequiredSpeed()) {
+            return Component.translatable("block.creategeoresonance.seismic_station.status_no_rotation",
+                Config.STATION_MIN_SPEED.get()).withStyle(ChatFormatting.RED);
         }
         return Component.translatable("block.creategeoresonance.seismic_station.status_idle").withStyle(ChatFormatting.GREEN);
     }

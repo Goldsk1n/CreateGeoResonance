@@ -51,14 +51,23 @@ public class Config {
         .comment("Maximum scan depth in blocks for the seismic station.")
         .defineInRange("stationDepth", 40, 1, 192);
     public static final ForgeConfigSpec.IntValue STATION_STRIKE_INTERVAL_TICKS = STAGE2
-        .comment("Ticks between consecutive station strikes while replaying anomalies.")
+        .comment("Base ticks between station strikes at minimum required speed.")
         .defineInRange("stationStrikeIntervalTicks", 20, 1, 200);
+    public static final ForgeConfigSpec.IntValue STATION_MIN_STRIKE_INTERVAL_TICKS = STAGE2
+        .comment("Lower bound for strike interval when the station is overdriven.")
+        .defineInRange("stationMinStrikeIntervalTicks", 6, 1, 200);
     public static final ForgeConfigSpec.IntValue STATION_COOLDOWN_TICKS = STAGE2
         .comment("Cooldown in ticks after a station scan is finished.")
         .defineInRange("stationCooldownTicks", 200, 0, 2400);
     public static final ForgeConfigSpec.IntValue STATION_MIN_SPEED = STAGE2
         .comment("Minimum absolute RPM required on the station input shaft to start scanning.")
-        .defineInRange("stationMinSpeed", 16, 1, 512);
+        .defineInRange("stationMinSpeed", 24, 1, 512);
+    public static final ForgeConfigSpec.DoubleValue STATION_MAX_SPEED_BONUS = STAGE2
+        .comment("Maximum strike speed multiplier from RPM scaling.")
+        .defineInRange("stationMaxSpeedBonus", 2.5D, 1.0D, 10.0D);
+    public static final ForgeConfigSpec.DoubleValue STATION_STRESS_IMPACT = STAGE2
+        .comment("Base stress impact applied by the seismic station block.")
+        .defineInRange("stationStressImpact", 12.0D, 0.0D, 1024.0D);
     public static final ForgeConfigSpec.DoubleValue STATION_NOISE = STAGE2
         .comment("Confidence jitter used for station anomaly evaluation.")
         .defineInRange("stationNoise", 0.08D, 0.0D, 1.0D);

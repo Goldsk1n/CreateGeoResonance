@@ -1,12 +1,9 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
-import com.simibubi.create.content.equipment.armor.BacktankUtil;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.particle.AirParticleData;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -25,7 +22,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
@@ -45,8 +41,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String STRIKE_TIMER_TAG = "StrikeTimer";
     private static final String REVEAL_INDEX_TAG = "RevealIndex";
     private static final String COOLDOWN_TAG = "CooldownTicks";
-    private static final String STORED_PRESSURE_TAG = "StoredPressure";
-    private static final String CHARGE_TIMER_TAG = "ChargeTimer";
 
     private final ItemStackHandler inventory = new ItemStackHandler(1) {
         @Override
@@ -64,8 +58,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private final List<SeismicAnomaly> queuedAnomalies = new ArrayList<>();
     private final List<MapEntry> mapEntries = new ArrayList<>();
 
-    private float storedPressure;
-    private int chargeTimer;
     private boolean scanRunning;
     private boolean awaitingScanResult;
     private boolean mapReady;
@@ -88,7 +80,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return;
         }
 
-        tickCharging();
         if (level.isClientSide) {
             return;
         }
@@ -98,6 +89,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
 
         if (!scanRunning || awaitingScanResult) {
+            return;
+        }
+        if (!hasRequiredSpeed()) {
             return;
         }
         if (strikeTimer > 0) {
@@ -136,8 +130,20 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return cooldownTicks;
     }
 
-    public float getStoredPressure() {
-        return storedPressure;
+    public float getOperationalSpeed() {
+        SeismicStationBoundingBlockEntity input = getInputNode();
+        if (input != null) {
+            return input.getSpeed();
+        }
+        return getSpeed();
+    }
+
+    public boolean hasRequiredSpeed() {
+        return Math.abs(getOperationalSpeed()) >= Config.STATION_MIN_SPEED.get();
+    }
+
+    public int getCurrentStrikeIntervalTicks() {
+        return calculateStrikeIntervalTicks();
     }
 
     public boolean tryStartScan(ServerPlayer player) {
@@ -151,7 +157,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
-        if (Math.abs(getOperationalSpeed()) < Config.STATION_MIN_SPEED.get()) {
+        if (!hasRequiredSpeed()) {
             player.displayClientMessage(Component.translatable(
                     "block.creategeoresonance.seismic_station.no_rotation",
                     Config.STATION_MIN_SPEED.get())
@@ -164,15 +170,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return false;
         }
 
-        float cost = scanPressureCost();
-        if (storedPressure < cost) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_pressure")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-
         inventory.extractItem(0, 1, false);
-        storedPressure = Math.max(0.0F, storedPressure - cost);
         scanRunning = true;
         awaitingScanResult = true;
         mapReady = false;
@@ -241,7 +239,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             queuedAnomalies.clear();
         }
 
-        strikeTimer = Config.STATION_STRIKE_INTERVAL_TICKS.get();
+        strikeTimer = calculateStrikeIntervalTicks();
         setChanged();
         sendData();
     }
@@ -259,46 +257,23 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         mapReady = true;
     }
 
-    private void tickCharging() {
-        float operationalSpeed = getOperationalSpeed();
-        if (level == null || operationalSpeed == 0) {
-            return;
-        }
-        if (chargeTimer > 0) {
-            chargeTimer--;
-            return;
-        }
-
-        float maxPressure = SeismicPressureStorage.maxPressure();
-        if (level.isClientSide) {
-            if (storedPressure == maxPressure) {
-                return;
-            }
-            Vec3 center = VecHelper.getCenterOf(worldPosition);
-            Vec3 spawnPos = VecHelper.offsetRandomly(center, level.random, .65f);
-            Vec3 motion = center.subtract(spawnPos);
-            level.addParticle(new AirParticleData(1, .05f), spawnPos.x, spawnPos.y, spawnPos.z, motion.x, motion.y, motion.z);
-            return;
-        }
-
-        if (storedPressure >= maxPressure) {
-            return;
-        }
-
-        float absSpeed = Math.abs(operationalSpeed);
-        int increment = Mth.clamp(((int) absSpeed - 100) / 20, 1, 5);
-        storedPressure = Math.min(maxPressure, storedPressure + increment);
-        chargeTimer = Mth.clamp((int) (128f - absSpeed / 5f) - 108, 0, 20);
-        setChanged();
-        sendData();
+    @Override
+    public float calculateStressApplied() {
+        float impact = Config.STATION_STRESS_IMPACT.get().floatValue();
+        lastStressApplied = impact;
+        return impact;
     }
 
-    private float getOperationalSpeed() {
-        SeismicStationBoundingBlockEntity input = getInputNode();
-        if (input != null) {
-            return input.getSpeed();
-        }
-        return getSpeed();
+    private int calculateStrikeIntervalTicks() {
+        int baseInterval = Config.STATION_STRIKE_INTERVAL_TICKS.get();
+        int minInterval = Math.min(baseInterval, Config.STATION_MIN_STRIKE_INTERVAL_TICKS.get());
+        float minSpeed = Math.max(1.0F, Config.STATION_MIN_SPEED.get());
+        float absSpeed = Math.abs(getOperationalSpeed());
+        float speedBonus = absSpeed / minSpeed;
+        float maxBonus = (float) Config.STATION_MAX_SPEED_BONUS.get().doubleValue();
+        float clampedBonus = Mth.clamp(speedBonus, 1.0F, maxBonus);
+        int scaledInterval = Mth.ceil(baseInterval / clampedBonus);
+        return Mth.clamp(scaledInterval, minInterval, baseInterval);
     }
 
     public SeismicStationBoundingBlockEntity getInputNode() {
@@ -322,10 +297,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         int maxX = Math.max(worldPosition.getX(), left.getX()) + 1;
         int maxZ = Math.max(worldPosition.getZ(), left.getZ()) + 1;
         return new AABB(minX, worldPosition.getY(), minZ, maxX, worldPosition.getY() + 2, maxZ);
-    }
-
-    private float scanPressureCost() {
-        return Mth.clamp(BacktankUtil.maxAirWithoutEnchants() / (float) Config.SCANS_PER_BACKTANK.get(), 1.0F, SeismicPressureStorage.maxPressure());
     }
 
     public void dropInventory() {
@@ -363,8 +334,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     protected void write(CompoundTag compound, boolean clientPacket) {
         super.write(compound, clientPacket);
         compound.put(INVENTORY_TAG, inventory.serializeNBT());
-        compound.putFloat(STORED_PRESSURE_TAG, storedPressure);
-        compound.putInt(CHARGE_TIMER_TAG, chargeTimer);
         compound.putBoolean(SCAN_RUNNING_TAG, scanRunning);
         compound.putBoolean(AWAITING_RESULT_TAG, awaitingScanResult);
         compound.putBoolean(MAP_READY_TAG, mapReady);
@@ -388,8 +357,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     protected void read(CompoundTag compound, boolean clientPacket) {
         super.read(compound, clientPacket);
         inventory.deserializeNBT(compound.getCompound(INVENTORY_TAG));
-        storedPressure = Mth.clamp(compound.getFloat(STORED_PRESSURE_TAG), 0.0F, SeismicPressureStorage.maxPressure());
-        chargeTimer = compound.getInt(CHARGE_TIMER_TAG);
         scanRunning = compound.getBoolean(SCAN_RUNNING_TAG);
         awaitingScanResult = compound.getBoolean(AWAITING_RESULT_TAG);
         mapReady = compound.getBoolean(MAP_READY_TAG);
