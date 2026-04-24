@@ -1,5 +1,6 @@
 {
   "block.creategeoresonance.seismic_station": "Seismic Station",
+  "block.creategeoresonance.seismic_station_bounding": "Seismic Station",
   "block.creategeoresonance.placed_seismic_hammer": "Placed Seismic Hammer",
   "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
   "item.creategeoresonance.seismic_hammer.no_pressure": "Hammer pressure depleted",
