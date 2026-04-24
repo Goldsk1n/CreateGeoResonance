@@ -56,6 +56,9 @@ public class Config {
     public static final ForgeConfigSpec.IntValue STATION_COOLDOWN_TICKS = STAGE2
         .comment("Cooldown in ticks after a station scan is finished.")
         .defineInRange("stationCooldownTicks", 200, 0, 2400);
+    public static final ForgeConfigSpec.IntValue STATION_MIN_SPEED = STAGE2
+        .comment("Minimum absolute RPM required on the station input shaft to start scanning.")
+        .defineInRange("stationMinSpeed", 16, 1, 512);
     public static final ForgeConfigSpec.DoubleValue STATION_NOISE = STAGE2
         .comment("Confidence jitter used for station anomaly evaluation.")
         .defineInRange("stationNoise", 0.08D, 0.0D, 1.0D);

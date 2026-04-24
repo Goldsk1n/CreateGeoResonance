@@ -5,6 +5,7 @@ import com.tterrag.registrate.util.entry.BlockEntityEntry;
 import net.goldskinmc.creategeoresonance.GeoResonanceRegistrate;
 import net.goldskinmc.creategeoresonance.client.render.PlacedSeismicHammerRenderer;
 import net.goldskinmc.creategeoresonance.seismic.PlacedSeismicHammerBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 
 public final class GeoResonanceBlockEntityTypes {
@@ -13,6 +14,11 @@ public final class GeoResonanceBlockEntityTypes {
     public static final BlockEntityEntry<SeismicStationBlockEntity> SEISMIC_STATION = REGISTRATE
         .blockEntity("seismic_station", SeismicStationBlockEntity::new)
         .validBlocks(GeoResonanceBlocks.SEISMIC_STATION)
+        .register();
+
+    public static final BlockEntityEntry<SeismicStationBoundingBlockEntity> SEISMIC_STATION_BOUNDING = REGISTRATE
+        .blockEntity("seismic_station_bounding", SeismicStationBoundingBlockEntity::new)
+        .validBlocks(GeoResonanceBlocks.SEISMIC_STATION_BOUNDING)
         .register();
 
     public static final BlockEntityEntry<PlacedSeismicHammerBlockEntity> PLACED_SEISMIC_HAMMER = REGISTRATE

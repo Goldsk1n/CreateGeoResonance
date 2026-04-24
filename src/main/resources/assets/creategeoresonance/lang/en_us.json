@@ -20,7 +20,7 @@
   "block.creategeoresonance.seismic_station.status_ready_map": "Map ready",
   "block.creategeoresonance.seismic_station.busy": "Station is already scanning",
   "block.creategeoresonance.seismic_station.cooldown": "Station is cooling down",
-  "block.creategeoresonance.seismic_station.no_rotation": "Station needs rotation",
+  "block.creategeoresonance.seismic_station.no_rotation": "Station needs at least %s RPM on the top-left shaft",
   "block.creategeoresonance.seismic_station.no_paper": "Insert paper to start",
   "block.creategeoresonance.seismic_station.no_pressure": "Station pressure depleted",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",

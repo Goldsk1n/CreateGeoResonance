@@ -1,5 +1,8 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
+import com.simibubi.create.foundation.block.IBE;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -16,6 +19,7 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
@@ -28,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-public class SeismicStationBoundingBlock extends Block {
+public class SeismicStationBoundingBlock extends HorizontalKineticBlock implements IBE<SeismicStationBoundingBlockEntity> {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final EnumProperty<BoundingPart> PART = EnumProperty.create("part", BoundingPart.class);
 
@@ -48,6 +52,20 @@ public class SeismicStationBoundingBlock extends Block {
     @Override
     public RenderShape getRenderShape(BlockState state) {
         return RenderShape.INVISIBLE;
+    }
+
+    @Override
+    public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {
+        if (state.getValue(PART) != BoundingPart.UPPER_RIGHT) {
+            return false;
+        }
+        Direction facing = state.getValue(FACING);
+        return face == facing || face == facing.getOpposite();
+    }
+
+    @Override
+    public Direction.Axis getRotationAxis(BlockState state) {
+        return state.getValue(FACING).getAxis();
     }
 
     @Override
@@ -106,7 +124,17 @@ public class SeismicStationBoundingBlock extends Block {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, PART);
+        super.createBlockStateDefinition(builder.add(PART));
+    }
+
+    @Override
+    public Class<SeismicStationBoundingBlockEntity> getBlockEntityClass() {
+        return SeismicStationBoundingBlockEntity.class;
+    }
+
+    @Override
+    public BlockEntityType<? extends SeismicStationBoundingBlockEntity> getBlockEntityType() {
+        return GeoResonanceBlockEntityTypes.SEISMIC_STATION_BOUNDING.get();
     }
 
     public static BlockPos getControllerPos(BlockState state, BlockPos partPos) {

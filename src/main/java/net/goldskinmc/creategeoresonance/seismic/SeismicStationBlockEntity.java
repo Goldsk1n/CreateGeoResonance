@@ -22,6 +22,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.Containers;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
@@ -149,8 +150,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
-        if (Math.abs(getSpeed()) < 1.0F) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_rotation")
+        if (Math.abs(getOperationalSpeed()) < Config.STATION_MIN_SPEED.get()) {
+            player.displayClientMessage(Component.translatable(
+                    "block.creategeoresonance.seismic_station.no_rotation",
+                    Config.STATION_MIN_SPEED.get())
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
@@ -256,7 +259,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private void tickCharging() {
-        if (level == null || getSpeed() == 0) {
+        float operationalSpeed = getOperationalSpeed();
+        if (level == null || operationalSpeed == 0) {
             return;
         }
         if (chargeTimer > 0) {
@@ -280,12 +284,24 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return;
         }
 
-        float absSpeed = Math.abs(getSpeed());
+        float absSpeed = Math.abs(operationalSpeed);
         int increment = Mth.clamp(((int) absSpeed - 100) / 20, 1, 5);
         storedPressure = Math.min(maxPressure, storedPressure + increment);
         chargeTimer = Mth.clamp((int) (128f - absSpeed / 5f) - 108, 0, 20);
         setChanged();
         sendData();
+    }
+
+    private float getOperationalSpeed() {
+        if (level == null) {
+            return getSpeed();
+        }
+        BlockPos inputPos = SeismicStationBlock.getUpperRightPos(worldPosition);
+        BlockEntity blockEntity = level.getBlockEntity(inputPos);
+        if (blockEntity instanceof SeismicStationBoundingBlockEntity input && input.isInputPart()) {
+            return input.getSpeed();
+        }
+        return getSpeed();
     }
 
     private float scanPressureCost() {

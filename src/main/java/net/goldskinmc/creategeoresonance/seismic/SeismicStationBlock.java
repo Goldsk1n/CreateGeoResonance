@@ -70,7 +70,7 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
 
     @Override
     public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {
-        return face == Direction.DOWN;
+        return false;
     }
 
     @Override
