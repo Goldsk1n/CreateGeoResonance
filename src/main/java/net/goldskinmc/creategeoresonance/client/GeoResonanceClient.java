@@ -5,6 +5,7 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.effect.SeismicWaveEffect;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
+import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
@@ -17,6 +18,9 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.MapItem;
+import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.ViewportEvent;
@@ -25,8 +29,8 @@ import net.minecraftforge.event.TickEvent;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Iterator;
 
 public final class GeoResonanceClient {
     private static final List<ScheduledEcho> PENDING_ECHOES = new ArrayList<>();
@@ -84,6 +88,22 @@ public final class GeoResonanceClient {
             int delay = Math.max(1, Math.round((anomaly.depth() / (float) packet.maxDepth()) * Config.MAX_ECHO_DELAY_TICKS.get()));
             PENDING_ECHOES.add(new ScheduledEcho(packet.origin(), packet.scannerEntityId(), packet.maxDepth(), packet.lowPressure(), anomaly, now + delay));
         }
+    }
+
+    public static void handleSeismogramMarker(S2CSeismogramMarkerPacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        ClientLevel level = minecraft.level;
+        if (level == null) {
+            return;
+        }
+
+        MapItemSavedData mapData = MapItem.getSavedData(packet.mapId(), level);
+        if (mapData == null) {
+            return;
+        }
+        mapData.addClientSideDecorations(List.of(
+            new MapDecoration(MapDecoration.Type.PLAYER, packet.markerX(), packet.markerZ(), packet.markerRot(), null)
+        ));
     }
 
     private static void onClientTick(TickEvent.ClientTickEvent event) {

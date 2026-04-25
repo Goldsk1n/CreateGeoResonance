@@ -33,7 +33,13 @@ public class SeismicStationMenu extends AbstractContainerMenu {
         }
         this.station = station;
 
-        addSlot(new SlotItemHandler(station.getInventory(), 0, 17, 35));
+        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_PAPER_INPUT, 17, 35));
+        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_SEISMOGRAM_OUTPUT, 44, 35) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return false;
+            }
+        });
         addPlayerInventory(inventory);
     }
 
@@ -55,13 +61,19 @@ public class SeismicStationMenu extends AbstractContainerMenu {
 
         ItemStack stack = slot.getItem();
         ItemStack original = stack.copy();
-        int containerSlots = 1;
+        int containerSlots = 2;
         if (index < containerSlots) {
             if (!moveItemStackTo(stack, containerSlots, slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
-        } else if (!moveItemStackTo(stack, 0, containerSlots, false)) {
-            return ItemStack.EMPTY;
+        } else {
+            if (stack.is(net.minecraft.world.item.Items.PAPER)) {
+                if (!moveItemStackTo(stack, SeismicStationBlockEntity.SLOT_PAPER_INPUT, SeismicStationBlockEntity.SLOT_PAPER_INPUT + 1, false)) {
+                    return ItemStack.EMPTY;
+                }
+            } else {
+                return ItemStack.EMPTY;
+            }
         }
 
         if (stack.isEmpty()) {

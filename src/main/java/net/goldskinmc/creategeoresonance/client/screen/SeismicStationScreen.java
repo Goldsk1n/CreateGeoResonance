@@ -49,6 +49,7 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, 8, 5, 0xF0F0F0, false);
         graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.paper"), 8, 40, 0xD0D0D0, false);
+        graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.output"), 35, 40, 0xD0D0D0, false);
         float speed = Math.abs(menu.getOperationalSpeed());
         int roundedSpeed = Math.round(speed);
         int speedColor = menu.hasRequiredSpeed() ? 0x8FD8FF : 0xFF8C8C;

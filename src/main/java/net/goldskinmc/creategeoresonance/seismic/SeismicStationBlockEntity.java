@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.core.NonNullList;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
@@ -44,8 +45,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String REVEAL_INDEX_TAG = "RevealIndex";
     private static final String COOLDOWN_TAG = "CooldownTicks";
     private static final float NO_CLIENT_STRIKE_PROGRESS = -1.0F;
+    public static final int SLOT_PAPER_INPUT = 0;
+    public static final int SLOT_SEISMOGRAM_OUTPUT = 1;
 
-    private final ItemStackHandler inventory = new ItemStackHandler(1) {
+    private final ItemStackHandler inventory = new ItemStackHandler(2) {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
@@ -54,7 +57,24 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return stack.is(Items.PAPER);
+            if (slot == SLOT_PAPER_INPUT) {
+                return stack.is(Items.PAPER);
+            }
+            return false;
+        }
+
+        @Override
+        public void deserializeNBT(CompoundTag nbt) {
+            stacks = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
+            ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
+            for (Tag tag : tagList) {
+                CompoundTag itemTag = (CompoundTag) tag;
+                int slot = itemTag.getInt("Slot");
+                if (slot >= 0 && slot < getSlots()) {
+                    stacks.set(slot, ItemStack.of(itemTag));
+                }
+            }
+            onLoad();
         }
     };
     private LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> inventory);
@@ -220,13 +240,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
-        if (inventory.getStackInSlot(0).isEmpty()) {
+        if (inventory.getStackInSlot(SLOT_PAPER_INPUT).isEmpty()) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_paper")
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
+        if (!inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.output_full")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
 
-        inventory.extractItem(0, 1, false);
+        inventory.extractItem(SLOT_PAPER_INPUT, 1, false);
         scanRunning = true;
         awaitingScanResult = true;
         mapReady = false;
@@ -310,7 +335,26 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             sampledY = Math.max(serverLevel.getMinBuildHeight(), sampledY);
             mapEntries.add(new MapEntry(anomaly.type(), anomaly.offsetX(), anomaly.offsetZ(), sampledY));
         }
+        writeSeismogramOutput();
         mapReady = true;
+    }
+
+    private void writeSeismogramOutput() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (!inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty()) {
+            return;
+        }
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        ItemStack seismogram = createSeismogramMap(serverLevel);
+        inventory.setStackInSlot(SLOT_SEISMOGRAM_OUTPUT, seismogram);
+    }
+
+    private ItemStack createSeismogramMap(ServerLevel serverLevel) {
+        return SeismogramMapService.createMap(serverLevel, worldPosition, mapEntries);
     }
 
     @Override
@@ -383,10 +427,12 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (level == null || level.isClientSide) {
             return;
         }
-        ItemStack stack = inventory.getStackInSlot(0);
-        if (!stack.isEmpty()) {
-            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D, stack.copy());
-            inventory.setStackInSlot(0, ItemStack.EMPTY);
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D, stack.copy());
+                inventory.setStackInSlot(slot, ItemStack.EMPTY);
+            }
         }
     }
 

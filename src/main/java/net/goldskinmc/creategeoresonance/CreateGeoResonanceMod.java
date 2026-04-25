@@ -6,6 +6,7 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceMenus;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
+import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
@@ -33,7 +34,11 @@ public class CreateGeoResonanceMod {
         GeoResonancePackets.register();
 
         MinecraftForge.EVENT_BUS.addListener(SeismicScanQueue::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> SeismicScanQueue.clear());
+        MinecraftForge.EVENT_BUS.addListener(SeismogramMapService::onPlayerTick);
+        MinecraftForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
+            SeismicScanQueue.clear();
+            SeismogramMapService.clear();
+        });
 
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
             () -> () -> net.goldskinmc.creategeoresonance.client.GeoResonanceClient.register());

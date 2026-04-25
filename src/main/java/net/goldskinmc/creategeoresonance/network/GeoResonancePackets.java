@@ -4,6 +4,7 @@ import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.network.packet.C2SStartSeismicStationPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
+import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -49,6 +50,12 @@ public final class GeoResonancePackets {
             .decoder(S2CSeismicResultPacket::decode)
             .consumerMainThread(S2CSeismicResultPacket::handle)
             .add();
+
+        CHANNEL.messageBuilder(S2CSeismogramMarkerPacket.class, packetIndex++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(S2CSeismogramMarkerPacket::encode)
+            .decoder(S2CSeismogramMarkerPacket::decode)
+            .consumerMainThread(S2CSeismogramMarkerPacket::handle)
+            .add();
     }
 
     public static void sendSeismicImpact(ServerLevel level, BlockPos origin, int scannerEntityId, boolean lowPressure) {
@@ -60,6 +67,11 @@ public final class GeoResonancePackets {
                                          List<SeismicAnomaly> anomalies) {
         S2CSeismicResultPacket packet = new S2CSeismicResultPacket(origin, scannerEntityId, lowPressure, maxDepth, anomalies);
         sendToNearby(level, origin, packet);
+    }
+
+    public static void sendSeismogramMarker(ServerPlayer player, int mapId, byte markerX, byte markerZ, byte markerRot) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+            new S2CSeismogramMarkerPacket(mapId, markerX, markerZ, markerRot));
     }
 
     private static void sendToNearby(ServerLevel level, BlockPos origin, Object packet) {

@@ -3,6 +3,7 @@
   "block.creategeoresonance.seismic_station_bounding": "Seismic Station",
   "block.creategeoresonance.placed_seismic_hammer": "Placed Seismic Hammer",
   "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
+  "item.creategeoresonance.seismogram": "Seismogram",
   "item.creategeoresonance.seismic_hammer.no_pressure": "Hammer pressure depleted",
   "item.creategeoresonance.seismic_hammer.tooltip.summary": "A handheld seismic striker that consumes _pressure_ to detect underground _caves_, _water_, and _lava_.",
   "item.creategeoresonance.seismic_hammer.tooltip.condition1": "Charging",
@@ -11,6 +12,7 @@
   "item.creategeoresonance.seismic_hammer.tooltip.behaviour2": "When pressure is low, scans are _weaker_: depth is reduced and echo identity becomes ambiguous. Striking _dirt_, _sand_, or _gravel_ dampens scan depth.",
   "block.creategeoresonance.seismic_station.start": "Start",
   "block.creategeoresonance.seismic_station.paper": "Paper Input",
+  "block.creategeoresonance.seismic_station.output": "Output",
   "block.creategeoresonance.seismic_station.map": "Scan Map",
   "block.creategeoresonance.seismic_station.speed": "Speed: %s RPM (min %s)",
   "block.creategeoresonance.seismic_station.stress": "Load: ~%s SU",
@@ -27,6 +29,7 @@
   "block.creategeoresonance.seismic_station.cooldown": "Station is cooling down",
   "block.creategeoresonance.seismic_station.no_rotation": "Station needs at least %s RPM on the top-left shaft",
   "block.creategeoresonance.seismic_station.no_paper": "Insert paper to start",
+  "block.creategeoresonance.seismic_station.output_full": "Take the previous seismogram from output first",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
 }
