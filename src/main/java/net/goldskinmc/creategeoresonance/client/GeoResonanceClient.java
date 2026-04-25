@@ -10,33 +10,43 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 
 public final class GeoResonanceClient {
     private static final List<ScheduledEcho> PENDING_ECHOES = new ArrayList<>();
     private static final List<ScheduledSound> PENDING_SOUNDS = new ArrayList<>();
     private static final List<ActiveEffect> ACTIVE_EFFECTS = new ArrayList<>();
     private static final List<ActiveShake> ACTIVE_SHAKES = new ArrayList<>();
+    private static final int SEISMOGRAM_SIDEBAR_MAX_SIGNALS = 5;
+    private static final int SEISMOGRAM_SIDEBAR_ROW_HEIGHT = 10;
+    private static final int SEISMOGRAM_SIDEBAR_WIDTH = 132;
     private static ClientLevel PREWARMED_LEVEL;
     private static boolean WAVE_RENDERER_PREWARMED;
 
@@ -47,6 +57,7 @@ public final class GeoResonanceClient {
         GeoResonancePartialModels.init();
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
+        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderGuiOverlay);
     }
 
     public static void handleImpact(S2CSeismicImpactPacket packet) {
@@ -317,6 +328,25 @@ public final class GeoResonanceClient {
         event.setPitch(event.getPitch() + pitchOffset);
     }
 
+    private static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.level == null || minecraft.options.hideGui) {
+            return;
+        }
+
+        SeismogramMapService.MapSnapshot snapshot = findHeldSeismogramSnapshot(minecraft);
+        if (snapshot == null || snapshot.signals().isEmpty()) {
+            return;
+        }
+
+        List<SignalDistance> nearestSignals = buildNearestSignals(snapshot, minecraft.player.getX(), minecraft.player.getZ());
+        if (nearestSignals.isEmpty()) {
+            return;
+        }
+
+        renderSeismogramSidebar(event.getGuiGraphics(), minecraft, nearestSignals);
+    }
+
     private static Vec3 surfaceCenter(ClientLevel level, BlockPos reference) {
         int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, reference.getX(), reference.getZ());
         int minY = level.getMinBuildHeight();
@@ -324,6 +354,74 @@ public final class GeoResonanceClient {
             surfaceY = reference.getY() + 1;
         }
         return new Vec3(reference.getX() + 0.5D, surfaceY + 0.05D, reference.getZ() + 0.5D);
+    }
+
+    @Nullable
+    private static SeismogramMapService.MapSnapshot findHeldSeismogramSnapshot(Minecraft minecraft) {
+        ItemStack mainHand = minecraft.player.getMainHandItem();
+        SeismogramMapService.MapSnapshot mainSnapshot = SeismogramMapService.readSnapshot(mainHand);
+        if (mainSnapshot != null) {
+            return mainSnapshot;
+        }
+        ItemStack offhand = minecraft.player.getOffhandItem();
+        return SeismogramMapService.readSnapshot(offhand);
+    }
+
+    private static List<SignalDistance> buildNearestSignals(SeismogramMapService.MapSnapshot snapshot, double playerX, double playerZ) {
+        return snapshot.signals().stream()
+            .map(signal -> toSignalDistance(snapshot, signal, playerX, playerZ))
+            .sorted(Comparator.comparingInt(SignalDistance::horizontalDistance))
+            .limit(SEISMOGRAM_SIDEBAR_MAX_SIGNALS)
+            .toList();
+    }
+
+    private static SignalDistance toSignalDistance(SeismogramMapService.MapSnapshot snapshot, SeismogramMapService.MapSignal signal,
+                                                   double playerX, double playerZ) {
+        double dx = playerX - (signal.worldX() + 0.5D);
+        double dz = playerZ - (signal.worldZ() + 0.5D);
+        int horizontalDistance = Mth.floor(Math.sqrt(dx * dx + dz * dz));
+        int approxDepth = Math.max(0, snapshot.centerY() - signal.approxY());
+        return new SignalDistance(signal.type(), horizontalDistance, approxDepth);
+    }
+
+    private static void renderSeismogramSidebar(GuiGraphics graphics, Minecraft minecraft, List<SignalDistance> nearestSignals) {
+        int rows = nearestSignals.size() + 1;
+        int panelHeight = 8 + rows * SEISMOGRAM_SIDEBAR_ROW_HEIGHT;
+        int left = minecraft.getWindow().getGuiScaledWidth() - SEISMOGRAM_SIDEBAR_WIDTH - 8;
+        int top = (minecraft.getWindow().getGuiScaledHeight() - panelHeight) / 2;
+        graphics.fill(left, top, left + SEISMOGRAM_SIDEBAR_WIDTH, top + panelHeight, 0x7A1A1A1A);
+
+        graphics.drawString(minecraft.font, Component.translatable("item.creategeoresonance.seismogram.sidebar.title"),
+            left + 4, top + 3, 0xF7EED7, false);
+        int y = top + 3 + SEISMOGRAM_SIDEBAR_ROW_HEIGHT;
+        for (SignalDistance signalDistance : nearestSignals) {
+            Component line = Component.translatable(
+                "item.creategeoresonance.seismogram.sidebar.line",
+                Component.translatable(signalTypeKey(signalDistance.type())),
+                signalDistance.horizontalDistance(),
+                signalDistance.approxDepth()
+            );
+            graphics.drawString(minecraft.font, line, left + 4, y, signalTypeColor(signalDistance.type()), false);
+            y += SEISMOGRAM_SIDEBAR_ROW_HEIGHT;
+        }
+    }
+
+    private static int signalTypeColor(SeismicAnomalyType type) {
+        return switch (type) {
+            case CAVE -> 0xCFCFCF;
+            case WATER -> 0x7FC6FF;
+            case LAVA -> 0xFFB061;
+            case SOLID -> 0xA19485;
+        };
+    }
+
+    private static String signalTypeKey(SeismicAnomalyType type) {
+        return switch (type) {
+            case CAVE -> "item.creategeoresonance.seismogram.signal.cave";
+            case WATER -> "item.creategeoresonance.seismogram.signal.water";
+            case LAVA -> "item.creategeoresonance.seismogram.signal.lava";
+            case SOLID -> "item.creategeoresonance.seismogram.signal.solid";
+        };
     }
 
     private record ScheduledEcho(BlockPos origin, int scannerEntityId, int maxDepth, boolean lowPressure, SeismicAnomaly anomaly,
@@ -337,5 +435,8 @@ public final class GeoResonanceClient {
     }
 
     private record ActiveShake(long startsAtTick, long endsAtTick, float intensity, float phaseSeed) {
+    }
+
+    private record SignalDistance(SeismicAnomalyType type, int horizontalDistance, int approxDepth) {
     }
 }

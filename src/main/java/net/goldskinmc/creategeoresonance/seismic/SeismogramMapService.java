@@ -15,8 +15,10 @@ import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraftforge.event.TickEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,11 +26,13 @@ import java.util.UUID;
 public final class SeismogramMapService {
     private static final String TAG_ROOT = "GeoSeismogram";
     private static final String TAG_CENTER_X = "CenterX";
+    private static final String TAG_CENTER_Y = "CenterY";
     private static final String TAG_CENTER_Z = "CenterZ";
     private static final String TAG_ENTRIES = "Entries";
     private static final String TAG_ENTRY_TYPE = "Type";
     private static final String TAG_ENTRY_WORLD_X = "WorldX";
     private static final String TAG_ENTRY_WORLD_Z = "WorldZ";
+    private static final String TAG_ENTRY_WORLD_Y = "WorldY";
 
     private static final int WINDOW_HALF_BLOCKS = 24;
     private static final int WINDOW_DIAMETER_BLOCKS = WINDOW_HALF_BLOCKS * 2;
@@ -60,6 +64,35 @@ public final class SeismogramMapService {
 
     public static void clear() {
         LAST_MARKERS.clear();
+    }
+
+    @Nullable
+    public static MapSnapshot readSnapshot(ItemStack stack) {
+        CompoundTag geoTag = readGeoTag(stack);
+        if (geoTag == null) {
+            return null;
+        }
+
+        int centerX = geoTag.getInt(TAG_CENTER_X);
+        int centerY = geoTag.getInt(TAG_CENTER_Y);
+        int centerZ = geoTag.getInt(TAG_CENTER_Z);
+        List<MapSignal> signals = new ArrayList<>();
+        ListTag entries = geoTag.getList(TAG_ENTRIES, Tag.TAG_COMPOUND);
+        for (Tag raw : entries) {
+            CompoundTag entryTag = (CompoundTag) raw;
+            SeismicAnomalyType type = parseType(entryTag.getString(TAG_ENTRY_TYPE));
+            if (type == null) {
+                continue;
+            }
+            signals.add(new MapSignal(
+                type,
+                entryTag.getInt(TAG_ENTRY_WORLD_X),
+                entryTag.getInt(TAG_ENTRY_WORLD_Z),
+                entryTag.contains(TAG_ENTRY_WORLD_Y, Tag.TAG_INT) ? entryTag.getInt(TAG_ENTRY_WORLD_Y) : centerY
+            ));
+        }
+
+        return new MapSnapshot(centerX, centerY, centerZ, List.copyOf(signals));
     }
 
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
@@ -105,6 +138,7 @@ public final class SeismogramMapService {
                                            List<SeismicStationBlockEntity.MapEntry> entries) {
         CompoundTag tag = new CompoundTag();
         tag.putInt(TAG_CENTER_X, centerX);
+        tag.putInt(TAG_CENTER_Y, stationPos.getY());
         tag.putInt(TAG_CENTER_Z, centerZ);
 
         ListTag entryList = new ListTag();
@@ -119,6 +153,7 @@ public final class SeismogramMapService {
             entryTag.putString(TAG_ENTRY_TYPE, entry.type().name());
             entryTag.putInt(TAG_ENTRY_WORLD_X, worldX);
             entryTag.putInt(TAG_ENTRY_WORLD_Z, worldZ);
+            entryTag.putInt(TAG_ENTRY_WORLD_Y, entry.approxY());
             entryList.add(entryTag);
         }
         tag.put(TAG_ENTRIES, entryList);
@@ -223,5 +258,11 @@ public final class SeismogramMapService {
     }
 
     private record MarkerState(byte markerX, byte markerZ, byte markerRot) {
+    }
+
+    public record MapSnapshot(int centerX, int centerY, int centerZ, List<MapSignal> signals) {
+    }
+
+    public record MapSignal(SeismicAnomalyType type, int worldX, int worldZ, int approxY) {
     }
 }
