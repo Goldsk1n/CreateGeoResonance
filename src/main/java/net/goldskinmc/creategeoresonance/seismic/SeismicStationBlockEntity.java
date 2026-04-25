@@ -1,7 +1,9 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.content.kinetics.base.IRotate.SpeedLevel;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.CreateLang;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.ChatFormatting;
@@ -74,6 +76,26 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+    }
+
+    @Override
+    public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+        float speed = getOperationalSpeed();
+        boolean overStressed = isStationOverStressed();
+        float stressLoad = calculateStressApplied() * Math.abs(speed);
+
+        CreateLang.translate("gui.goggles.kinetic_stats").forGoggles(tooltip);
+        SpeedLevel.getFormattedSpeedText(speed, overStressed).forGoggles(tooltip, 1);
+
+        CreateLang.translate("tooltip.stressImpact")
+            .style(ChatFormatting.GRAY)
+            .forGoggles(tooltip, 1);
+        CreateLang.builder()
+            .add(CreateLang.number(stressLoad).style(overStressed ? ChatFormatting.RED : ChatFormatting.AQUA))
+            .text(ChatFormatting.GRAY, " ")
+            .add(CreateLang.translate("generic.unit.stress").style(ChatFormatting.DARK_GRAY))
+            .forGoggles(tooltip, 2);
+        return true;
     }
 
     @Override
@@ -336,6 +358,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return input;
         }
         return null;
+    }
+
+    private boolean isStationOverStressed() {
+        SeismicStationBoundingBlockEntity input = getInputNode();
+        if (input != null) {
+            return input.isOverStressed();
+        }
+        return isOverStressed();
     }
 
     @Override

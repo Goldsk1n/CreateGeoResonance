@@ -40,6 +40,7 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         SeismicStationBoundingBlockEntity input = blockEntity.getInputNode();
         float angle = angleFor(input);
+        float drumAngle = angleFor(input, 0.125F);
         RenderType renderType = getRenderType(blockEntity, state);
         VertexConsumer vertexConsumer = buffer.getBuffer(renderType);
 
@@ -55,16 +56,20 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
 
         SuperByteBuffer drum = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_DRUM, state);
         orientToFacing(drum, facing);
-        rotateAroundLocalPivot(drum, angle, Direction.EAST, DRUM_PIVOT_X, DRUM_PIVOT_Y, DRUM_PIVOT_Z);
+        rotateAroundLocalPivot(drum, drumAngle, Direction.EAST, DRUM_PIVOT_X, DRUM_PIVOT_Y, DRUM_PIVOT_Z);
         drum.light(light).renderInto(ms, vertexConsumer);
     }
 
     private static float angleFor(SeismicStationBoundingBlockEntity input) {
+        return angleFor(input, 1.0F);
+    }
+
+    private static float angleFor(SeismicStationBoundingBlockEntity input, float speedMultiplier) {
         if (input == null || input.getLevel() == null) {
             return 0.0F;
         }
         float time = AnimationTickHolder.getRenderTime(input.getLevel());
-        return ((time * input.getSpeed() * 3f / 10) % 360) / 180f * (float) Math.PI;
+        return ((time * input.getSpeed() * speedMultiplier * 3f / 10) % 360) / 180f * (float) Math.PI;
     }
 
     private static float pistonTravelFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
