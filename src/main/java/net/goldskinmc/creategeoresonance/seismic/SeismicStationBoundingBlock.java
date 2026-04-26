@@ -91,7 +91,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (player.isShiftKeyDown() && state.getValue(PART) == BoundingPart.UPPER_RIGHT) {
+        if (state.getValue(PART) == BoundingPart.UPPER_RIGHT) {
             if (level.isClientSide) {
                 return InteractionResult.SUCCESS;
             }

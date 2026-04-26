@@ -4,7 +4,6 @@ import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
-import net.goldskinmc.creategeoresonance.registry.GeoResonanceMenus;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
@@ -29,7 +28,6 @@ public class CreateGeoResonanceMod {
         GeoResonanceBlocks.register();
         GeoResonanceBlockEntityTypes.register();
         GeoResonanceItems.register();
-        GeoResonanceMenus.register();
         GeoResonanceSoundEvents.register();
         GeoResonancePackets.register();
 

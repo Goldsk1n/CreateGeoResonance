@@ -4,11 +4,8 @@ import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
-import net.goldskinmc.creategeoresonance.registry.GeoResonanceMenus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -80,28 +77,7 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (player.isShiftKeyDown()) {
-            return InteractionResult.PASS;
-        }
-
-        if (level.isClientSide) {
-            return InteractionResult.SUCCESS;
-        }
-        if (!(player instanceof ServerPlayer serverPlayer)) {
-            return InteractionResult.PASS;
-        }
-        GeoResonanceMenus.SEISMIC_STATION.open(
-            serverPlayer,
-            Component.translatable("block.creategeoresonance.seismic_station"),
-            (windowId, inventory, p) -> new SeismicStationMenu(
-                GeoResonanceMenus.SEISMIC_STATION.get(),
-                windowId,
-                inventory,
-                pos
-            ),
-            buffer -> buffer.writeBlockPos(pos)
-        );
-        return InteractionResult.CONSUME;
+        return InteractionResult.PASS;
     }
 
     @Override
