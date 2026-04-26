@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicStationBlockEntity> {
-    private static final Direction LOCAL_SHAFT_AXIS = Direction.EAST;
+    private static final Direction LOCAL_SHAFT_AXIS = Direction.SOUTH;
     private static final float SHAFT_PIVOT_X = 8.0F;
     private static final float SHAFT_PIVOT_Y = 24.0F;
     private static final float SHAFT_PIVOT_Z = 8.0F;
@@ -39,14 +39,14 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         BlockState state = blockEntity.getBlockState();
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         SeismicStationBoundingBlockEntity input = blockEntity.getInputNode();
-        float angle = angleFor(input);
-        float drumAngle = angleFor(input, 0.125F);
+        float angle = angleFor(input, facing, 1.0F);
+        float drumAngle = angleFor(input, facing, 0.125F);
         RenderType renderType = getRenderType(blockEntity, state);
         VertexConsumer vertexConsumer = buffer.getBuffer(renderType);
 
         SuperByteBuffer shaft = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_TOP_SHAFT, state);
-        rotateAroundLocalPivot(shaft, angle, LOCAL_SHAFT_AXIS, SHAFT_PIVOT_X, SHAFT_PIVOT_Y, SHAFT_PIVOT_Z);
         orientToFacing(shaft, facing);
+        rotateAroundLocalPivot(shaft, angle, LOCAL_SHAFT_AXIS, SHAFT_PIVOT_X, SHAFT_PIVOT_Y, SHAFT_PIVOT_Z);
         shaft.light(light).renderInto(ms, vertexConsumer);
 
         SuperByteBuffer piston = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_HAMMER_PISTON, state);
@@ -85,16 +85,17 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         }
     }
 
-    private static float angleFor(SeismicStationBoundingBlockEntity input) {
-        return angleFor(input, 1.0F);
-    }
-
-    private static float angleFor(SeismicStationBoundingBlockEntity input, float speedMultiplier) {
+    private static float angleFor(SeismicStationBoundingBlockEntity input, Direction facing, float speedMultiplier) {
         if (input == null || input.getLevel() == null) {
             return 0.0F;
         }
+        Direction.Axis inputAxis = KineticBlockEntityRenderer.getRotationAxisOf(input);
         float time = AnimationTickHolder.getRenderTime(input.getLevel());
-        return ((time * input.getSpeed() * speedMultiplier * 3f / 10) % 360) / 180f * (float) Math.PI;
+        float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(input, input.getBlockPos(), inputAxis);
+        float rawDegrees = time * input.getSpeed() * 3f / 10 + offset;
+        float rawAngle = (rawDegrees * speedMultiplier % 360f) / 180f * (float) Math.PI;
+        float facingSign = facing.getAxis() == Direction.Axis.X ? -1.0F : 1.0F;
+        return rawAngle * facingSign;
     }
 
     private static float pistonTravelFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
