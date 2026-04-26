@@ -8,11 +8,11 @@
 	"textures": {
 		"2": "create:block/railway_casing",
 		"3": "creategeoresonance:block/seismic_station/seismic_station_additional",
-		"5": "creategeoresonance:block/seismic_station/sturdy_block",
 		"7": "creategeoresonance:block/seismic_station/brass_press_top",
 		"8": "creategeoresonance:block/seismic_station/railway_gearbox",
 		"9": "creategeoresonance:block/seismic_station/seismic_hammer_body_side",
-		"10": "creategeoresonance:block/seismic_station/seismic_hammer_body_inner"
+		"10": "creategeoresonance:block/seismic_station/seismic_hammer_body_inner",
+		"13": "creategeoresonance:block/seismic_station/brass_block"
 	},
 	"elements": [
 		{
@@ -109,35 +109,15 @@
 		{
 			"name": "Table",
 			"from": [-14, 0, 0],
-			"to": [-2, 8, 16],
+			"to": [-2, 4, 16],
 			"rotation": {"angle": 0, "axis": "y", "origin": [0, 16.5, 8]},
 			"faces": {
-				"north": {"uv": [2, 0, 14, 8], "texture": "#5"},
-				"east": {"uv": [0, 0, 16, 8], "texture": "#5"},
-				"south": {"uv": [2, 0, 14, 8], "texture": "#5"},
-				"west": {"uv": [0, 0, 16, 8], "texture": "#5"},
-				"up": {"uv": [2, 0, 14, 16], "texture": "#5"},
-				"down": {"uv": [2, 0, 14, 16], "texture": "#5"}
-			}
-		},
-		{
-			"name": "window",
-			"from": [-14, 8, 15],
-			"to": [-2, 30, 16],
-			"rotation": {"angle": 0, "axis": "y", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [8.5, 0, 14.5, 12], "texture": "#3"},
-				"south": {"uv": [8.5, 0, 14.5, 12], "texture": "#3"}
-			}
-		},
-		{
-			"name": "window",
-			"from": [-14, 8, 0],
-			"to": [-2, 30, 1],
-			"rotation": {"angle": 0, "axis": "y", "origin": [0, 16.5, 8]},
-			"faces": {
-				"north": {"uv": [8.5, 0, 14.5, 12], "texture": "#3"},
-				"east": {"uv": [0, 0, 1, 16], "texture": "#3"}
+				"north": {"uv": [2, 0, 14, 8], "texture": "#13"},
+				"east": {"uv": [0, 0, 16, 8], "texture": "#13"},
+				"south": {"uv": [2, 0, 14, 8], "texture": "#13"},
+				"west": {"uv": [0, 0, 16, 8], "texture": "#13"},
+				"up": {"uv": [2, 0, 14, 16], "texture": "#13"},
+				"down": {"uv": [2, 0, 14, 16], "texture": "#13"}
 			}
 		},
 		{
@@ -199,39 +179,37 @@
 	],
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [75, 45, 0],
-			"translation": [0, 1.75, 2.25],
-			"scale": [0.375, 0.375, 0.375]
+			"translation": [3, 2.5, 1],
+			"scale": [0.4, 0.4, 0.4]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [75, 45, 0],
-			"translation": [0, 1.75, 2.25],
-			"scale": [0.375, 0.375, 0.375]
+			"translation": [-3, 2.5, 1],
+			"scale": [0.4, 0.4, 0.4]
 		},
 		"firstperson_righthand": {
-			"rotation": [74.25, -1.5, 0],
-			"scale": [0.4, 0.4, 0.4]
+			"translation": [0, 0, 2],
+			"scale": [0.3, 0.3, 0.3]
 		},
 		"firstperson_lefthand": {
-			"rotation": [74.25, -1.5, 0],
-			"scale": [0.4, 0.4, 0.4]
+			"translation": [-4.5, 0, 2],
+			"scale": [0.3, 0.3, 0.3]
 		},
 		"ground": {
-			"translation": [0, 3, 0],
-			"scale": [0.25, 0.25, 0.25]
+			"translation": [4, 2, 0],
+			"scale": [0.4, 0.4, 0.4]
 		},
 		"gui": {
-			"rotation": [30, 45, 0],
-			"translation": [0, 2.5, 0],
-			"scale": [0.75, 0.75, 0.75]
+			"rotation": [15, -180, 0],
+			"translation": [-3.25, -3.25, 0],
+			"scale": [0.4, 0.4, 0.4]
 		},
 		"head": {
-			"translation": [0, 14.5, 0]
+			"translation": [4.1, -2, 0],
+			"scale": [0.5, 0.5, 0.5]
 		},
 		"fixed": {
-			"rotation": [-90, 0, 0],
-			"translation": [0, 0, -5.25],
-			"scale": [0.75, 0.75, 0.75]
+			"translation": [4, -3.25, -0.7],
+			"scale": [0.4, 0.4, 0.2]
 		},
 		"on_shelf": {
 			"rotation": [0, -180, 0],
@@ -258,7 +236,7 @@
 					"origin": [8, 8, 8],
 					"scope": 0,
 					"color": 0,
-					"children": [4, 5, 6, 7, 8, 9]
+					"children": [4, 5, 6, 7]
 				},
 				{
 					"name": "Seismograph",
@@ -266,14 +244,14 @@
 					"scope": 0,
 					"color": 0,
 					"children": [
-						10,
-						11,
+						8,
+						9,
 						{
 							"name": "Pen",
 							"origin": [8, 8, 8],
 							"scope": 0,
 							"color": 0,
-							"children": [12, 13]
+							"children": [10, 11]
 						}
 					]
 				}

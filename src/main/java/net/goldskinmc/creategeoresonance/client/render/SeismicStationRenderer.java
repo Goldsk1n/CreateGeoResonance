@@ -67,6 +67,22 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         );
         orientToFacing(lever, facing);
         lever.light(light).renderInto(ms, vertexConsumer);
+
+        if (blockEntity.hasPaperInput()) {
+            SuperByteBuffer paper = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_INPUT_PAPER, state);
+            orientToFacing(paper, facing);
+            paper.light(light).renderInto(ms, vertexConsumer);
+        }
+        if (blockEntity.hasInkInput()) {
+            SuperByteBuffer ink = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_INPUT_INK, state);
+            orientToFacing(ink, facing);
+            ink.light(light).renderInto(ms, vertexConsumer);
+        }
+        if (blockEntity.hasSeismogramOutput()) {
+            SuperByteBuffer output = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_OUTPUT_SEISMOGRAM, state);
+            orientToFacing(output, facing);
+            output.light(light).renderInto(ms, vertexConsumer);
+        }
     }
 
     private static float angleFor(SeismicStationBoundingBlockEntity input) {

@@ -10,6 +10,7 @@ import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
@@ -31,8 +32,9 @@ public class SeismicStationMenu extends AbstractContainerMenu {
         }
         this.station = station;
 
-        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_PAPER_INPUT, 17, 35));
-        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_SEISMOGRAM_OUTPUT, 44, 35) {
+        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_PAPER_INPUT, 8, 35));
+        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_INK_INPUT, 26, 35));
+        addSlot(new SlotItemHandler(station.getInventory(), SeismicStationBlockEntity.SLOT_SEISMOGRAM_OUTPUT, 53, 35) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return false;
@@ -59,14 +61,18 @@ public class SeismicStationMenu extends AbstractContainerMenu {
 
         ItemStack stack = slot.getItem();
         ItemStack original = stack.copy();
-        int containerSlots = 2;
+        int containerSlots = 3;
         if (index < containerSlots) {
             if (!moveItemStackTo(stack, containerSlots, slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
         } else {
-            if (stack.is(net.minecraft.world.item.Items.PAPER)) {
+            if (stack.is(Items.PAPER)) {
                 if (!moveItemStackTo(stack, SeismicStationBlockEntity.SLOT_PAPER_INPUT, SeismicStationBlockEntity.SLOT_PAPER_INPUT + 1, false)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (stack.is(Items.INK_SAC)) {
+                if (!moveItemStackTo(stack, SeismicStationBlockEntity.SLOT_INK_INPUT, SeismicStationBlockEntity.SLOT_INK_INPUT + 1, false)) {
                     return ItemStack.EMPTY;
                 }
             } else {

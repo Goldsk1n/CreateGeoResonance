@@ -17,6 +17,12 @@ public final class GeoResonancePartialModels {
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_start_lever_up"));
     public static final PartialModel SEISMIC_STATION_START_LEVER_DOWN = PartialModel.of(
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_start_lever_down"));
+    public static final PartialModel SEISMIC_STATION_INPUT_PAPER = PartialModel.of(
+        ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_input_paper"));
+    public static final PartialModel SEISMIC_STATION_INPUT_INK = PartialModel.of(
+        ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_input_ink"));
+    public static final PartialModel SEISMIC_STATION_OUTPUT_SEISMOGRAM = PartialModel.of(
+        ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_station_output_seismogram"));
     public static final PartialModel SEISMIC_WAVE = PartialModel.of(
         ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "block/seismic_wave"));
 

@@ -46,9 +46,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String COOLDOWN_TAG = "CooldownTicks";
     private static final float NO_CLIENT_STRIKE_PROGRESS = -1.0F;
     public static final int SLOT_PAPER_INPUT = 0;
-    public static final int SLOT_SEISMOGRAM_OUTPUT = 1;
+    public static final int SLOT_INK_INPUT = 1;
+    public static final int SLOT_SEISMOGRAM_OUTPUT = 2;
 
-    private final ItemStackHandler inventory = new ItemStackHandler(2) {
+    private final ItemStackHandler inventory = new ItemStackHandler(3) {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
@@ -60,7 +61,15 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             if (slot == SLOT_PAPER_INPUT) {
                 return stack.is(Items.PAPER);
             }
+            if (slot == SLOT_INK_INPUT) {
+                return stack.is(Items.INK_SAC);
+            }
             return false;
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1;
         }
 
         @Override
@@ -176,6 +185,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return scanRunning || awaitingScanResult;
     }
 
+    public boolean hasPaperInput() {
+        return !inventory.getStackInSlot(SLOT_PAPER_INPUT).isEmpty();
+    }
+
+    public boolean hasInkInput() {
+        return !inventory.getStackInSlot(SLOT_INK_INPUT).isEmpty();
+    }
+
+    public boolean hasSeismogramOutput() {
+        return !inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty();
+    }
+
     public int getCooldownTicks() {
         return cooldownTicks;
     }
@@ -249,6 +270,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
+        if (inventory.getStackInSlot(SLOT_INK_INPUT).isEmpty()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_ink")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
         if (!inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty()) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.output_full")
                 .withStyle(ChatFormatting.RED), true);
@@ -256,6 +282,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
 
         inventory.extractItem(SLOT_PAPER_INPUT, 1, false);
+        inventory.extractItem(SLOT_INK_INPUT, 1, false);
         scanRunning = true;
         awaitingScanResult = true;
         mapReady = false;
