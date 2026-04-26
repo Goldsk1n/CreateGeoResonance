@@ -22,8 +22,13 @@
   "block.creategeoresonance.seismic_station.no_paper": "Insert paper to start",
   "block.creategeoresonance.seismic_station.no_ink": "Insert ink sac to start",
   "block.creategeoresonance.seismic_station.paper_full": "Paper is already loaded",
+  "block.creategeoresonance.seismic_station.paper_loaded": "Paper loaded",
   "block.creategeoresonance.seismic_station.ink_full": "Ink sac is already loaded",
+  "block.creategeoresonance.seismic_station.ink_loaded": "Ink loaded",
   "block.creategeoresonance.seismic_station.no_output_ready": "No seismogram ready yet",
+  "block.creategeoresonance.seismic_station.output_taken": "Seismogram collected",
+  "block.creategeoresonance.seismic_station.scan_started": "Seismic scan started",
+  "block.creategeoresonance.seismic_station.output_ready": "Seismogram ready",
   "block.creategeoresonance.seismic_station.output_full": "Take the previous seismogram from output first",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"

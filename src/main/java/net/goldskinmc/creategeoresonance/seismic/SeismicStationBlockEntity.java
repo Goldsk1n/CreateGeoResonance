@@ -9,12 +9,17 @@ import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -98,6 +103,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int strikeTimer;
     private int revealIndex;
     private int cooldownTicks;
+    private int comparatorOutputCache = -1;
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
 
@@ -144,6 +150,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (cooldownTicks > 0) {
             cooldownTicks--;
         }
+        updateComparatorOutputIfNeeded();
 
         if (!scanRunning || awaitingScanResult) {
             return;
@@ -216,6 +223,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
         setChanged();
         sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.paper_loaded")
+            .withStyle(ChatFormatting.GREEN), true);
+        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 1.35F);
+        spawnFeedbackParticles(ParticleTypes.CLOUD, 6, 0.22D, 0.01D);
+        updateComparatorOutputIfNeeded();
         return true;
     }
 
@@ -236,6 +248,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
         setChanged();
         sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.ink_loaded")
+            .withStyle(ChatFormatting.GREEN), true);
+        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 0.8F);
+        spawnFeedbackParticles(ParticleTypes.SQUID_INK, 4, 0.18D, 0.0D);
+        updateComparatorOutputIfNeeded();
         return true;
     }
 
@@ -255,11 +272,38 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         inventory.setStackInSlot(SLOT_SEISMOGRAM_OUTPUT, ItemStack.EMPTY);
         setChanged();
         sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.output_taken")
+            .withStyle(ChatFormatting.AQUA), true);
+        playFeedbackSound(SoundEvents.NOTE_BLOCK_BASS.value(), 0.65F, 1.3F);
+        spawnFeedbackParticles(ParticleTypes.GLOW, 8, 0.2D, 0.01D);
+        updateComparatorOutputIfNeeded();
         return true;
     }
 
     public int getCooldownTicks() {
         return cooldownTicks;
+    }
+
+    public int getComparatorOutput() {
+        if (!inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty()) {
+            return 15;
+        }
+        if (scanRunning || awaitingScanResult) {
+            return 12;
+        }
+        if (cooldownTicks > 0) {
+            return 4;
+        }
+
+        boolean hasPaper = !inventory.getStackInSlot(SLOT_PAPER_INPUT).isEmpty();
+        boolean hasInk = !inventory.getStackInSlot(SLOT_INK_INPUT).isEmpty();
+        if (hasPaper && hasInk && hasRequiredSpeed()) {
+            return 8;
+        }
+        if (hasPaper || hasInk) {
+            return 2;
+        }
+        return 0;
     }
 
     public float getOperationalSpeed() {
@@ -374,6 +418,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
         setChanged();
         sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.scan_started")
+            .withStyle(ChatFormatting.GOLD), true);
+        playFeedbackSound(SoundEvents.BELL_BLOCK, 0.6F, 1.15F);
+        spawnFeedbackParticles(ParticleTypes.CLOUD, 8, 0.25D, 0.01D);
+        updateComparatorOutputIfNeeded();
         return true;
     }
 
@@ -386,6 +435,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         awaitingScanResult = false;
         setChanged();
         sendData();
+        updateComparatorOutputIfNeeded();
     }
 
     private void replayStrike() {
@@ -415,6 +465,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         strikeTimer = calculateStrikeIntervalTicks();
         setChanged();
         sendData();
+        updateComparatorOutputIfNeeded();
     }
 
     private void generateMapEntries(ServerLevel serverLevel) {
@@ -443,10 +494,54 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
         ItemStack seismogram = createSeismogramMap(serverLevel);
         inventory.setStackInSlot(SLOT_SEISMOGRAM_OUTPUT, seismogram);
+        onOutputReady();
     }
 
     private ItemStack createSeismogramMap(ServerLevel serverLevel) {
         return SeismogramMapService.createMap(serverLevel, worldPosition, mapEntries);
+    }
+
+    private void onOutputReady() {
+        playFeedbackSound(SoundEvents.BELL_BLOCK, 0.7F, 1.65F);
+        spawnFeedbackParticles(ParticleTypes.GLOW, 12, 0.25D, 0.01D);
+        notifyNearbyPlayers("block.creategeoresonance.seismic_station.output_ready", ChatFormatting.AQUA);
+    }
+
+    private void notifyNearbyPlayers(String messageKey, ChatFormatting style) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        Component message = Component.translatable(messageKey).withStyle(style);
+        double x = worldPosition.getX() + 0.5D;
+        double y = worldPosition.getY() + 0.5D;
+        double z = worldPosition.getZ() + 0.5D;
+        for (ServerPlayer nearbyPlayer : serverLevel.players()) {
+            if (nearbyPlayer.distanceToSqr(x, y, z) <= 24.0D * 24.0D) {
+                nearbyPlayer.displayClientMessage(message, true);
+            }
+        }
+    }
+
+    private void playFeedbackSound(SoundEvent sound, float volume, float pitch) {
+        if (level == null) {
+            return;
+        }
+        level.playSound(null, worldPosition, sound, SoundSource.BLOCKS, volume, pitch);
+    }
+
+    private void spawnFeedbackParticles(ParticleOptions particle, int count, double spread, double speed) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        serverLevel.sendParticles(particle,
+            worldPosition.getX() + 0.5D,
+            worldPosition.getY() + 1.05D,
+            worldPosition.getZ() + 0.5D,
+            count,
+            spread,
+            0.12D,
+            spread,
+            speed);
     }
 
     @Override
@@ -526,6 +621,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 inventory.setStackInSlot(slot, ItemStack.EMPTY);
             }
         }
+        updateComparatorOutputIfNeeded();
     }
 
     @Override
@@ -605,7 +701,43 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             } else {
                 clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
             }
+        } else if (!clientPacket) {
+            comparatorOutputCache = -1;
+            updateComparatorOutputIfNeeded();
         }
+    }
+
+    private void updateComparatorOutputIfNeeded() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        int output = getComparatorOutput();
+        if (output == comparatorOutputCache) {
+            return;
+        }
+        comparatorOutputCache = output;
+        updateComparatorOutputs();
+    }
+
+    private void updateComparatorOutputs() {
+        if (level == null) {
+            return;
+        }
+        BlockState controllerState = getBlockState();
+        level.updateNeighbourForOutputSignal(worldPosition, controllerState.getBlock());
+
+        Direction facing = controllerState.getValue(HorizontalDirectionalBlock.FACING);
+        updateComparatorAt(SeismicStationBlock.getLeftPos(worldPosition, facing));
+        updateComparatorAt(SeismicStationBlock.getUpperRightPos(worldPosition));
+        updateComparatorAt(SeismicStationBlock.getUpperLeftPos(worldPosition, facing));
+    }
+
+    private void updateComparatorAt(BlockPos partPos) {
+        if (level == null) {
+            return;
+        }
+        BlockState partState = level.getBlockState(partPos);
+        level.updateNeighbourForOutputSignal(partPos, partState.getBlock());
     }
 
     public record MapEntry(SeismicAnomalyType type, int offsetX, int offsetZ, int approxY) {
