@@ -38,6 +38,9 @@
   "block.creategeoresonance.seismic_station.no_rotation": "Station needs at least %s RPM on the top-left shaft",
   "block.creategeoresonance.seismic_station.no_paper": "Insert paper to start",
   "block.creategeoresonance.seismic_station.no_ink": "Insert ink sac to start",
+  "block.creategeoresonance.seismic_station.paper_full": "Paper is already loaded",
+  "block.creategeoresonance.seismic_station.ink_full": "Ink sac is already loaded",
+  "block.creategeoresonance.seismic_station.no_output_ready": "No seismogram ready yet",
   "block.creategeoresonance.seismic_station.output_full": "Take the previous seismogram from output first",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"

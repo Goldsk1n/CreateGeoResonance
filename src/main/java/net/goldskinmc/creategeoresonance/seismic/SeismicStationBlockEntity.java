@@ -16,6 +16,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.Containers;
@@ -195,6 +197,65 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     public boolean hasSeismogramOutput() {
         return !inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty();
+    }
+
+    public boolean tryInsertPaper(Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+        if (!held.is(Items.PAPER)) {
+            return false;
+        }
+        if (!inventory.getStackInSlot(SLOT_PAPER_INPUT).isEmpty()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.paper_full")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+
+        inventory.setStackInSlot(SLOT_PAPER_INPUT, held.copyWithCount(1));
+        if (!player.getAbilities().instabuild) {
+            held.shrink(1);
+        }
+        setChanged();
+        sendData();
+        return true;
+    }
+
+    public boolean tryInsertInk(Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+        if (!held.is(Items.INK_SAC)) {
+            return false;
+        }
+        if (!inventory.getStackInSlot(SLOT_INK_INPUT).isEmpty()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.ink_full")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+
+        inventory.setStackInSlot(SLOT_INK_INPUT, held.copyWithCount(1));
+        if (!player.getAbilities().instabuild) {
+            held.shrink(1);
+        }
+        setChanged();
+        sendData();
+        return true;
+    }
+
+    public boolean tryTakeOutputWithBareHand(Player player, InteractionHand hand) {
+        if (!player.getItemInHand(hand).isEmpty()) {
+            return false;
+        }
+
+        ItemStack output = inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT);
+        if (output.isEmpty()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_output_ready")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+
+        player.setItemInHand(hand, output.copy());
+        inventory.setStackInSlot(SLOT_SEISMOGRAM_OUTPUT, ItemStack.EMPTY);
+        setChanged();
+        sendData();
+        return true;
     }
 
     public int getCooldownTicks() {

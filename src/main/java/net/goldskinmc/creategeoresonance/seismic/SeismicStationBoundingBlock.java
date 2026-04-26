@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -104,6 +105,27 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
         }
 
         BlockPos controllerPos = getControllerPos(state, pos);
+        if (state.getValue(PART) == BoundingPart.LOWER_LEFT) {
+            ItemStack held = player.getItemInHand(hand);
+            boolean isIoInteraction = held.is(Items.PAPER) || held.is(Items.INK_SAC) || held.isEmpty();
+            if (isIoInteraction) {
+                if (level.isClientSide) {
+                    return InteractionResult.SUCCESS;
+                }
+                if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
+                    if (held.is(Items.PAPER)) {
+                        station.tryInsertPaper(player, hand);
+                    } else if (held.is(Items.INK_SAC)) {
+                        station.tryInsertInk(player, hand);
+                    } else {
+                        station.tryTakeOutputWithBareHand(player, hand);
+                    }
+                    return InteractionResult.CONSUME;
+                }
+                return InteractionResult.PASS;
+            }
+        }
+
         BlockState controllerState = level.getBlockState(controllerPos);
         if (!(controllerState.getBlock() instanceof SeismicStationBlock stationBlock)) {
             return InteractionResult.PASS;
