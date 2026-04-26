@@ -18,14 +18,12 @@ import java.util.List;
 
 public class SeismicStationMenu extends AbstractContainerMenu {
     private final Level level;
-    private final BlockPos stationPos;
     private final ContainerLevelAccess access;
     private final SeismicStationBlockEntity station;
 
     public SeismicStationMenu(MenuType<?> type, int containerId, Inventory inventory, BlockPos stationPos) {
         super(type, containerId);
         this.level = inventory.player.level();
-        this.stationPos = stationPos;
         this.access = ContainerLevelAccess.create(level, stationPos);
 
         if (!(level.getBlockEntity(stationPos) instanceof SeismicStationBlockEntity station)) {
@@ -87,10 +85,6 @@ public class SeismicStationMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         return stillValid(access, player, GeoResonanceBlocks.SEISMIC_STATION.get());
-    }
-
-    public BlockPos getStationPos() {
-        return stationPos;
     }
 
     public boolean isScanRunning() {

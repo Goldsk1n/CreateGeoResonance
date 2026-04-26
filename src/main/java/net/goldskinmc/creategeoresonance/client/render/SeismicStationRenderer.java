@@ -58,6 +58,15 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         orientToFacing(drum, facing);
         rotateAroundLocalPivot(drum, drumAngle, Direction.EAST, DRUM_PIVOT_X, DRUM_PIVOT_Y, DRUM_PIVOT_Z);
         drum.light(light).renderInto(ms, vertexConsumer);
+
+        SuperByteBuffer lever = CachedBuffers.partial(
+            blockEntity.isStartLeverDown()
+                ? GeoResonancePartialModels.SEISMIC_STATION_START_LEVER_DOWN
+                : GeoResonancePartialModels.SEISMIC_STATION_START_LEVER_UP,
+            state
+        );
+        orientToFacing(lever, facing);
+        lever.light(light).renderInto(ms, vertexConsumer);
     }
 
     private static float angleFor(SeismicStationBoundingBlockEntity input) {

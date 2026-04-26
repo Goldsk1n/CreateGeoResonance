@@ -10,6 +10,7 @@ import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -89,6 +90,19 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (player.isShiftKeyDown() && state.getValue(PART) == BoundingPart.UPPER_RIGHT) {
+            if (level.isClientSide) {
+                return InteractionResult.SUCCESS;
+            }
+            BlockPos controllerPos = getControllerPos(state, pos);
+            if (player instanceof ServerPlayer serverPlayer
+                && level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
+                station.tryStartScan(serverPlayer);
+                return InteractionResult.CONSUME;
+            }
+            return InteractionResult.PASS;
+        }
+
         BlockPos controllerPos = getControllerPos(state, pos);
         BlockState controllerState = level.getBlockState(controllerPos);
         if (!(controllerState.getBlock() instanceof SeismicStationBlock stationBlock)) {

@@ -1,7 +1,6 @@
 package net.goldskinmc.creategeoresonance.network;
 
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
-import net.goldskinmc.creategeoresonance.network.packet.C2SStartSeismicStationPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
@@ -33,12 +32,6 @@ public final class GeoResonancePackets {
     }
 
     public static void register() {
-        CHANNEL.messageBuilder(C2SStartSeismicStationPacket.class, packetIndex++, NetworkDirection.PLAY_TO_SERVER)
-            .encoder(C2SStartSeismicStationPacket::encode)
-            .decoder(C2SStartSeismicStationPacket::decode)
-            .consumerMainThread(C2SStartSeismicStationPacket::handle)
-            .add();
-
         CHANNEL.messageBuilder(S2CSeismicImpactPacket.class, packetIndex++, NetworkDirection.PLAY_TO_CLIENT)
             .encoder(S2CSeismicImpactPacket::encode)
             .decoder(S2CSeismicImpactPacket::decode)

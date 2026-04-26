@@ -17,6 +17,7 @@
   "item.creategeoresonance.seismogram.signal.lava": "Lava",
   "item.creategeoresonance.seismogram.signal.solid": "Solid",
   "block.creategeoresonance.seismic_station.start": "Start",
+  "block.creategeoresonance.seismic_station.start_hint": "Shift + Right-click lever to start",
   "block.creategeoresonance.seismic_station.paper": "Paper Input",
   "block.creategeoresonance.seismic_station.output": "Output",
   "block.creategeoresonance.seismic_station.map": "Scan Map",

@@ -2,14 +2,11 @@ package net.goldskinmc.creategeoresonance.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.goldskinmc.creategeoresonance.Config;
-import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
-import net.goldskinmc.creategeoresonance.network.packet.C2SStartSeismicStationPacket;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationMenu;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -18,21 +15,11 @@ import java.util.List;
 
 public class SeismicStationScreen extends AbstractContainerScreen<SeismicStationMenu> {
     private static final int MAP_SIZE = 80;
-    private Button startButton;
 
     public SeismicStationScreen(SeismicStationMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 176;
         imageHeight = 166;
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-        startButton = addRenderableWidget(Button.builder(Component.translatable("block.creategeoresonance.seismic_station.start"),
-            button -> GeoResonancePackets.sendToServer(new C2SStartSeismicStationPacket(menu.getStationPos())))
-            .bounds(leftPos + 8, topPos + 16, 60, 20)
-            .build());
     }
 
     @Override
@@ -62,6 +49,7 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
 
         Component status = statusText();
         graphics.drawString(font, status, 8, 88, 0xFFFFFF, false);
+        graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.start_hint"), 8, 16, 0xB9B9B9, false);
         graphics.drawString(font, Component.translatable("block.creategeoresonance.seismic_station.map"), 80, 5, 0xD0D0D0, false);
 
         List<SeismicStationBlockEntity.MapEntry> entries = menu.getMapEntries();
@@ -79,14 +67,6 @@ public class SeismicStationScreen extends AbstractContainerScreen<SeismicStation
                     + "  ~" + entry.approxY())
                 .withStyle(color);
             graphics.drawString(font, line, 80, listY + i * 10, 0xFFFFFF, false);
-        }
-    }
-
-    @Override
-    public void containerTick() {
-        super.containerTick();
-        if (startButton != null) {
-            startButton.active = !menu.isScanRunning() && !menu.isAwaitingScanResult() && menu.getCooldownTicks() <= 0;
         }
     }
 

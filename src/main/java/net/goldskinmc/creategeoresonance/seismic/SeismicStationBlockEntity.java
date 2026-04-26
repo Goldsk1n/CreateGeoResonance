@@ -172,6 +172,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return mapReady;
     }
 
+    public boolean isStartLeverDown() {
+        return scanRunning || awaitingScanResult;
+    }
+
     public int getCooldownTicks() {
         return cooldownTicks;
     }
