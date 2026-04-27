@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/filled_map_markings",
+    "layer1": "minecraft:item/map_background"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "creategeoresonance:seismogram": 1.0
+      },
+      "model": "creategeoresonance:item/seismogram"
+    }
+  ]
+}

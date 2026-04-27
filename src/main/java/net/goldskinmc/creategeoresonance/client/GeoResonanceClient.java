@@ -2,6 +2,7 @@ package net.goldskinmc.creategeoresonance.client;
 
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import net.goldskinmc.creategeoresonance.Config;
+import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.client.effect.SeismicWaveEffect;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
@@ -12,10 +13,12 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -23,6 +26,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -54,6 +58,9 @@ public final class GeoResonanceClient {
     }
 
     public static void register() {
+        ItemProperties.register(Items.FILLED_MAP,
+            ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "seismogram"),
+            (stack, level, entity, seed) -> SeismogramMapService.isSeismogramStack(stack) ? 1.0F : 0.0F);
         GeoResonancePartialModels.init();
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
