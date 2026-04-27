@@ -53,14 +53,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String STRIKE_TIMER_TAG = "StrikeTimer";
     private static final String REVEAL_INDEX_TAG = "RevealIndex";
     private static final String COOLDOWN_TAG = "CooldownTicks";
+    private static final String CURRENT_SCAN_DEPTH_TAG = "CurrentScanDepth";
+    private static final String SIGNAL_FILTER_MODE_TAG = "SignalFilterMode";
     private static final float NO_CLIENT_STRIKE_PROGRESS = -1.0F;
     public static final int SLOT_PAPER_INPUT = 0;
     public static final int SLOT_INK_INPUT = 1;
     public static final int SLOT_SEISMOGRAM_OUTPUT = 2;
-    public static final int SLOT_MODULE_1 = 3;
-    public static final int SLOT_MODULE_2 = 4;
+    public static final int SLOT_MODULE_START = 3;
+    public static final int MODULE_SLOT_COUNT = 16;
+    public static final int SLOT_MODULE_END = SLOT_MODULE_START + MODULE_SLOT_COUNT - 1;
+    private static final float MODULE_STRESS_IMPACT = 2.0F;
 
-    private final ItemStackHandler inventory = new ItemStackHandler(5) {
+    private final ItemStackHandler inventory = new ItemStackHandler(SLOT_MODULE_START + MODULE_SLOT_COUNT) {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
@@ -75,8 +79,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             if (slot == SLOT_INK_INPUT) {
                 return stack.is(Items.INK_SAC);
             }
-            if (slot == SLOT_MODULE_1 || slot == SLOT_MODULE_2) {
-                return SeismicModuleItem.getDetectsType(stack) != null;
+            if (isModuleSlot(slot)) {
+                return SeismicModuleItem.getModuleType(stack) != null;
             }
             return false;
         }
@@ -110,7 +114,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int strikeTimer;
     private int revealIndex;
     private int cooldownTicks;
+    private int currentScanDepth;
     private int comparatorOutputCache = -1;
+    private SignalFilterMode signalFilterMode = SignalFilterMode.ALL;
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
 
@@ -213,13 +219,17 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return !inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty();
     }
 
+    public boolean hasSignalFilterModule() {
+        return hasModuleInstalled(SeismicModuleType.SIGNAL_FILTER);
+    }
+
     public boolean tryInsertModule(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
-        SeismicAnomalyType moduleType = SeismicModuleItem.getDetectsType(held);
+        SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
         if (moduleType == null) {
             return false;
         }
-        if (hasModuleType(moduleType)) {
+        if (hasModuleInstalled(moduleType)) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_duplicate")
                 .withStyle(ChatFormatting.RED), true);
             return false;
@@ -243,6 +253,23 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.6F, 1.05F);
         spawnFeedbackParticles(ParticleTypes.WAX_ON, 5, 0.18D, 0.01D);
         updateComparatorOutputIfNeeded();
+        return true;
+    }
+
+    public boolean tryCycleSignalFilter(Player player) {
+        if (!hasSignalFilterModule()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.filter_missing")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+        signalFilterMode = signalFilterMode.next();
+        setChanged();
+        sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.filter_mode",
+                Component.translatable(signalFilterMode.translationKey()))
+            .withStyle(ChatFormatting.GOLD), true);
+        playFeedbackSound(SoundEvents.NOTE_BLOCK_PLING.value(), 0.55F, 1.2F);
+        spawnFeedbackParticles(ParticleTypes.END_ROD, 6, 0.12D, 0.0D);
         return true;
     }
 
@@ -462,16 +489,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
         if (level instanceof ServerLevel serverLevel) {
             BlockPos origin = worldPosition.immutable();
+            currentScanDepth = Math.max(1, worldPosition.getY() - serverLevel.getMinBuildHeight());
             SeismicScanQueue.enqueue(new SeismicScanQueue.SeismicScanRequest(
                 serverLevel,
                 origin,
                 -1,
                 Config.STATION_RADIUS.get(),
-                Config.STATION_DEPTH.get(),
+                currentScanDepth,
                 Config.STATION_NOISE.get().floatValue(),
                 serverLevel.getGameTime(),
                 false,
                 buildDetectableTypes(),
+                hasModuleInstalled(SeismicModuleType.BELOW_ZERO),
                 (request, anomalies) -> {
                     BlockEntity blockEntity = request.level().getBlockEntity(origin);
                     if (blockEntity instanceof SeismicStationBlockEntity station) {
@@ -493,7 +522,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     private void acceptScanResult(List<SeismicAnomaly> anomalies) {
         queuedAnomalies.clear();
-        queuedAnomalies.addAll(anomalies);
+        queuedAnomalies.addAll(applySignalFilter(anomalies));
         queuedAnomalies.sort(Comparator.comparingInt(SeismicAnomaly::depth));
         revealIndex = 0;
         strikeTimer = Math.max(0, Config.STATION_STARTUP_DELAY_TICKS.get()) + calculateStrikeIntervalTicks();
@@ -516,7 +545,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 worldPosition,
                 -1,
                 false,
-                Config.STATION_DEPTH.get(),
+                currentScanDepth,
                 List.of(anomaly)
             );
         } else {
@@ -611,7 +640,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     @Override
     public float calculateStressApplied() {
-        float impact = Config.STATION_STRESS_IMPACT.get().floatValue();
+        float impact = Config.STATION_STRESS_IMPACT.get().floatValue() + (getInstalledModuleCount() * MODULE_STRESS_IMPACT);
         lastStressApplied = impact;
         return impact;
     }
@@ -719,6 +748,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         compound.putInt(STRIKE_TIMER_TAG, strikeTimer);
         compound.putInt(REVEAL_INDEX_TAG, revealIndex);
         compound.putInt(COOLDOWN_TAG, cooldownTicks);
+        compound.putInt(CURRENT_SCAN_DEPTH_TAG, currentScanDepth);
+        compound.putString(SIGNAL_FILTER_MODE_TAG, signalFilterMode.name());
 
         ListTag entriesTag = new ListTag();
         for (MapEntry entry : mapEntries) {
@@ -747,6 +778,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         strikeTimer = compound.getInt(STRIKE_TIMER_TAG);
         revealIndex = compound.getInt(REVEAL_INDEX_TAG);
         cooldownTicks = compound.getInt(COOLDOWN_TAG);
+        currentScanDepth = Math.max(1, compound.getInt(CURRENT_SCAN_DEPTH_TAG));
+        signalFilterMode = readSignalFilterMode(compound.getString(SIGNAL_FILTER_MODE_TAG));
 
         mapEntries.clear();
         ListTag entriesTag = compound.getList(MAP_ENTRIES_TAG, Tag.TAG_COMPOUND);
@@ -778,45 +811,76 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             SeismicAnomalyType.WATER,
             SeismicAnomalyType.LAVA
         );
-        SeismicAnomalyType first = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_1));
-        if (first != null) {
-            detectable.add(first);
-        }
-        SeismicAnomalyType second = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_2));
-        if (second != null) {
-            detectable.add(second);
+        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
+            SeismicAnomalyType detects = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
+            if (detects != null) {
+                detectable.add(detects);
+            }
         }
         return detectable;
     }
 
-    private boolean hasModuleType(SeismicAnomalyType moduleType) {
-        return moduleType == SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_1))
-            || moduleType == SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_2));
+    private List<SeismicAnomaly> applySignalFilter(List<SeismicAnomaly> anomalies) {
+        if (!hasSignalFilterModule()) {
+            return anomalies;
+        }
+        return anomalies.stream()
+            .filter(anomaly -> signalFilterMode.allows(anomaly.type()))
+            .toList();
     }
 
     private boolean hasInstalledModules() {
-        return !inventory.getStackInSlot(SLOT_MODULE_1).isEmpty()
-            || !inventory.getStackInSlot(SLOT_MODULE_2).isEmpty();
+        return getInstalledModuleCount() > 0;
+    }
+
+    private boolean hasModuleInstalled(SeismicModuleType moduleType) {
+        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
+            SeismicModuleType installed = SeismicModuleItem.getModuleType(inventory.getStackInSlot(slot));
+            if (installed == moduleType) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int getInstalledModuleCount() {
+        int count = 0;
+        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
+            if (!inventory.getStackInSlot(slot).isEmpty()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private int findEmptyModuleSlot() {
-        if (inventory.getStackInSlot(SLOT_MODULE_1).isEmpty()) {
-            return SLOT_MODULE_1;
-        }
-        if (inventory.getStackInSlot(SLOT_MODULE_2).isEmpty()) {
-            return SLOT_MODULE_2;
+        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
+            if (inventory.getStackInSlot(slot).isEmpty()) {
+                return slot;
+            }
         }
         return -1;
     }
 
     private int findLastFilledModuleSlot() {
-        if (!inventory.getStackInSlot(SLOT_MODULE_2).isEmpty()) {
-            return SLOT_MODULE_2;
-        }
-        if (!inventory.getStackInSlot(SLOT_MODULE_1).isEmpty()) {
-            return SLOT_MODULE_1;
+        for (int slot = SLOT_MODULE_END; slot >= SLOT_MODULE_START; slot--) {
+            if (!inventory.getStackInSlot(slot).isEmpty()) {
+                return slot;
+            }
         }
         return -1;
+    }
+
+    private static boolean isModuleSlot(int slot) {
+        return slot >= SLOT_MODULE_START && slot <= SLOT_MODULE_END;
+    }
+
+    private static SignalFilterMode readSignalFilterMode(String raw) {
+        try {
+            return SignalFilterMode.valueOf(raw);
+        } catch (IllegalArgumentException ignored) {
+            return SignalFilterMode.ALL;
+        }
     }
 
     private void updateComparatorOutputIfNeeded() {
@@ -853,5 +917,41 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     public record MapEntry(SeismicAnomalyType type, int offsetX, int offsetZ, int approxY) {
+    }
+
+    private enum SignalFilterMode {
+        ALL("block.creategeoresonance.seismic_station.filter.all"),
+        RESOURCES_ONLY("block.creategeoresonance.seismic_station.filter.resources"),
+        STRUCTURES_ONLY("block.creategeoresonance.seismic_station.filter.structures"),
+        CAVES_AND_FLUIDS("block.creategeoresonance.seismic_station.filter.caves_fluids");
+
+        private final String translationKey;
+
+        SignalFilterMode(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        public String translationKey() {
+            return translationKey;
+        }
+
+        public SignalFilterMode next() {
+            SignalFilterMode[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
+
+        public boolean allows(SeismicAnomalyType type) {
+            return switch (this) {
+                case ALL -> true;
+                case RESOURCES_ONLY -> switch (type) {
+                    case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST -> true;
+                    default -> false;
+                };
+                case STRUCTURES_ONLY -> type == SeismicAnomalyType.CHEST || type == SeismicAnomalyType.SPAWNER;
+                case CAVES_AND_FLUIDS -> type == SeismicAnomalyType.CAVE
+                    || type == SeismicAnomalyType.WATER
+                    || type == SeismicAnomalyType.LAVA;
+            };
+        }
     }
 }

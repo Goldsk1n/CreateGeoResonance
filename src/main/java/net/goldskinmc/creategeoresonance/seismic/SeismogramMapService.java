@@ -241,6 +241,10 @@ public final class SeismogramMapService {
             case LAPIS -> MapColor.COLOR_BLUE;
             case EMERALD -> MapColor.COLOR_GREEN;
             case DIAMOND -> MapColor.COLOR_LIGHT_BLUE;
+            case ZINC -> MapColor.COLOR_GRAY;
+            case AMETHYST -> MapColor.COLOR_PURPLE;
+            case CHEST -> MapColor.WOOD;
+            case SPAWNER -> MapColor.COLOR_BLACK;
             case SOLID -> MapColor.STONE;
         };
     }
@@ -269,6 +273,10 @@ public final class SeismogramMapService {
             case "LAPIS" -> SeismicAnomalyType.LAPIS;
             case "EMERALD" -> SeismicAnomalyType.EMERALD;
             case "DIAMOND" -> SeismicAnomalyType.DIAMOND;
+            case "ZINC" -> SeismicAnomalyType.ZINC;
+            case "AMETHYST" -> SeismicAnomalyType.AMETHYST;
+            case "CHEST" -> SeismicAnomalyType.CHEST;
+            case "SPAWNER" -> SeismicAnomalyType.SPAWNER;
             case "SOLID" -> SeismicAnomalyType.SOLID;
             default -> null;
         };

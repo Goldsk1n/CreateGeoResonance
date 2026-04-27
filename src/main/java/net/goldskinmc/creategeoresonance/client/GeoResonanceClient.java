@@ -208,6 +208,10 @@ public final class GeoResonanceClient {
             case LAPIS -> 0x3B63D0;
             case EMERALD -> 0x2DBA6B;
             case DIAMOND -> 0x53DAD6;
+            case ZINC -> 0xA5ABB8;
+            case AMETHYST -> 0xAE7BE0;
+            case CHEST -> 0xB9864A;
+            case SPAWNER -> 0x8A8A8A;
             case SOLID -> 0x8E8378;
         };
         float opacity = scheduled.lowPressure() ? 0.35F + confidence * 0.35F : 0.5F + confidence * 0.5F;
@@ -227,6 +231,10 @@ public final class GeoResonanceClient {
             case LAPIS -> SoundEvents.AMETHYST_BLOCK_CHIME;
             case EMERALD -> SoundEvents.NOTE_BLOCK_FLUTE.value();
             case DIAMOND -> SoundEvents.AMETHYST_BLOCK_RESONATE;
+            case ZINC -> SoundEvents.CHAIN_STEP;
+            case AMETHYST -> SoundEvents.AMETHYST_BLOCK_CHIME;
+            case CHEST -> SoundEvents.CHEST_OPEN;
+            case SPAWNER -> SoundEvents.CAVE_VINES_STEP;
             case SOLID -> SoundEvents.NOTE_BLOCK_BASS.value();
         };
         float basePitch = scheduled.lowPressure() ? 0.9F : switch (anomaly.type()) {
@@ -241,6 +249,10 @@ public final class GeoResonanceClient {
             case LAPIS -> 1.06F;
             case EMERALD -> 1.28F;
             case DIAMOND -> 1.34F;
+            case ZINC -> 0.9F;
+            case AMETHYST -> 1.18F;
+            case CHEST -> 0.85F;
+            case SPAWNER -> 0.7F;
             case SOLID -> 0.56F;
         };
         float pitch = Mth.clamp(basePitch - depthRatio * 0.22F, 0.25F, 2.0F);
@@ -502,6 +514,10 @@ public final class GeoResonanceClient {
             case LAPIS -> 0x7296F2;
             case EMERALD -> 0x61D692;
             case DIAMOND -> 0x9AECEC;
+            case ZINC -> 0xC2C7D3;
+            case AMETHYST -> 0xC69EFF;
+            case CHEST -> 0xD5A26B;
+            case SPAWNER -> 0xB6B6B6;
             case SOLID -> 0xA19485;
         };
     }
@@ -519,6 +535,10 @@ public final class GeoResonanceClient {
             case LAPIS -> "item.creategeoresonance.seismogram.signal.lapis";
             case EMERALD -> "item.creategeoresonance.seismogram.signal.emerald";
             case DIAMOND -> "item.creategeoresonance.seismogram.signal.diamond";
+            case ZINC -> "item.creategeoresonance.seismogram.signal.zinc";
+            case AMETHYST -> "item.creategeoresonance.seismogram.signal.amethyst";
+            case CHEST -> "item.creategeoresonance.seismogram.signal.chest";
+            case SPAWNER -> "item.creategeoresonance.seismogram.signal.spawner";
             case SOLID -> "item.creategeoresonance.seismogram.signal.solid";
         };
     }

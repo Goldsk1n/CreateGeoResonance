@@ -3,13 +3,19 @@ package net.goldskinmc.creategeoresonance.seismic;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.vehicle.MinecartChest;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.TickEvent;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +30,8 @@ import java.util.Set;
 
 public final class SeismicScanQueue {
     private static final Deque<SeismicScanJob> JOBS = new ArrayDeque<>();
+    private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
+        ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
     private SeismicScanQueue() {
     }
@@ -125,11 +133,19 @@ public final class SeismicScanQueue {
         return anomaly.confidence() * (1.0D + anomaly.radius() * 0.2D);
     }
 
+    private static boolean isOreType(SeismicAnomalyType type) {
+        return switch (type) {
+            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC -> true;
+            default -> false;
+        };
+    }
+
     private static int typePriority(SeismicAnomalyType type) {
         return switch (type) {
             case LAVA -> 5;
             case WATER -> 4;
-            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND -> 3;
+            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST -> 3;
+            case CHEST, SPAWNER -> 2;
             case CAVE -> 2;
             case SOLID -> 0;
         };
@@ -150,6 +166,7 @@ public final class SeismicScanQueue {
         long startTick,
         boolean lowPressure,
         Set<SeismicAnomalyType> detectableTypes,
+        boolean allowBelowZeroOres,
         @Nullable ResultConsumer resultConsumer
     ) {
         private static final Set<SeismicAnomalyType> DEFAULT_DETECTABLE_TYPES = Set.of(
@@ -174,7 +191,7 @@ public final class SeismicScanQueue {
             long startTick,
             boolean lowPressure
         ) {
-            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, null);
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, false, null);
         }
 
         public SeismicScanRequest(
@@ -188,7 +205,22 @@ public final class SeismicScanQueue {
             boolean lowPressure,
             @Nullable ResultConsumer resultConsumer
         ) {
-            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, resultConsumer);
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, false, resultConsumer);
+        }
+
+        public SeismicScanRequest(
+            ServerLevel level,
+            BlockPos origin,
+            int scannerEntityId,
+            int radius,
+            int depth,
+            float noise,
+            long startTick,
+            boolean lowPressure,
+            Set<SeismicAnomalyType> detectableTypes,
+            @Nullable ResultConsumer resultConsumer
+        ) {
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, detectableTypes, false, resultConsumer);
         }
 
         public boolean canDetect(SeismicAnomalyType type) {
@@ -239,6 +271,16 @@ public final class SeismicScanQueue {
                     type = fluid.is(FluidTags.LAVA) ? SeismicAnomalyType.LAVA : SeismicAnomalyType.WATER;
                 } else if (state.isAir()) {
                     type = SeismicAnomalyType.CAVE;
+                } else if (state.is(Blocks.BUDDING_AMETHYST)
+                    || state.is(Blocks.AMETHYST_CLUSTER)
+                    || state.is(Blocks.LARGE_AMETHYST_BUD)
+                    || state.is(Blocks.MEDIUM_AMETHYST_BUD)
+                    || state.is(Blocks.SMALL_AMETHYST_BUD)) {
+                    type = SeismicAnomalyType.AMETHYST;
+                } else if (state.is(Blocks.SPAWNER)) {
+                    type = SeismicAnomalyType.SPAWNER;
+                } else if (state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST)) {
+                    type = SeismicAnomalyType.CHEST;
                 } else if (state.is(BlockTags.COAL_ORES)) {
                     type = SeismicAnomalyType.COAL;
                 } else if (state.is(BlockTags.IRON_ORES)) {
@@ -255,10 +297,15 @@ public final class SeismicScanQueue {
                     type = SeismicAnomalyType.EMERALD;
                 } else if (state.is(BlockTags.DIAMOND_ORES)) {
                     type = SeismicAnomalyType.DIAMOND;
+                } else if (state.is(CREATE_ZINC_ORES)) {
+                    type = SeismicAnomalyType.ZINC;
                 } else {
                     continue;
                 }
                 if (!request.canDetect(type)) {
+                    continue;
+                }
+                if (isOreType(type) && scanPos.getY() < 0 && !request.allowBelowZeroOres()) {
                     continue;
                 }
 
@@ -334,7 +381,32 @@ public final class SeismicScanQueue {
                 ));
             }
 
+            appendChestMinecartAnomalies(rawAnomalies);
             return prioritizeAndLimitAnomalies(rawAnomalies, Config.ECHO_MERGE_DISTANCE.get(), Config.MAX_ECHOES.get());
+        }
+
+        private void appendChestMinecartAnomalies(List<SeismicAnomaly> rawAnomalies) {
+            if (!request.canDetect(SeismicAnomalyType.CHEST)) {
+                return;
+            }
+            BlockPos origin = request.origin();
+            AABB bounds = new AABB(
+                origin.getX() - request.radius(),
+                origin.getY() - request.depth(),
+                origin.getZ() - request.radius(),
+                origin.getX() + request.radius() + 1.0D,
+                origin.getY() + 1.0D,
+                origin.getZ() + request.radius() + 1.0D
+            );
+            for (MinecartChest chestMinecart : request.level().getEntitiesOfClass(MinecartChest.class, bounds)) {
+                int offsetX = Mth.floor(chestMinecart.getX()) - origin.getX();
+                int offsetZ = Mth.floor(chestMinecart.getZ()) - origin.getZ();
+                if (offsetX * offsetX + offsetZ * offsetZ > request.radius() * request.radius()) {
+                    continue;
+                }
+                int depth = Mth.clamp(origin.getY() - Mth.floor(chestMinecart.getY()), 1, request.depth());
+                rawAnomalies.add(new SeismicAnomaly(SeismicAnomalyType.CHEST, offsetX, offsetZ, depth, 1, 1.0F));
+            }
         }
     }
 

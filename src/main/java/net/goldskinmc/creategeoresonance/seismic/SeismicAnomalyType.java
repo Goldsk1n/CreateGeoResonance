@@ -12,5 +12,9 @@ public enum SeismicAnomalyType {
     LAPIS,
     EMERALD,
     DIAMOND,
+    ZINC,
+    AMETHYST,
+    CHEST,
+    SPAWNER,
     SOLID
 }

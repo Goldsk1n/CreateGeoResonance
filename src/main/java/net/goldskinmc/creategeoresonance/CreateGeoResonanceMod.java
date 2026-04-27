@@ -45,6 +45,11 @@ public class CreateGeoResonanceMod {
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(GeoResonanceItems.SEISMIC_HAMMER.get());
+            event.accept(GeoResonanceItems.BELOW_ZERO_MODULE.get());
+            event.accept(GeoResonanceItems.AMETHYST_MODULE.get());
+            event.accept(GeoResonanceItems.CHEST_MODULE.get());
+            event.accept(GeoResonanceItems.SPAWNER_MODULE.get());
+            event.accept(GeoResonanceItems.SIGNAL_FILTER_MODULE.get());
             event.accept(GeoResonanceItems.COAL_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.IRON_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.COPPER_RESONANCE_MODULE.get());
@@ -53,6 +58,7 @@ public class CreateGeoResonanceMod {
             event.accept(GeoResonanceItems.LAPIS_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.EMERALD_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get());
+            event.accept(GeoResonanceItems.ZINC_RESONANCE_MODULE.get());
             event.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
         }
     }
