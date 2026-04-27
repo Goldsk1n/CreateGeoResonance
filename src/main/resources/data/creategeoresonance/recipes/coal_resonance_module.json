@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CBC",
+    "SES",
+    "CAC"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:coal"
+    },
+    "B": {
+      "item": "create:brass_sheet"
+    },
+    "S": {
+      "item": "create:andesite_alloy"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "A": {
+      "item": "minecraft:compass"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:coal_resonance_module"
+  }
+}

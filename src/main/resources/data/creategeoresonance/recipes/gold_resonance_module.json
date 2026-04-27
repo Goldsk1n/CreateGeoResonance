@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GBG",
+    "PEP",
+    "CGC"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_block"
+    },
+    "B": {
+      "item": "create:brass_sheet"
+    },
+    "P": {
+      "item": "create:precision_mechanism"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "C": {
+      "item": "minecraft:clock"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:gold_resonance_module"
+  }
+}

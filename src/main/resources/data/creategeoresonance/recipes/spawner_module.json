@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ISI",
+    "BEB",
+    "PMP"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_bars"
+    },
+    "S": {
+      "item": "minecraft:soul_lantern"
+    },
+    "B": {
+      "item": "create:brass_sheet"
+    },
+    "E": {
+      "item": "minecraft:ender_eye"
+    },
+    "P": {
+      "item": "create:precision_mechanism"
+    },
+    "M": {
+      "item": "minecraft:magma_cream"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:spawner_module"
+  }
+}

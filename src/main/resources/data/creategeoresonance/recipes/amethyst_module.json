@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ASA",
+    "QEQ",
+    "ABA"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "S": {
+      "item": "create:brass_sheet"
+    },
+    "Q": {
+      "item": "minecraft:spyglass"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "B": {
+      "item": "create:andesite_alloy"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:amethyst_module"
+  }
+}

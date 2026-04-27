@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "DBD",
+    "PEP",
+    "CDC"
+  ],
+  "key": {
+    "D": {
+      "item": "minecraft:diamond_block"
+    },
+    "B": {
+      "item": "create:brass_sheet"
+    },
+    "P": {
+      "item": "create:precision_mechanism"
+    },
+    "E": {
+      "item": "minecraft:ender_eye"
+    },
+    "C": {
+      "item": "minecraft:clock"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:diamond_resonance_module"
+  }
+}

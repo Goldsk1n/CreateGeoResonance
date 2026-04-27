@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "LBL",
+    "SES",
+    "CLC"
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:lapis_block"
+    },
+    "B": {
+      "item": "create:brass_sheet"
+    },
+    "S": {
+      "item": "create:andesite_alloy"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "C": {
+      "item": "minecraft:compass"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:lapis_resonance_module"
+  }
+}
