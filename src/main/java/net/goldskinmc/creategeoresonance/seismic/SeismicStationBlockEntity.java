@@ -40,7 +40,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String INVENTORY_TAG = "Inventory";
@@ -55,8 +57,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     public static final int SLOT_PAPER_INPUT = 0;
     public static final int SLOT_INK_INPUT = 1;
     public static final int SLOT_SEISMOGRAM_OUTPUT = 2;
+    public static final int SLOT_MODULE_1 = 3;
+    public static final int SLOT_MODULE_2 = 4;
 
-    private final ItemStackHandler inventory = new ItemStackHandler(3) {
+    private final ItemStackHandler inventory = new ItemStackHandler(5) {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
@@ -70,6 +74,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             }
             if (slot == SLOT_INK_INPUT) {
                 return stack.is(Items.INK_SAC);
+            }
+            if (slot == SLOT_MODULE_1 || slot == SLOT_MODULE_2) {
+                return SeismicModuleItem.getDetectsType(stack) != null;
             }
             return false;
         }
@@ -206,6 +213,63 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return !inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty();
     }
 
+    public boolean tryInsertModule(Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+        SeismicAnomalyType moduleType = SeismicModuleItem.getDetectsType(held);
+        if (moduleType == null) {
+            return false;
+        }
+        if (hasModuleType(moduleType)) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_duplicate")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+        int targetSlot = findEmptyModuleSlot();
+        if (targetSlot < 0) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_full")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+
+        ItemStack inserted = held.copyWithCount(1);
+        inventory.setStackInSlot(targetSlot, inserted);
+        if (!player.getAbilities().instabuild) {
+            held.shrink(1);
+        }
+        setChanged();
+        sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_loaded", inserted.getHoverName())
+            .withStyle(ChatFormatting.GREEN), true);
+        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.6F, 1.05F);
+        spawnFeedbackParticles(ParticleTypes.WAX_ON, 5, 0.18D, 0.01D);
+        updateComparatorOutputIfNeeded();
+        return true;
+    }
+
+    public boolean tryExtractModule(Player player, InteractionHand hand) {
+        if (!player.getItemInHand(hand).isEmpty() || !player.isShiftKeyDown()) {
+            return false;
+        }
+        int slot = findLastFilledModuleSlot();
+        if (slot < 0) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_module")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+
+        ItemStack extracted = inventory.getStackInSlot(slot).copy();
+        inventory.setStackInSlot(slot, ItemStack.EMPTY);
+        player.setItemInHand(hand, extracted);
+        setChanged();
+        sendData();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_unloaded", extracted.getHoverName())
+            .withStyle(ChatFormatting.AQUA), true);
+        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 0.72F);
+        spawnFeedbackParticles(ParticleTypes.WAX_OFF, 5, 0.18D, 0.01D);
+        updateComparatorOutputIfNeeded();
+        return true;
+    }
+
     public boolean tryInsertPaper(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
         if (!held.is(Items.PAPER)) {
@@ -300,7 +364,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (hasPaper && hasInk && hasRequiredSpeed()) {
             return 8;
         }
-        if (hasPaper || hasInk) {
+        if (hasPaper || hasInk || hasInstalledModules()) {
             return 2;
         }
         return 0;
@@ -407,6 +471,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 Config.STATION_NOISE.get().floatValue(),
                 serverLevel.getGameTime(),
                 false,
+                buildDetectableTypes(),
                 (request, anomalies) -> {
                     BlockEntity blockEntity = request.level().getBlockEntity(origin);
                     if (blockEntity instanceof SeismicStationBlockEntity station) {
@@ -705,6 +770,53 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             comparatorOutputCache = -1;
             updateComparatorOutputIfNeeded();
         }
+    }
+
+    private Set<SeismicAnomalyType> buildDetectableTypes() {
+        EnumSet<SeismicAnomalyType> detectable = EnumSet.of(
+            SeismicAnomalyType.CAVE,
+            SeismicAnomalyType.WATER,
+            SeismicAnomalyType.LAVA
+        );
+        SeismicAnomalyType first = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_1));
+        if (first != null) {
+            detectable.add(first);
+        }
+        SeismicAnomalyType second = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_2));
+        if (second != null) {
+            detectable.add(second);
+        }
+        return detectable;
+    }
+
+    private boolean hasModuleType(SeismicAnomalyType moduleType) {
+        return moduleType == SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_1))
+            || moduleType == SeismicModuleItem.getDetectsType(inventory.getStackInSlot(SLOT_MODULE_2));
+    }
+
+    private boolean hasInstalledModules() {
+        return !inventory.getStackInSlot(SLOT_MODULE_1).isEmpty()
+            || !inventory.getStackInSlot(SLOT_MODULE_2).isEmpty();
+    }
+
+    private int findEmptyModuleSlot() {
+        if (inventory.getStackInSlot(SLOT_MODULE_1).isEmpty()) {
+            return SLOT_MODULE_1;
+        }
+        if (inventory.getStackInSlot(SLOT_MODULE_2).isEmpty()) {
+            return SLOT_MODULE_2;
+        }
+        return -1;
+    }
+
+    private int findLastFilledModuleSlot() {
+        if (!inventory.getStackInSlot(SLOT_MODULE_2).isEmpty()) {
+            return SLOT_MODULE_2;
+        }
+        if (!inventory.getStackInSlot(SLOT_MODULE_1).isEmpty()) {
+            return SLOT_MODULE_1;
+        }
+        return -1;
     }
 
     private void updateComparatorOutputIfNeeded() {

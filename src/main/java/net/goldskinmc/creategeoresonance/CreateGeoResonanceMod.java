@@ -45,6 +45,8 @@ public class CreateGeoResonanceMod {
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(GeoResonanceItems.SEISMIC_HAMMER.get());
+            event.accept(GeoResonanceItems.IRON_RESONANCE_MODULE.get());
+            event.accept(GeoResonanceItems.COPPER_RESONANCE_MODULE.get());
             event.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
         }
     }

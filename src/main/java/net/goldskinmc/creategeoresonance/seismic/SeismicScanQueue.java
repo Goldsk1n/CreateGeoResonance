@@ -5,6 +5,7 @@ import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.material.FluidState;
@@ -15,11 +16,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
+import java.util.Set;
 
 public final class SeismicScanQueue {
     private static final Deque<SeismicScanJob> JOBS = new ArrayDeque<>();
@@ -126,9 +127,10 @@ public final class SeismicScanQueue {
 
     private static int typePriority(SeismicAnomalyType type) {
         return switch (type) {
-            case LAVA -> 3;
-            case WATER -> 2;
-            case CAVE -> 1;
+            case LAVA -> 5;
+            case WATER -> 4;
+            case IRON, COPPER -> 3;
+            case CAVE -> 2;
             case SOLID -> 0;
         };
     }
@@ -147,8 +149,21 @@ public final class SeismicScanQueue {
         float noise,
         long startTick,
         boolean lowPressure,
+        Set<SeismicAnomalyType> detectableTypes,
         @Nullable ResultConsumer resultConsumer
     ) {
+        private static final Set<SeismicAnomalyType> DEFAULT_DETECTABLE_TYPES = Set.of(
+            SeismicAnomalyType.CAVE,
+            SeismicAnomalyType.WATER,
+            SeismicAnomalyType.LAVA
+        );
+
+        public SeismicScanRequest {
+            detectableTypes = detectableTypes == null || detectableTypes.isEmpty()
+                ? DEFAULT_DETECTABLE_TYPES
+                : Set.copyOf(detectableTypes);
+        }
+
         public SeismicScanRequest(
             ServerLevel level,
             BlockPos origin,
@@ -159,7 +174,25 @@ public final class SeismicScanQueue {
             long startTick,
             boolean lowPressure
         ) {
-            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, null);
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, null);
+        }
+
+        public SeismicScanRequest(
+            ServerLevel level,
+            BlockPos origin,
+            int scannerEntityId,
+            int radius,
+            int depth,
+            float noise,
+            long startTick,
+            boolean lowPressure,
+            @Nullable ResultConsumer resultConsumer
+        ) {
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, resultConsumer);
+        }
+
+        public boolean canDetect(SeismicAnomalyType type) {
+            return detectableTypes.contains(type);
         }
     }
 
@@ -206,7 +239,14 @@ public final class SeismicScanQueue {
                     type = fluid.is(FluidTags.LAVA) ? SeismicAnomalyType.LAVA : SeismicAnomalyType.WATER;
                 } else if (state.isAir()) {
                     type = SeismicAnomalyType.CAVE;
+                } else if (state.is(BlockTags.IRON_ORES)) {
+                    type = SeismicAnomalyType.IRON;
+                } else if (state.is(BlockTags.COPPER_ORES)) {
+                    type = SeismicAnomalyType.COPPER;
                 } else {
+                    continue;
+                }
+                if (!request.canDetect(type)) {
                     continue;
                 }
 

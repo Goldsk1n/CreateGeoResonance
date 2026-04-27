@@ -4,5 +4,7 @@ public enum SeismicAnomalyType {
     CAVE,
     WATER,
     LAVA,
+    IRON,
+    COPPER,
     SOLID
 }
