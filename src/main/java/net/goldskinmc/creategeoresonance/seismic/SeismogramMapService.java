@@ -233,8 +233,14 @@ public final class SeismogramMapService {
             case CAVE -> MapColor.COLOR_LIGHT_GRAY;
             case WATER -> MapColor.WATER;
             case LAVA -> MapColor.COLOR_ORANGE;
+            case COAL -> MapColor.COLOR_BLACK;
             case IRON -> MapColor.METAL;
             case COPPER -> MapColor.COLOR_BROWN;
+            case GOLD -> MapColor.COLOR_YELLOW;
+            case REDSTONE -> MapColor.COLOR_RED;
+            case LAPIS -> MapColor.COLOR_BLUE;
+            case EMERALD -> MapColor.COLOR_GREEN;
+            case DIAMOND -> MapColor.COLOR_LIGHT_BLUE;
             case SOLID -> MapColor.STONE;
         };
     }
@@ -255,8 +261,14 @@ public final class SeismogramMapService {
             case "CAVE" -> SeismicAnomalyType.CAVE;
             case "WATER" -> SeismicAnomalyType.WATER;
             case "LAVA" -> SeismicAnomalyType.LAVA;
+            case "COAL" -> SeismicAnomalyType.COAL;
             case "IRON" -> SeismicAnomalyType.IRON;
             case "COPPER" -> SeismicAnomalyType.COPPER;
+            case "GOLD" -> SeismicAnomalyType.GOLD;
+            case "REDSTONE" -> SeismicAnomalyType.REDSTONE;
+            case "LAPIS" -> SeismicAnomalyType.LAPIS;
+            case "EMERALD" -> SeismicAnomalyType.EMERALD;
+            case "DIAMOND" -> SeismicAnomalyType.DIAMOND;
             case "SOLID" -> SeismicAnomalyType.SOLID;
             default -> null;
         };

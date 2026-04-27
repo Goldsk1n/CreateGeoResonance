@@ -129,7 +129,7 @@ public final class SeismicScanQueue {
         return switch (type) {
             case LAVA -> 5;
             case WATER -> 4;
-            case IRON, COPPER -> 3;
+            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND -> 3;
             case CAVE -> 2;
             case SOLID -> 0;
         };
@@ -239,10 +239,22 @@ public final class SeismicScanQueue {
                     type = fluid.is(FluidTags.LAVA) ? SeismicAnomalyType.LAVA : SeismicAnomalyType.WATER;
                 } else if (state.isAir()) {
                     type = SeismicAnomalyType.CAVE;
+                } else if (state.is(BlockTags.COAL_ORES)) {
+                    type = SeismicAnomalyType.COAL;
                 } else if (state.is(BlockTags.IRON_ORES)) {
                     type = SeismicAnomalyType.IRON;
                 } else if (state.is(BlockTags.COPPER_ORES)) {
                     type = SeismicAnomalyType.COPPER;
+                } else if (state.is(BlockTags.GOLD_ORES)) {
+                    type = SeismicAnomalyType.GOLD;
+                } else if (state.is(BlockTags.REDSTONE_ORES)) {
+                    type = SeismicAnomalyType.REDSTONE;
+                } else if (state.is(BlockTags.LAPIS_ORES)) {
+                    type = SeismicAnomalyType.LAPIS;
+                } else if (state.is(BlockTags.EMERALD_ORES)) {
+                    type = SeismicAnomalyType.EMERALD;
+                } else if (state.is(BlockTags.DIAMOND_ORES)) {
+                    type = SeismicAnomalyType.DIAMOND;
                 } else {
                     continue;
                 }

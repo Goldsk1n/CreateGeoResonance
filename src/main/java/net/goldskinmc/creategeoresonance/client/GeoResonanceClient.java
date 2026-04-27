@@ -200,8 +200,14 @@ public final class GeoResonanceClient {
             case CAVE -> 0xB0B0B0;
             case WATER -> 0x3EA4F2;
             case LAVA -> 0xFF8A33;
+            case COAL -> 0x3F3F3F;
             case IRON -> 0xD7D7D7;
             case COPPER -> 0xD17C41;
+            case GOLD -> 0xF7D047;
+            case REDSTONE -> 0xD04040;
+            case LAPIS -> 0x3B63D0;
+            case EMERALD -> 0x2DBA6B;
+            case DIAMOND -> 0x53DAD6;
             case SOLID -> 0x8E8378;
         };
         float opacity = scheduled.lowPressure() ? 0.35F + confidence * 0.35F : 0.5F + confidence * 0.5F;
@@ -213,16 +219,28 @@ public final class GeoResonanceClient {
             case CAVE -> SoundEvents.BELL_BLOCK;
             case WATER -> SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT;
             case LAVA -> SoundEvents.LAVA_POP;
+            case COAL -> SoundEvents.NOTE_BLOCK_BASS.value();
             case IRON -> SoundEvents.ANVIL_PLACE;
             case COPPER -> SoundEvents.NOTE_BLOCK_BELL.value();
+            case GOLD -> SoundEvents.NOTE_BLOCK_CHIME.value();
+            case REDSTONE -> SoundEvents.REDSTONE_TORCH_BURNOUT;
+            case LAPIS -> SoundEvents.AMETHYST_BLOCK_CHIME;
+            case EMERALD -> SoundEvents.NOTE_BLOCK_FLUTE.value();
+            case DIAMOND -> SoundEvents.AMETHYST_BLOCK_RESONATE;
             case SOLID -> SoundEvents.NOTE_BLOCK_BASS.value();
         };
         float basePitch = scheduled.lowPressure() ? 0.9F : switch (anomaly.type()) {
             case CAVE -> 1.12F;
             case WATER -> 0.84F;
             case LAVA -> 0.66F;
+            case COAL -> 0.62F;
             case IRON -> 0.72F;
             case COPPER -> 1.0F;
+            case GOLD -> 1.22F;
+            case REDSTONE -> 0.95F;
+            case LAPIS -> 1.06F;
+            case EMERALD -> 1.28F;
+            case DIAMOND -> 1.34F;
             case SOLID -> 0.56F;
         };
         float pitch = Mth.clamp(basePitch - depthRatio * 0.22F, 0.25F, 2.0F);
@@ -476,8 +494,14 @@ public final class GeoResonanceClient {
             case CAVE -> 0xCFCFCF;
             case WATER -> 0x7FC6FF;
             case LAVA -> 0xFFB061;
+            case COAL -> 0x707070;
             case IRON -> 0xE2E2E2;
             case COPPER -> 0xD98A52;
+            case GOLD -> 0xF0D977;
+            case REDSTONE -> 0xE26868;
+            case LAPIS -> 0x7296F2;
+            case EMERALD -> 0x61D692;
+            case DIAMOND -> 0x9AECEC;
             case SOLID -> 0xA19485;
         };
     }
@@ -487,8 +511,14 @@ public final class GeoResonanceClient {
             case CAVE -> "item.creategeoresonance.seismogram.signal.cave";
             case WATER -> "item.creategeoresonance.seismogram.signal.water";
             case LAVA -> "item.creategeoresonance.seismogram.signal.lava";
+            case COAL -> "item.creategeoresonance.seismogram.signal.coal";
             case IRON -> "item.creategeoresonance.seismogram.signal.iron";
             case COPPER -> "item.creategeoresonance.seismogram.signal.copper";
+            case GOLD -> "item.creategeoresonance.seismogram.signal.gold";
+            case REDSTONE -> "item.creategeoresonance.seismogram.signal.redstone";
+            case LAPIS -> "item.creategeoresonance.seismogram.signal.lapis";
+            case EMERALD -> "item.creategeoresonance.seismogram.signal.emerald";
+            case DIAMOND -> "item.creategeoresonance.seismogram.signal.diamond";
             case SOLID -> "item.creategeoresonance.seismogram.signal.solid";
         };
     }
