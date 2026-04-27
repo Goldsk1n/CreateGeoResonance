@@ -24,12 +24,12 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.ViewportEvent;
@@ -74,7 +74,8 @@ public final class GeoResonanceClient {
             return;
         }
 
-        Vec3 center = surfaceCenter(level, packet.origin());
+        Vec3 sourceAnchor = sourceAnchor(level, packet.origin(), packet.scannerEntityId());
+        Vec3 center = resolveWaveCenter(level, packet.origin(), sourceAnchor);
         float blur = packet.lowPressure() ? 0.45F : 0.2F;
         float opacity = packet.lowPressure() ? 0.55F : 0.75F;
         spawnWave(level, center, 0xC2C2C2, opacity, blur, 16, 6.5F);
@@ -187,7 +188,8 @@ public final class GeoResonanceClient {
     private static void playEcho(ClientLevel level, ScheduledEcho scheduled) {
         SeismicAnomaly anomaly = scheduled.anomaly();
         BlockPos echoPos = scheduled.origin().offset(anomaly.offsetX(), 0, anomaly.offsetZ());
-        Vec3 center = surfaceCenter(level, echoPos);
+        Vec3 sourceAnchor = sourceAnchor(level, scheduled.origin(), scheduled.scannerEntityId());
+        Vec3 center = resolveWaveCenter(level, echoPos, sourceAnchor);
 
         float confidence = Mth.clamp(anomaly.confidence(), 0.0F, 1.0F);
         float blur = Math.max(0.05F, 1.0F - confidence);
@@ -354,13 +356,63 @@ public final class GeoResonanceClient {
         renderSeismogramSidebar(event.getGuiGraphics(), minecraft, nearestSignals);
     }
 
-    private static Vec3 surfaceCenter(ClientLevel level, BlockPos reference) {
-        int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, reference.getX(), reference.getZ());
-        int minY = level.getMinBuildHeight();
-        if (surfaceY <= minY) {
-            surfaceY = reference.getY() + 1;
+    private static Vec3 sourceAnchor(ClientLevel level, BlockPos origin, int scannerEntityId) {
+        Vec3 fallback = new Vec3(origin.getX() + 0.5D, origin.getY() + 0.05D, origin.getZ() + 0.5D);
+        if (scannerEntityId == -1) {
+            return findNearestOpen(level, fallback, 2, 2).orElse(fallback);
         }
-        return new Vec3(reference.getX() + 0.5D, surfaceY + 0.05D, reference.getZ() + 0.5D);
+        Entity scanner = level.getEntity(scannerEntityId);
+        if (scanner == null) {
+            return findNearestOpen(level, fallback, 2, 2).orElse(fallback);
+        }
+        Vec3 scannerAnchor = new Vec3(scanner.getX(), scanner.getY() + 0.05D, scanner.getZ());
+        return findNearestOpen(level, scannerAnchor, 2, 2).orElse(scannerAnchor);
+    }
+
+    private static Vec3 resolveWaveCenter(ClientLevel level, BlockPos targetPos, Vec3 sourceAnchor) {
+        Vec3 target = new Vec3(targetPos.getX() + 0.5D, sourceAnchor.y, targetPos.getZ() + 0.5D);
+        var localOpen = findNearestOpen(level, target, 3, 2);
+        if (localOpen.isPresent()) {
+            return localOpen.get();
+        }
+
+        Vec3 lineDelta = sourceAnchor.subtract(target);
+        for (int i = 1; i <= 12; i++) {
+            double t = i / 12.0D;
+            Vec3 candidate = target.add(lineDelta.scale(t));
+            var lineOpen = findNearestOpen(level, candidate, 1, 1);
+            if (lineOpen.isPresent()) {
+                return lineOpen.get();
+            }
+        }
+
+        return findNearestOpen(level, sourceAnchor, 2, 2).orElse(sourceAnchor);
+    }
+
+    private static java.util.Optional<Vec3> findNearestOpen(ClientLevel level, Vec3 center, int horizontalRadius, int verticalRadius) {
+        int baseX = Mth.floor(center.x);
+        int baseY = Mth.floor(center.y);
+        int baseZ = Mth.floor(center.z);
+        for (int r = 0; r <= horizontalRadius; r++) {
+            for (int dy = -verticalRadius; dy <= verticalRadius; dy++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                            continue;
+                        }
+                        BlockPos testPos = new BlockPos(baseX + dx, baseY + dy, baseZ + dz);
+                        if (canRenderAt(level, testPos)) {
+                            return java.util.Optional.of(new Vec3(testPos.getX() + 0.5D, testPos.getY() + 0.05D, testPos.getZ() + 0.5D));
+                        }
+                    }
+                }
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    private static boolean canRenderAt(ClientLevel level, BlockPos pos) {
+        return !level.getBlockState(pos).canOcclude() && !level.getBlockState(pos.above()).canOcclude();
     }
 
     @Nullable
