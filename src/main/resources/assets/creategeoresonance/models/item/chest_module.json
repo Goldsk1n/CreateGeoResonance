@@ -1,6 +1,6 @@
 {
   "parent": "creategeoresonance:item/resonance_module_base",
   "textures": {
-    "18": "minecraft:item/chest_minecart"
+    "18": "minecraft:item/chest"
   }
 }
