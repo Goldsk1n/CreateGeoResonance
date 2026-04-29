@@ -62,7 +62,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
             return false;
         }
         Direction facing = state.getValue(FACING);
-        return face == facing || face == facing.getOpposite();
+        return face == facing.getOpposite();
     }
 
     @Override
