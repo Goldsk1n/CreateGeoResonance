@@ -16,6 +16,7 @@ public final class GeoResonanceItems {
         .register();
 
     public static final ItemEntry<SeismicModuleItem> BELOW_ZERO_MODULE = module(SeismicModuleType.BELOW_ZERO);
+    public static final ItemEntry<SeismicModuleItem> NOISE_CANCELLATION_MODULE = module(SeismicModuleType.NOISE_CANCELLATION);
     public static final ItemEntry<SeismicModuleItem> AMETHYST_MODULE = module(SeismicModuleType.AMETHYST);
     public static final ItemEntry<SeismicModuleItem> CHEST_MODULE = module(SeismicModuleType.CHEST);
     public static final ItemEntry<SeismicModuleItem> SPAWNER_MODULE = module(SeismicModuleType.SPAWNER);

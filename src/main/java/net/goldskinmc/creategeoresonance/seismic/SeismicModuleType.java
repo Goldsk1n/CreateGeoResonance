@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Nullable;
 
 public enum SeismicModuleType {
     BELOW_ZERO("below_zero_module", null),
+    NOISE_CANCELLATION("noise_cancellation_module", null),
     AMETHYST("amethyst_module", SeismicAnomalyType.AMETHYST),
     CHEST("chest_module", SeismicAnomalyType.CHEST),
     SPAWNER("spawner_module", SeismicAnomalyType.SPAWNER),

@@ -46,6 +46,7 @@ public class CreateGeoResonanceMod {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(GeoResonanceItems.SEISMIC_HAMMER.get());
             event.accept(GeoResonanceItems.BELOW_ZERO_MODULE.get());
+            event.accept(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get());
             event.accept(GeoResonanceItems.AMETHYST_MODULE.get());
             event.accept(GeoResonanceItems.CHEST_MODULE.get());
             event.accept(GeoResonanceItems.SPAWNER_MODULE.get());

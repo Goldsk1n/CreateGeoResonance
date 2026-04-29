@@ -4,6 +4,7 @@
   "block.creategeoresonance.placed_seismic_hammer": "Placed Seismic Hammer",
   "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
   "item.creategeoresonance.below_zero_module": "Below Zero Module",
+  "item.creategeoresonance.noise_cancellation_module": "Noise Cancellation Module",
   "item.creategeoresonance.amethyst_module": "Amethyst Module",
   "item.creategeoresonance.chest_module": "Chest Module",
   "item.creategeoresonance.spawner_module": "Spawner Module",

@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "WBW",
+    "SES",
+    "WCW"
+  ],
+  "key": {
+    "W": {
+      "item": "minecraft:white_wool"
+    },
+    "B": {
+      "item": "create:brass_sheet"
+    },
+    "S": {
+      "item": "minecraft:sculk_sensor"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "C": {
+      "item": "minecraft:comparator"
+    }
+  },
+  "result": {
+    "item": "creategeoresonance:noise_cancellation_module"
+  }
+}

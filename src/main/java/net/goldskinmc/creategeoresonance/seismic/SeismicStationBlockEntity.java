@@ -234,6 +234,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return hasModuleInstalled(SeismicModuleType.BELOW_ZERO);
     }
 
+    public boolean hasNoiseCancellationModule() {
+        return hasModuleInstalled(SeismicModuleType.NOISE_CANCELLATION);
+    }
+
     public boolean tryInsertModule(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
         SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
@@ -879,11 +883,12 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private Set<SeismicAnomalyType> buildDetectableTypes() {
-        EnumSet<SeismicAnomalyType> detectable = EnumSet.of(
-            SeismicAnomalyType.CAVE,
-            SeismicAnomalyType.WATER,
-            SeismicAnomalyType.LAVA
-        );
+        EnumSet<SeismicAnomalyType> detectable = EnumSet.noneOf(SeismicAnomalyType.class);
+        if (!hasNoiseCancellationModule()) {
+            detectable.add(SeismicAnomalyType.CAVE);
+            detectable.add(SeismicAnomalyType.WATER);
+            detectable.add(SeismicAnomalyType.LAVA);
+        }
         for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
             SeismicAnomalyType detects = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
             if (detects != null) {
