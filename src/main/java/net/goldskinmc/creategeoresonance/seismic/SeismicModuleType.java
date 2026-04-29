@@ -7,7 +7,6 @@ public enum SeismicModuleType {
     AMETHYST("amethyst_module", SeismicAnomalyType.AMETHYST),
     CHEST("chest_module", SeismicAnomalyType.CHEST),
     SPAWNER("spawner_module", SeismicAnomalyType.SPAWNER),
-    SIGNAL_FILTER("signal_filter_module", null),
     COAL("coal_resonance_module", SeismicAnomalyType.COAL),
     IRON("iron_resonance_module", SeismicAnomalyType.IRON),
     COPPER("copper_resonance_module", SeismicAnomalyType.COPPER),

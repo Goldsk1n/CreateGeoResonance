@@ -1,6 +1,0 @@
-{
-  "parent": "creategeoresonance:item/resonance_module_base",
-  "textures": {
-    "18": "minecraft:item/comparator"
-  }
-}

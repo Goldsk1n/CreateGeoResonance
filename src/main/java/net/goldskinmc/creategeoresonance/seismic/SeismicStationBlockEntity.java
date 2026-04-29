@@ -54,7 +54,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String REVEAL_INDEX_TAG = "RevealIndex";
     private static final String COOLDOWN_TAG = "CooldownTicks";
     private static final String CURRENT_SCAN_DEPTH_TAG = "CurrentScanDepth";
-    private static final String SIGNAL_FILTER_MODE_TAG = "SignalFilterMode";
     private static final float NO_CLIENT_STRIKE_PROGRESS = -1.0F;
     public static final int SLOT_PAPER_INPUT = 0;
     public static final int SLOT_INK_INPUT = 1;
@@ -116,7 +115,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int cooldownTicks;
     private int currentScanDepth;
     private int comparatorOutputCache = -1;
-    private SignalFilterMode signalFilterMode = SignalFilterMode.ALL;
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
 
@@ -234,14 +232,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return hasModuleInstalled(SeismicModuleType.BELOW_ZERO);
     }
 
-    public boolean hasSignalFilterModule() {
-        return hasModuleInstalled(SeismicModuleType.SIGNAL_FILTER);
-    }
-
-    public int getSignalFilterModeIndex() {
-        return signalFilterMode.ordinal();
-    }
-
     public boolean tryInsertModule(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
         SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
@@ -272,23 +262,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.6F, 1.05F);
         spawnFeedbackParticles(ParticleTypes.WAX_ON, 5, 0.18D, 0.01D);
         updateComparatorOutputIfNeeded();
-        return true;
-    }
-
-    public boolean tryCycleSignalFilter(Player player) {
-        if (!hasSignalFilterModule()) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.filter_missing")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-        signalFilterMode = signalFilterMode.next();
-        setChanged();
-        sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.filter_mode",
-                Component.translatable(signalFilterMode.translationKey()))
-            .withStyle(ChatFormatting.GOLD), true);
-        playFeedbackSound(SoundEvents.NOTE_BLOCK_PLING.value(), 0.55F, 1.2F);
-        spawnFeedbackParticles(ParticleTypes.END_ROD, 6, 0.12D, 0.0D);
         return true;
     }
 
@@ -541,7 +514,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     private void acceptScanResult(List<SeismicAnomaly> anomalies) {
         queuedAnomalies.clear();
-        queuedAnomalies.addAll(applySignalFilter(anomalies));
+        queuedAnomalies.addAll(anomalies);
         queuedAnomalies.sort(Comparator.comparingInt(SeismicAnomaly::depth));
         revealIndex = 0;
         strikeTimer = Math.max(0, Config.STATION_STARTUP_DELAY_TICKS.get()) + calculateStrikeIntervalTicks();
@@ -768,7 +741,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         compound.putInt(REVEAL_INDEX_TAG, revealIndex);
         compound.putInt(COOLDOWN_TAG, cooldownTicks);
         compound.putInt(CURRENT_SCAN_DEPTH_TAG, currentScanDepth);
-        compound.putString(SIGNAL_FILTER_MODE_TAG, signalFilterMode.name());
 
         ListTag entriesTag = new ListTag();
         for (MapEntry entry : mapEntries) {
@@ -798,7 +770,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         revealIndex = compound.getInt(REVEAL_INDEX_TAG);
         cooldownTicks = compound.getInt(COOLDOWN_TAG);
         currentScanDepth = Math.max(1, compound.getInt(CURRENT_SCAN_DEPTH_TAG));
-        signalFilterMode = readSignalFilterMode(compound.getString(SIGNAL_FILTER_MODE_TAG));
 
         mapEntries.clear();
         ListTag entriesTag = compound.getList(MAP_ENTRIES_TAG, Tag.TAG_COMPOUND);
@@ -837,15 +808,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             }
         }
         return detectable;
-    }
-
-    private List<SeismicAnomaly> applySignalFilter(List<SeismicAnomaly> anomalies) {
-        if (!hasSignalFilterModule()) {
-            return anomalies;
-        }
-        return anomalies.stream()
-            .filter(anomaly -> signalFilterMode.allows(anomaly.type()))
-            .toList();
     }
 
     private boolean hasInstalledModules() {
@@ -894,14 +856,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return slot >= SLOT_MODULE_START && slot <= SLOT_MODULE_END;
     }
 
-    private static SignalFilterMode readSignalFilterMode(String raw) {
-        try {
-            return SignalFilterMode.valueOf(raw);
-        } catch (IllegalArgumentException ignored) {
-            return SignalFilterMode.ALL;
-        }
-    }
-
     private void updateComparatorOutputIfNeeded() {
         if (level == null || level.isClientSide) {
             return;
@@ -936,41 +890,5 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     public record MapEntry(SeismicAnomalyType type, int offsetX, int offsetZ, int approxY) {
-    }
-
-    private enum SignalFilterMode {
-        ALL("block.creategeoresonance.seismic_station.filter.all"),
-        RESOURCES_ONLY("block.creategeoresonance.seismic_station.filter.resources"),
-        STRUCTURES_ONLY("block.creategeoresonance.seismic_station.filter.structures"),
-        CAVES_AND_FLUIDS("block.creategeoresonance.seismic_station.filter.caves_fluids");
-
-        private final String translationKey;
-
-        SignalFilterMode(String translationKey) {
-            this.translationKey = translationKey;
-        }
-
-        public String translationKey() {
-            return translationKey;
-        }
-
-        public SignalFilterMode next() {
-            SignalFilterMode[] values = values();
-            return values[(ordinal() + 1) % values.length];
-        }
-
-        public boolean allows(SeismicAnomalyType type) {
-            return switch (this) {
-                case ALL -> true;
-                case RESOURCES_ONLY -> switch (type) {
-                    case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST -> true;
-                    default -> false;
-                };
-                case STRUCTURES_ONLY -> type == SeismicAnomalyType.CHEST || type == SeismicAnomalyType.SPAWNER;
-                case CAVES_AND_FLUIDS -> type == SeismicAnomalyType.CAVE
-                    || type == SeismicAnomalyType.WATER
-                    || type == SeismicAnomalyType.LAVA;
-            };
-        }
     }
 }

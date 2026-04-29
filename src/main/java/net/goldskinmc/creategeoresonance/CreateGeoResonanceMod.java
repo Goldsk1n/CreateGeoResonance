@@ -49,7 +49,6 @@ public class CreateGeoResonanceMod {
             event.accept(GeoResonanceItems.AMETHYST_MODULE.get());
             event.accept(GeoResonanceItems.CHEST_MODULE.get());
             event.accept(GeoResonanceItems.SPAWNER_MODULE.get());
-            event.accept(GeoResonanceItems.SIGNAL_FILTER_MODULE.get());
             event.accept(GeoResonanceItems.COAL_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.IRON_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.COPPER_RESONANCE_MODULE.get());

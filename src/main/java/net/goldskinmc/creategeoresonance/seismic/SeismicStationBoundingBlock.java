@@ -142,7 +142,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
 
         if (state.getValue(PART) == BoundingPart.UPPER_LEFT) {
             ItemStack held = player.getItemInHand(hand);
-            boolean moduleInteraction = SeismicModuleItem.getModuleType(held) != null || held.isEmpty();
+            boolean moduleInteraction = SeismicModuleItem.getModuleType(held) != null || (held.isEmpty() && player.isShiftKeyDown());
             if (moduleInteraction) {
                 if (level.isClientSide) {
                     return InteractionResult.SUCCESS;
@@ -156,8 +156,6 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
                         station.tryExtractModule(player, hand);
                         return InteractionResult.CONSUME;
                     }
-                    station.tryCycleSignalFilter(player);
-                    return InteractionResult.CONSUME;
                 }
                 return InteractionResult.PASS;
             }
