@@ -107,6 +107,17 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         BlockPos controllerPos = getControllerPos(state, pos);
         ItemStack held = player.getItemInHand(hand);
+        if (state.getValue(PART) == BoundingPart.UPPER_LEFT && player.isShiftKeyDown()) {
+            if (level.isClientSide) {
+                return InteractionResult.SUCCESS;
+            }
+            if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
+                station.tryExtractModule(player, hand);
+                return InteractionResult.CONSUME;
+            }
+            return InteractionResult.PASS;
+        }
+
         SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
         if (moduleType != null) {
             if (level.isClientSide) {
@@ -152,19 +163,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
         }
 
         if (state.getValue(PART) == BoundingPart.UPPER_LEFT) {
-            boolean moduleInteraction = held.isEmpty() && player.isShiftKeyDown();
-            if (moduleInteraction) {
-                if (level.isClientSide) {
-                    return InteractionResult.SUCCESS;
-                }
-                if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
-                    if (player.isShiftKeyDown()) {
-                        station.tryExtractModule(player, hand);
-                        return InteractionResult.CONSUME;
-                    }
-                }
-                return InteractionResult.PASS;
-            }
+            return InteractionResult.PASS;
         }
 
         BlockState controllerState = level.getBlockState(controllerPos);

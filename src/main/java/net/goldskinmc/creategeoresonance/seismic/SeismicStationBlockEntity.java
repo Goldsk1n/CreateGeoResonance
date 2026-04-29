@@ -266,7 +266,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     public boolean tryExtractModule(Player player, InteractionHand hand) {
-        if (!player.getItemInHand(hand).isEmpty() || !player.isShiftKeyDown()) {
+        if (!player.isShiftKeyDown()) {
             return false;
         }
         int slot = findLastFilledModuleSlot();
@@ -278,7 +278,12 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
         ItemStack extracted = inventory.getStackInSlot(slot).copy();
         inventory.setStackInSlot(slot, ItemStack.EMPTY);
-        player.setItemInHand(hand, extracted);
+        ItemStack held = player.getItemInHand(hand);
+        if (held.isEmpty()) {
+            player.setItemInHand(hand, extracted);
+        } else if (!player.addItem(extracted.copy())) {
+            Containers.dropItemStack(level, player.getX(), player.getY() + 0.5D, player.getZ(), extracted.copy());
+        }
         setChanged();
         sendData();
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_unloaded", extracted.getHoverName())
