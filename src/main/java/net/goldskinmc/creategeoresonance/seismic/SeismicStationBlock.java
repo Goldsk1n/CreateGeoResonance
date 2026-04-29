@@ -87,6 +87,16 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (SeismicModuleItem.getModuleType(player.getItemInHand(hand)) != null) {
+            if (level.isClientSide) {
+                return InteractionResult.SUCCESS;
+            }
+            if (level.getBlockEntity(pos) instanceof SeismicStationBlockEntity station) {
+                station.tryInsertModule(player, hand);
+                return InteractionResult.CONSUME;
+            }
+            return InteractionResult.PASS;
+        }
         return InteractionResult.PASS;
     }
 

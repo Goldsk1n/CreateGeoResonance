@@ -105,11 +105,24 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        BlockPos controllerPos = getControllerPos(state, pos);
+        ItemStack held = player.getItemInHand(hand);
+        SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
+        if (moduleType != null) {
+            if (level.isClientSide) {
+                return InteractionResult.SUCCESS;
+            }
+            if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
+                station.tryInsertModule(player, hand);
+                return InteractionResult.CONSUME;
+            }
+            return InteractionResult.PASS;
+        }
+
         if (state.getValue(PART) == BoundingPart.UPPER_RIGHT) {
             if (level.isClientSide) {
                 return InteractionResult.SUCCESS;
             }
-            BlockPos controllerPos = getControllerPos(state, pos);
             if (player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
                 station.tryStartScan(serverPlayer);
@@ -118,9 +131,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
             return InteractionResult.PASS;
         }
 
-        BlockPos controllerPos = getControllerPos(state, pos);
         if (state.getValue(PART) == BoundingPart.LOWER_LEFT) {
-            ItemStack held = player.getItemInHand(hand);
             boolean isIoInteraction = held.is(Items.PAPER) || held.is(Items.INK_SAC) || held.isEmpty();
             if (isIoInteraction) {
                 if (level.isClientSide) {
@@ -141,17 +152,12 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
         }
 
         if (state.getValue(PART) == BoundingPart.UPPER_LEFT) {
-            ItemStack held = player.getItemInHand(hand);
-            boolean moduleInteraction = SeismicModuleItem.getModuleType(held) != null || (held.isEmpty() && player.isShiftKeyDown());
+            boolean moduleInteraction = held.isEmpty() && player.isShiftKeyDown();
             if (moduleInteraction) {
                 if (level.isClientSide) {
                     return InteractionResult.SUCCESS;
                 }
                 if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
-                    if (SeismicModuleItem.getModuleType(held) != null) {
-                        station.tryInsertModule(player, hand);
-                        return InteractionResult.CONSUME;
-                    }
                     if (player.isShiftKeyDown()) {
                         station.tryExtractModule(player, hand);
                         return InteractionResult.CONSUME;
