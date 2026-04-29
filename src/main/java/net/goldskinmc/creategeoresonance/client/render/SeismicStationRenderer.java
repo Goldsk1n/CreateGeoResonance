@@ -2,6 +2,7 @@ package net.goldskinmc.creategeoresonance.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
@@ -11,12 +12,18 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlockEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
+
+import java.util.List;
 
 public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicStationBlockEntity> {
     private static final Direction LOCAL_SHAFT_AXIS = Direction.SOUTH;
@@ -28,6 +35,13 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     private static final float DRUM_PIVOT_Z = 7.915F;
     private static final float PISTON_TRAVEL_BLOCKS = 1.0F;
     private static final float MAX_SPEED_RISE_PORTION = 0.75F;
+    private static final int MODULES_PER_ROW = 6;
+    private static final float MODULE_START_X = -3.0F / 16.0F;
+    private static final float MODULE_START_Y = 28.5F / 16.0F;
+    private static final float MODULE_START_Z = 1.0F / 16.0F;
+    private static final float MODULE_STEP_X = -2.0F / 16.0F;
+    private static final float MODULE_STEP_Y = 3.0F / 16.0F;
+    private static final float MODULE_RENDER_SCALE = 1.0F;
 
     public SeismicStationRenderer(BlockEntityRendererProvider.Context context) {
         super(context);
@@ -83,6 +97,36 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
             orientToFacing(output, facing);
             output.light(light).renderInto(ms, vertexConsumer);
         }
+
+        renderInstalledModules(blockEntity, facing, ms, buffer, light, overlay);
+    }
+
+    private static void renderInstalledModules(SeismicStationBlockEntity blockEntity, Direction stationFacing,
+                                               PoseStack ms, MultiBufferSource buffer, int light, int overlay) {
+        List<ItemStack> modules = blockEntity.getInstalledModuleStacks();
+        if (modules.isEmpty()) {
+            return;
+        }
+
+        ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
+        ms.pushPose();
+        orientPoseToFacing(ms, stationFacing);
+
+        for (int i = 0; i < modules.size(); i++) {
+            int row = i / MODULES_PER_ROW;
+            int col = i % MODULES_PER_ROW;
+            float x = MODULE_START_X + col * MODULE_STEP_X;
+            float y = MODULE_START_Y - row * MODULE_STEP_Y;
+
+            ms.pushPose();
+            ms.translate(x, y, MODULE_START_Z);
+            ms.mulPose(Axis.YP.rotationDegrees(180.0F));
+            ms.scale(MODULE_RENDER_SCALE, MODULE_RENDER_SCALE, MODULE_RENDER_SCALE);
+            itemRenderer.renderStatic(modules.get(i), ItemDisplayContext.NONE, light, overlay, ms, buffer,
+                blockEntity.getLevel(), i);
+            ms.popPose();
+        }
+        ms.popPose();
     }
 
     private static float angleFor(SeismicStationBoundingBlockEntity input, Direction facing, float speedMultiplier) {
@@ -125,6 +169,12 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         buffer.center()
             .rotateYDegrees(180 + AngleHelper.horizontalAngle(facing))
             .uncenter();
+    }
+
+    private static void orientPoseToFacing(PoseStack ms, Direction facing) {
+        ms.translate(0.5D, 0.5D, 0.5D);
+        ms.mulPose(Axis.YP.rotationDegrees(180 + AngleHelper.horizontalAngle(facing)));
+        ms.translate(-0.5D, -0.5D, -0.5D);
     }
 
     private static void rotateAroundLocalPivot(SuperByteBuffer buffer, float angle, Direction axisDirection,

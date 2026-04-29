@@ -219,8 +219,27 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return !inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT).isEmpty();
     }
 
+    public List<ItemStack> getInstalledModuleStacks() {
+        List<ItemStack> modules = new ArrayList<>();
+        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                modules.add(stack.copy());
+            }
+        }
+        return modules;
+    }
+
+    public boolean hasBelowZeroModule() {
+        return hasModuleInstalled(SeismicModuleType.BELOW_ZERO);
+    }
+
     public boolean hasSignalFilterModule() {
         return hasModuleInstalled(SeismicModuleType.SIGNAL_FILTER);
+    }
+
+    public int getSignalFilterModeIndex() {
+        return signalFilterMode.ordinal();
     }
 
     public boolean tryInsertModule(Player player, InteractionHand hand) {

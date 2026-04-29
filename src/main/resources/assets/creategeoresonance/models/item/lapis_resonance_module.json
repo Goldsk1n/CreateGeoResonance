@@ -1,6 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "creategeoresonance:item/resonance_module_base",
   "textures": {
-    "layer0": "minecraft:item/lapis_lazuli"
+    "18": "minecraft:item/lapis_lazuli"
   }
 }

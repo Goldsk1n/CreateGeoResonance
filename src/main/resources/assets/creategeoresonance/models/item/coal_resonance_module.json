@@ -1,6 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "creategeoresonance:item/resonance_module_base",
   "textures": {
-    "layer0": "minecraft:item/coal"
+    "18": "minecraft:item/coal"
   }
 }
