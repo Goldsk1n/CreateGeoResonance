@@ -1,6 +1,6 @@
 {
-  "parent": "creategeoresonance:item/resonance_module_base",
+  "parent": "creategeoresonance:item/resonance_module_base_small_icon",
   "textures": {
-    "18": "minecraft:item/chest"
+    "18": "minecraft:item/chest_minecart"
   }
 }
