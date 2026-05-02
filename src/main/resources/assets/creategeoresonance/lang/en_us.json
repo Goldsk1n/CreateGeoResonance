@@ -62,6 +62,13 @@
   "block.creategeoresonance.seismic_station.scan_started": "Seismic scan started",
   "block.creategeoresonance.seismic_station.output_ready": "Seismogram ready",
   "block.creategeoresonance.seismic_station.output_full": "Take the previous seismogram from output first",
+  "block.creategeoresonance.seismic_projector.nodes": "Projector nodes: %s/%s",
+  "block.creategeoresonance.seismic_projector.node_loaded": "Loaded node %s/%s",
+  "block.creategeoresonance.seismic_projector.node_duplicate": "Node from this station is already loaded",
+  "block.creategeoresonance.seismic_projector.node_full": "Projector already has two nodes",
+  "block.creategeoresonance.seismic_projector.ready": "Projector ready for triangulation",
+  "block.creategeoresonance.seismic_projector.matches": "Triangulated matches: %s",
+  "block.creategeoresonance.seismic_projector.match_line": "%s @ x:%s z:%s ~y:%s (+/-%s)",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
 }
