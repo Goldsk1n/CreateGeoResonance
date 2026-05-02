@@ -4,6 +4,7 @@ import com.tterrag.registrate.Registrate;
 import com.tterrag.registrate.util.entry.BlockEntityEntry;
 import net.goldskinmc.creategeoresonance.GeoResonanceRegistrate;
 import net.goldskinmc.creategeoresonance.client.render.PlacedSeismicHammerRenderer;
+import net.goldskinmc.creategeoresonance.client.render.SeismicProjectorRenderer;
 import net.goldskinmc.creategeoresonance.client.render.SeismicStationRenderer;
 import net.goldskinmc.creategeoresonance.seismic.PlacedSeismicHammerBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
@@ -33,6 +34,7 @@ public final class GeoResonanceBlockEntityTypes {
     public static final BlockEntityEntry<SeismicProjectorBlockEntity> SEISMIC_PROJECTOR = REGISTRATE
         .blockEntity("seismic_projector", SeismicProjectorBlockEntity::new)
         .validBlocks(GeoResonanceBlocks.SEISMIC_PROJECTOR)
+        .renderer(() -> SeismicProjectorRenderer::new)
         .register();
 
     private GeoResonanceBlockEntityTypes() {

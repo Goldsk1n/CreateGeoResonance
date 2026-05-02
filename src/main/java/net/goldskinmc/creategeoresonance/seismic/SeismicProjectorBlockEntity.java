@@ -2,6 +2,8 @@ package net.goldskinmc.creategeoresonance.seismic;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -9,10 +11,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -63,7 +68,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         if (!player.getAbilities().instabuild) {
             held.shrink(1);
         }
-        setChanged();
+        syncClient();
 
         player.displayClientMessage(Component.translatable(
                 "block.creategeoresonance.seismic_projector.node_loaded",
@@ -75,6 +80,10 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                 .withStyle(ChatFormatting.AQUA), true);
         }
         return true;
+    }
+
+    public List<TriangulatedCandidate> getTriangulatedCandidates() {
+        return List.copyOf(triangulateCandidates());
     }
 
     public void sendStatus(Player player) {
@@ -104,8 +113,32 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                     candidate.worldZ(),
                     candidate.approxY(),
                     candidate.error())
-                .withStyle(ChatFormatting.GRAY), false);
+            .withStyle(ChatFormatting.GRAY), false);
         }
+    }
+
+    @Override
+    public AABB getRenderBoundingBox() {
+        List<TriangulatedCandidate> candidates = triangulateCandidates();
+        if (candidates.isEmpty()) {
+            return new AABB(worldPosition).inflate(1.0D);
+        }
+
+        int minX = worldPosition.getX();
+        int minY = worldPosition.getY();
+        int minZ = worldPosition.getZ();
+        int maxX = worldPosition.getX() + 1;
+        int maxY = worldPosition.getY() + 1;
+        int maxZ = worldPosition.getZ() + 1;
+        for (TriangulatedCandidate candidate : candidates) {
+            minX = Math.min(minX, candidate.worldX() - 1);
+            minY = Math.min(minY, candidate.approxY() - 1);
+            minZ = Math.min(minZ, candidate.worldZ() - 1);
+            maxX = Math.max(maxX, candidate.worldX() + 2);
+            maxY = Math.max(maxY, candidate.approxY() + 2);
+            maxZ = Math.max(maxZ, candidate.worldZ() + 2);
+        }
+        return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     @Override
@@ -156,6 +189,31 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                 ));
             }
             nodes.add(new NodeSnapshot(center, List.copyOf(signals)));
+        }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag() {
+        CompoundTag tag = super.getUpdateTag();
+        saveAdditional(tag);
+        return tag;
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag) {
+        load(tag);
+    }
+
+    @Nullable
+    @Override
+    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+        if (pkt.getTag() != null) {
+            load(pkt.getTag());
         }
     }
 
@@ -249,6 +307,13 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         }
     }
 
+    private void syncClient() {
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+        }
+    }
+
     private record NodeSnapshot(BlockPos center, List<SeismogramMapService.MapSignal> signals) {
         private static NodeSnapshot fromSnapshot(SeismogramMapService.MapSnapshot snapshot) {
             return new NodeSnapshot(
@@ -258,6 +323,6 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         }
     }
 
-    private record TriangulatedCandidate(SeismicAnomalyType type, int worldX, int worldZ, int approxY, int error) {
+    public record TriangulatedCandidate(SeismicAnomalyType type, int worldX, int worldZ, int approxY, int error) {
     }
 }
