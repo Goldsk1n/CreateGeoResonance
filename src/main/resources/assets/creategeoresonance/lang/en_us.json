@@ -1,6 +1,7 @@
 {
   "block.creategeoresonance.seismic_station": "Seismic Station",
   "block.creategeoresonance.seismic_station_bounding": "Seismic Station",
+  "block.creategeoresonance.seismic_projector": "Seismic Projector",
   "block.creategeoresonance.placed_seismic_hammer": "Placed Seismic Hammer",
   "item.creategeoresonance.seismic_hammer": "Seismic Hammer",
   "item.creategeoresonance.below_zero_module": "Below Zero Module",

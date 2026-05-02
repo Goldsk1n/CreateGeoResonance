@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "creategeoresonance:block/seismic_projector" },
+    "facing=east": { "model": "creategeoresonance:block/seismic_projector", "y": 90 },
+    "facing=south": { "model": "creategeoresonance:block/seismic_projector", "y": 180 },
+    "facing=west": { "model": "creategeoresonance:block/seismic_projector", "y": 270 }
+  }
+}

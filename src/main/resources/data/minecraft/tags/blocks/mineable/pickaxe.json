@@ -3,6 +3,7 @@
   "values": [
     "creategeoresonance:seismic_station",
     "creategeoresonance:seismic_station_bounding",
-    "creategeoresonance:placed_seismic_hammer"
+    "creategeoresonance:placed_seismic_hammer",
+    "creategeoresonance:seismic_projector"
   ]
 }

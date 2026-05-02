@@ -60,6 +60,7 @@ public class CreateGeoResonanceMod {
             event.accept(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get());
             event.accept(GeoResonanceItems.ZINC_RESONANCE_MODULE.get());
             event.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
+            event.accept(GeoResonanceBlocks.SEISMIC_PROJECTOR.get().asItem());
         }
     }
 }
