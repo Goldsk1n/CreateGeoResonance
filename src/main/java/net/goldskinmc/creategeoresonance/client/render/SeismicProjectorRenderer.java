@@ -21,6 +21,7 @@ import java.util.List;
 
 public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
+    private static final float BLOCK_EDGE_INSET = 0.02F;
 
     public SeismicProjectorRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -31,8 +32,9 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
         if (blockEntity.getLevel() == null) {
             return;
         }
+        List<SeismicProjectorBlockEntity.ExactVein> exactVeins = blockEntity.getConfirmedVeins();
         List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates = blockEntity.getTriangulatedCandidates();
-        if (candidates.isEmpty()) {
+        if (exactVeins.isEmpty() && candidates.isEmpty()) {
             return;
         }
 
@@ -47,16 +49,33 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
 
         try {
             bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-            for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
-                float[] color = colorFor(candidate.type());
-                double centerX = candidate.worldX() + 0.5D - origin.getX();
-                double centerY = candidate.approxY() + 0.5D - origin.getY();
-                double centerZ = candidate.worldZ() + 0.5D - origin.getZ();
-                AABB box = new AABB(
-                    centerX - BOX_SIZE, centerY - BOX_SIZE, centerZ - BOX_SIZE,
-                    centerX + BOX_SIZE, centerY + BOX_SIZE, centerZ + BOX_SIZE
-                );
-                drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], 1.0F);
+            if (!exactVeins.isEmpty()) {
+                for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+                    float[] color = colorFor(vein.type());
+                    for (BlockPos blockPos : vein.blocks()) {
+                        AABB box = new AABB(
+                            blockPos.getX() - origin.getX() + BLOCK_EDGE_INSET,
+                            blockPos.getY() - origin.getY() + BLOCK_EDGE_INSET,
+                            blockPos.getZ() - origin.getZ() + BLOCK_EDGE_INSET,
+                            blockPos.getX() - origin.getX() + 1.0D - BLOCK_EDGE_INSET,
+                            blockPos.getY() - origin.getY() + 1.0D - BLOCK_EDGE_INSET,
+                            blockPos.getZ() - origin.getZ() + 1.0D - BLOCK_EDGE_INSET
+                        );
+                        drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], 1.0F);
+                    }
+                }
+            } else {
+                for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                    float[] color = colorFor(candidate.type());
+                    double centerX = candidate.worldX() + 0.5D - origin.getX();
+                    double centerY = candidate.approxY() + 0.5D - origin.getY();
+                    double centerZ = candidate.worldZ() + 0.5D - origin.getZ();
+                    AABB box = new AABB(
+                        centerX - BOX_SIZE, centerY - BOX_SIZE, centerZ - BOX_SIZE,
+                        centerX + BOX_SIZE, centerY + BOX_SIZE, centerZ + BOX_SIZE
+                    );
+                    drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], 1.0F);
+                }
             }
             BufferUploader.drawWithShader(bufferBuilder.end());
         } finally {

@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -35,7 +36,15 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     private static final String TAG_SIGNAL_X = "X";
     private static final String TAG_SIGNAL_Z = "Z";
     private static final String TAG_SIGNAL_Y = "Y";
-    private static final int REQUIRED_NODES = 2;
+    private static final String TAG_EXACT_CLUSTERS = "ExactClusters";
+    private static final String TAG_CLUSTER_TYPE = "ClusterType";
+    private static final String TAG_CLUSTER_BLOCKS = "Blocks";
+    private static final String TAG_CLUSTER_BLOCK_X = "BlockX";
+    private static final String TAG_CLUSTER_BLOCK_Y = "BlockY";
+    private static final String TAG_CLUSTER_BLOCK_Z = "BlockZ";
+    private static final int MAX_NODES = 2;
+    private static final int PREVIEW_REQUIRED_NODES = 2;
+    private static final int EXACT_REQUIRED_NODES = 2;
     private static final int MAX_PREVIEW_LINES = 5;
     private static final int MATCH_RADIUS_BLOCKS = 12;
 
@@ -47,7 +56,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
 
     public boolean tryLoadSeismogram(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
-        SeismogramMapService.MapSnapshot snapshot = SeismogramMapService.readSnapshot(held);
+        SeismogramMapService.MapSnapshot snapshot = SeismogramMapService.readSnapshotWithExactData(held);
         if (snapshot == null) {
             return false;
         }
@@ -58,7 +67,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                 .withStyle(ChatFormatting.RED), true);
             return true;
         }
-        if (nodes.size() >= REQUIRED_NODES) {
+        if (nodes.size() >= MAX_NODES) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.node_full")
                 .withStyle(ChatFormatting.RED), true);
             return true;
@@ -73,9 +82,12 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         player.displayClientMessage(Component.translatable(
                 "block.creategeoresonance.seismic_projector.node_loaded",
                 nodes.size(),
-                REQUIRED_NODES)
+                MAX_NODES)
             .withStyle(ChatFormatting.GREEN), true);
-        if (nodes.size() >= REQUIRED_NODES) {
+        if (nodes.size() >= EXACT_REQUIRED_NODES) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.exact_ready")
+                .withStyle(ChatFormatting.GOLD), true);
+        } else if (nodes.size() >= PREVIEW_REQUIRED_NODES) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.ready")
                 .withStyle(ChatFormatting.AQUA), true);
         }
@@ -86,14 +98,18 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         return List.copyOf(triangulateCandidates());
     }
 
+    public List<ExactVein> getConfirmedVeins() {
+        return List.copyOf(confirmExactVeins());
+    }
+
     public void sendStatus(Player player) {
         player.displayClientMessage(Component.translatable(
                 "block.creategeoresonance.seismic_projector.nodes",
                 nodes.size(),
-                REQUIRED_NODES)
+                MAX_NODES)
             .withStyle(ChatFormatting.GOLD), true);
 
-        if (nodes.size() < REQUIRED_NODES) {
+        if (nodes.size() < PREVIEW_REQUIRED_NODES) {
             return;
         }
 
@@ -115,10 +131,41 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                     candidate.error())
             .withStyle(ChatFormatting.GRAY), false);
         }
+
+        if (nodes.size() < EXACT_REQUIRED_NODES) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.need_third_node")
+                .withStyle(ChatFormatting.DARK_AQUA), false);
+            return;
+        }
+
+        List<ExactVein> exactVeins = confirmExactVeins();
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.exact_matches", exactVeins.size())
+            .withStyle(ChatFormatting.GOLD), false);
     }
 
     @Override
     public AABB getRenderBoundingBox() {
+        List<ExactVein> exactVeins = confirmExactVeins();
+        if (!exactVeins.isEmpty()) {
+            int minX = worldPosition.getX();
+            int minY = worldPosition.getY();
+            int minZ = worldPosition.getZ();
+            int maxX = worldPosition.getX() + 1;
+            int maxY = worldPosition.getY() + 1;
+            int maxZ = worldPosition.getZ() + 1;
+            for (ExactVein vein : exactVeins) {
+                for (BlockPos blockPos : vein.blocks()) {
+                    minX = Math.min(minX, blockPos.getX());
+                    minY = Math.min(minY, blockPos.getY());
+                    minZ = Math.min(minZ, blockPos.getZ());
+                    maxX = Math.max(maxX, blockPos.getX() + 1);
+                    maxY = Math.max(maxY, blockPos.getY() + 1);
+                    maxZ = Math.max(maxZ, blockPos.getZ() + 1);
+                }
+            }
+            return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
+        }
+
         List<TriangulatedCandidate> candidates = triangulateCandidates();
         if (candidates.isEmpty()) {
             return new AABB(worldPosition).inflate(1.0D);
@@ -160,6 +207,22 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                 signalsTag.add(signalTag);
             }
             entry.put(TAG_SIGNALS, signalsTag);
+            ListTag exactClustersTag = new ListTag();
+            for (SeismogramMapService.ExactCluster cluster : node.exactClusters()) {
+                CompoundTag clusterTag = new CompoundTag();
+                clusterTag.putString(TAG_CLUSTER_TYPE, cluster.type().name());
+                ListTag blockList = new ListTag();
+                for (BlockPos blockPos : cluster.blocks()) {
+                    CompoundTag blockTag = new CompoundTag();
+                    blockTag.putInt(TAG_CLUSTER_BLOCK_X, blockPos.getX());
+                    blockTag.putInt(TAG_CLUSTER_BLOCK_Y, blockPos.getY());
+                    blockTag.putInt(TAG_CLUSTER_BLOCK_Z, blockPos.getZ());
+                    blockList.add(blockTag);
+                }
+                clusterTag.put(TAG_CLUSTER_BLOCKS, blockList);
+                exactClustersTag.add(clusterTag);
+            }
+            entry.put(TAG_EXACT_CLUSTERS, exactClustersTag);
             list.add(entry);
         }
         tag.put(TAG_NODES, list);
@@ -188,7 +251,30 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                     signalTag.getInt(TAG_SIGNAL_Y)
                 ));
             }
-            nodes.add(new NodeSnapshot(center, List.copyOf(signals)));
+
+            List<SeismogramMapService.ExactCluster> exactClusters = new ArrayList<>();
+            ListTag exactClustersTag = entry.getList(TAG_EXACT_CLUSTERS, Tag.TAG_COMPOUND);
+            for (Tag clusterRaw : exactClustersTag) {
+                CompoundTag clusterTag = (CompoundTag) clusterRaw;
+                SeismicAnomalyType type = parseType(clusterTag.getString(TAG_CLUSTER_TYPE));
+                if (type == null) {
+                    continue;
+                }
+                ListTag blockList = clusterTag.getList(TAG_CLUSTER_BLOCKS, Tag.TAG_COMPOUND);
+                List<BlockPos> blocks = new ArrayList<>(blockList.size());
+                for (Tag blockRaw : blockList) {
+                    CompoundTag blockTag = (CompoundTag) blockRaw;
+                    blocks.add(new BlockPos(
+                        blockTag.getInt(TAG_CLUSTER_BLOCK_X),
+                        blockTag.getInt(TAG_CLUSTER_BLOCK_Y),
+                        blockTag.getInt(TAG_CLUSTER_BLOCK_Z)
+                    ));
+                }
+                if (!blocks.isEmpty()) {
+                    exactClusters.add(new SeismogramMapService.ExactCluster(type, List.copyOf(blocks)));
+                }
+            }
+            nodes.add(new NodeSnapshot(center, List.copyOf(signals), List.copyOf(exactClusters)));
         }
     }
 
@@ -227,7 +313,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     }
 
     private List<TriangulatedCandidate> triangulateCandidates() {
-        if (nodes.size() < REQUIRED_NODES) {
+        if (nodes.size() < PREVIEW_REQUIRED_NODES) {
             return List.of();
         }
 
@@ -278,6 +364,69 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         return candidates;
     }
 
+    private List<ExactVein> confirmExactVeins() {
+        if (nodes.size() < EXACT_REQUIRED_NODES) {
+            return List.of();
+        }
+
+        NodeSnapshot first = nodes.get(0);
+        NodeSnapshot second = nodes.get(1);
+        List<ExactVein> confirmed = new ArrayList<>();
+        Set<Long> dedupe = new HashSet<>();
+
+        for (SeismogramMapService.ExactCluster a : first.exactClusters()) {
+            for (SeismogramMapService.ExactCluster b : second.exactClusters()) {
+                if (a.type() != b.type() || !clustersIntersect(a.blocks(), b.blocks())) {
+                    continue;
+                }
+                List<BlockPos> merged = mergeClusterBlocks(a.blocks(), b.blocks());
+                if (merged.isEmpty()) {
+                    continue;
+                }
+                long signature = clusterSignature(a.type(), merged);
+                if (dedupe.add(signature)) {
+                    confirmed.add(new ExactVein(a.type(), merged));
+                }
+            }
+        }
+
+        return confirmed;
+    }
+
+    private static boolean clustersIntersect(List<BlockPos> left, List<BlockPos> right) {
+        if (left.isEmpty() || right.isEmpty()) {
+            return false;
+        }
+        Set<BlockPos> smaller = left.size() <= right.size() ? new HashSet<>(left) : new HashSet<>(right);
+        List<BlockPos> larger = left.size() <= right.size() ? right : left;
+        for (BlockPos pos : larger) {
+            if (smaller.contains(pos)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<BlockPos> mergeClusterBlocks(List<BlockPos> first, List<BlockPos> second) {
+        Set<BlockPos> merged = new LinkedHashSet<>(first.size() + second.size());
+        merged.addAll(first);
+        merged.addAll(second);
+        return List.copyOf(merged);
+    }
+
+    private static long clusterSignature(SeismicAnomalyType type, List<BlockPos> blocks) {
+        BlockPos anchor = blocks.get(0);
+        for (BlockPos blockPos : blocks) {
+            if (blockPos.getY() < anchor.getY()
+                || (blockPos.getY() == anchor.getY() && blockPos.getX() < anchor.getX())
+                || (blockPos.getY() == anchor.getY() && blockPos.getX() == anchor.getX() && blockPos.getZ() < anchor.getZ())) {
+                anchor = blockPos;
+            }
+        }
+        long packed = BlockPos.asLong(anchor.getX(), anchor.getY(), anchor.getZ());
+        return packed ^ ((long) type.ordinal() << 58);
+    }
+
     private static String signalNameKey(SeismicAnomalyType type) {
         return switch (type) {
             case CAVE -> "item.creategeoresonance.seismogram.signal.cave";
@@ -314,15 +463,20 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         }
     }
 
-    private record NodeSnapshot(BlockPos center, List<SeismogramMapService.MapSignal> signals) {
+    private record NodeSnapshot(BlockPos center, List<SeismogramMapService.MapSignal> signals,
+                                List<SeismogramMapService.ExactCluster> exactClusters) {
         private static NodeSnapshot fromSnapshot(SeismogramMapService.MapSnapshot snapshot) {
             return new NodeSnapshot(
                 new BlockPos(snapshot.centerX(), snapshot.centerY(), snapshot.centerZ()),
-                List.copyOf(snapshot.signals())
+                List.copyOf(snapshot.signals()),
+                List.copyOf(snapshot.exactClusters())
             );
         }
     }
 
     public record TriangulatedCandidate(SeismicAnomalyType type, int worldX, int worldZ, int approxY, int error) {
+    }
+
+    public record ExactVein(SeismicAnomalyType type, List<BlockPos> blocks) {
     }
 }

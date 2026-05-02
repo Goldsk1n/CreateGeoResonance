@@ -49,6 +49,7 @@ import java.util.Set;
 public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String INVENTORY_TAG = "Inventory";
     private static final String MAP_ENTRIES_TAG = "MapEntries";
+    private static final String EXACT_CLUSTERS_TAG = "ExactClusters";
     private static final String MAP_READY_TAG = "MapReady";
     private static final String SCAN_RUNNING_TAG = "ScanRunning";
     private static final String AWAITING_RESULT_TAG = "AwaitingResult";
@@ -108,6 +109,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> inventory);
     private final List<SeismicAnomaly> queuedAnomalies = new ArrayList<>();
     private final List<MapEntry> mapEntries = new ArrayList<>();
+    private final List<SeismogramMapService.ExactCluster> exactClusters = new ArrayList<>();
 
     private boolean scanRunning;
     private boolean awaitingScanResult;
@@ -488,6 +490,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         strikeTimer = 0;
         revealIndex = 0;
         mapEntries.clear();
+        exactClusters.clear();
         queuedAnomalies.clear();
 
         if (level instanceof ServerLevel serverLevel) {
@@ -504,10 +507,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 false,
                 buildDetectableTypes(),
                 hasModuleInstalled(SeismicModuleType.BELOW_ZERO),
-                (request, anomalies) -> {
+                (request, result) -> {
                     BlockEntity blockEntity = request.level().getBlockEntity(origin);
                     if (blockEntity instanceof SeismicStationBlockEntity station) {
-                        station.acceptScanResult(anomalies);
+                        station.acceptScanResult(result);
                     }
                 }
             ));
@@ -523,10 +526,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return true;
     }
 
-    private void acceptScanResult(List<SeismicAnomaly> anomalies) {
+    private void acceptScanResult(SeismicScanQueue.SeismicScanResult result) {
         queuedAnomalies.clear();
-        queuedAnomalies.addAll(prioritizeByModuleOrder(anomalies));
+        queuedAnomalies.addAll(prioritizeByModuleOrder(result.anomalies()));
         queuedAnomalies.sort(Comparator.comparingInt(SeismicAnomaly::depth));
+        exactClusters.clear();
+        for (SeismicScanQueue.ExactCluster cluster : result.exactClusters()) {
+            exactClusters.add(new SeismogramMapService.ExactCluster(cluster.type(), List.copyOf(cluster.blocks())));
+        }
         revealIndex = 0;
         strikeTimer = Math.max(0, Config.STATION_STARTUP_DELAY_TICKS.get()) + calculateStrikeIntervalTicks();
         awaitingScanResult = false;
@@ -671,7 +678,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private ItemStack createSeismogramMap(ServerLevel serverLevel) {
-        return SeismogramMapService.createMap(serverLevel, worldPosition, mapEntries);
+        return SeismogramMapService.createMap(serverLevel, worldPosition, mapEntries, exactClusters);
     }
 
     private void onOutputReady() {
@@ -839,6 +846,23 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             entriesTag.add(entryTag);
         }
         compound.put(MAP_ENTRIES_TAG, entriesTag);
+
+        ListTag exactTag = new ListTag();
+        for (SeismogramMapService.ExactCluster cluster : exactClusters) {
+            CompoundTag clusterTag = new CompoundTag();
+            clusterTag.putString("Type", cluster.type().name());
+            ListTag blockList = new ListTag();
+            for (BlockPos blockPos : cluster.blocks()) {
+                CompoundTag blockTag = new CompoundTag();
+                blockTag.putInt("X", blockPos.getX());
+                blockTag.putInt("Y", blockPos.getY());
+                blockTag.putInt("Z", blockPos.getZ());
+                blockList.add(blockTag);
+            }
+            clusterTag.put("Blocks", blockList);
+            exactTag.add(clusterTag);
+        }
+        compound.put(EXACT_CLUSTERS_TAG, exactTag);
     }
 
     @Override
@@ -864,6 +888,22 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             CompoundTag entryTag = (CompoundTag) tag;
             SeismicAnomalyType type = SeismicAnomalyType.valueOf(entryTag.getString("Type"));
             mapEntries.add(new MapEntry(type, entryTag.getInt("X"), entryTag.getInt("Z"), entryTag.getInt("Y")));
+        }
+
+        exactClusters.clear();
+        ListTag exactTag = compound.getList(EXACT_CLUSTERS_TAG, Tag.TAG_COMPOUND);
+        for (Tag rawCluster : exactTag) {
+            CompoundTag clusterTag = (CompoundTag) rawCluster;
+            SeismicAnomalyType type = SeismicAnomalyType.valueOf(clusterTag.getString("Type"));
+            ListTag blockList = clusterTag.getList("Blocks", Tag.TAG_COMPOUND);
+            List<BlockPos> blocks = new ArrayList<>(blockList.size());
+            for (Tag rawBlock : blockList) {
+                CompoundTag blockTag = (CompoundTag) rawBlock;
+                blocks.add(new BlockPos(blockTag.getInt("X"), blockTag.getInt("Y"), blockTag.getInt("Z")));
+            }
+            if (!blocks.isEmpty()) {
+                exactClusters.add(new SeismogramMapService.ExactCluster(type, List.copyOf(blocks)));
+            }
         }
 
         if (clientPacket && level != null && level.isClientSide) {

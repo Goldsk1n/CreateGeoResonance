@@ -3,6 +3,7 @@ package net.goldskinmc.creategeoresonance.seismic;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
@@ -23,6 +24,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
@@ -153,7 +155,13 @@ public final class SeismicScanQueue {
 
     @FunctionalInterface
     public interface ResultConsumer {
-        void accept(SeismicScanRequest request, List<SeismicAnomaly> anomalies);
+        void accept(SeismicScanRequest request, SeismicScanResult result);
+    }
+
+    public record SeismicScanResult(List<SeismicAnomaly> anomalies, List<ExactCluster> exactClusters) {
+    }
+
+    public record ExactCluster(SeismicAnomalyType type, List<BlockPos> blocks) {
     }
 
     public record SeismicScanRequest(
@@ -234,6 +242,7 @@ public final class SeismicScanQueue {
         private final int width;
         private final int totalCells;
         private final Map<Integer, Aggregate> aggregates;
+        private final Map<SeismicAnomalyType, Set<BlockPos>> exactHitsByType;
         private int index;
 
         private SeismicScanJob(SeismicScanRequest request) {
@@ -242,6 +251,7 @@ public final class SeismicScanQueue {
             this.width = request.radius() * 2 + 1;
             this.totalCells = width * width * request.depth();
             this.aggregates = new HashMap<>();
+            this.exactHitsByType = new HashMap<>();
             this.index = 0;
         }
 
@@ -308,6 +318,7 @@ public final class SeismicScanQueue {
                 if (isOreType(type) && scanPos.getY() < 0 && !request.allowBelowZeroOres()) {
                     continue;
                 }
+                trackExactHit(type, scanPos);
 
                 float depthRatio = (depthIndex + 1) / (float) request.depth();
                 float distance = Mth.sqrt(dx * dx + dz * dz);
@@ -336,9 +347,9 @@ public final class SeismicScanQueue {
         }
 
         private void finish() {
-            List<SeismicAnomaly> anomalies = buildAnomalies(aggregates.values());
+            SeismicScanResult result = buildResult();
             if (request.resultConsumer() != null) {
-                request.resultConsumer().accept(request, anomalies);
+                request.resultConsumer().accept(request, result);
             } else {
                 GeoResonancePackets.sendSeismicResult(
                     request.level(),
@@ -346,9 +357,15 @@ public final class SeismicScanQueue {
                     request.scannerEntityId(),
                     request.lowPressure(),
                     request.depth(),
-                    anomalies
+                    result.anomalies()
                 );
             }
+        }
+
+        private SeismicScanResult buildResult() {
+            List<SeismicAnomaly> anomalies = buildAnomalies(aggregates.values());
+            List<ExactCluster> exactClusters = buildExactClusters();
+            return new SeismicScanResult(anomalies, exactClusters);
         }
 
         private List<SeismicAnomaly> buildAnomalies(Collection<Aggregate> values) {
@@ -406,7 +423,64 @@ public final class SeismicScanQueue {
                 }
                 int depth = Mth.clamp(origin.getY() - Mth.floor(chestMinecart.getY()), 1, request.depth());
                 rawAnomalies.add(new SeismicAnomaly(SeismicAnomalyType.CHEST, offsetX, offsetZ, depth, 1, 1.0F));
+                trackExactHit(SeismicAnomalyType.CHEST, chestMinecart.blockPosition());
             }
+        }
+
+        private void trackExactHit(SeismicAnomalyType type, BlockPos scanPos) {
+            if (!shouldTrackExactType(type)) {
+                return;
+            }
+            exactHitsByType.computeIfAbsent(type, ignored -> new HashSet<>())
+                .add(scanPos.immutable());
+        }
+
+        private List<ExactCluster> buildExactClusters() {
+            if (exactHitsByType.isEmpty()) {
+                return List.of();
+            }
+
+            List<ExactCluster> clusters = new ArrayList<>();
+            for (Map.Entry<SeismicAnomalyType, Set<BlockPos>> entry : exactHitsByType.entrySet()) {
+                SeismicAnomalyType type = entry.getKey();
+                Set<BlockPos> unvisited = new HashSet<>(entry.getValue());
+                if (unvisited.isEmpty()) {
+                    continue;
+                }
+
+                while (!unvisited.isEmpty()) {
+                    BlockPos seed = unvisited.iterator().next();
+                    Deque<BlockPos> queue = new ArrayDeque<>();
+                    queue.add(seed);
+                    List<BlockPos> component = new ArrayList<>();
+
+                    while (!queue.isEmpty()) {
+                        BlockPos current = queue.removeFirst();
+                        if (!unvisited.remove(current)) {
+                            continue;
+                        }
+                        component.add(current);
+                        for (Direction direction : Direction.values()) {
+                            BlockPos neighbour = current.relative(direction);
+                            if (unvisited.contains(neighbour)) {
+                                queue.addLast(neighbour);
+                            }
+                        }
+                    }
+
+                    if (!component.isEmpty()) {
+                        clusters.add(new ExactCluster(type, List.copyOf(component)));
+                    }
+                }
+            }
+            return List.copyOf(clusters);
+        }
+
+        private static boolean shouldTrackExactType(SeismicAnomalyType type) {
+            return switch (type) {
+                case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST, CHEST, SPAWNER -> true;
+                default -> false;
+            };
         }
     }
 

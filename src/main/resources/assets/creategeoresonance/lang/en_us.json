@@ -66,8 +66,11 @@
   "block.creategeoresonance.seismic_projector.node_loaded": "Loaded node %s/%s",
   "block.creategeoresonance.seismic_projector.node_duplicate": "Node from this station is already loaded",
   "block.creategeoresonance.seismic_projector.node_full": "Projector already has two nodes",
-  "block.creategeoresonance.seismic_projector.ready": "Projector ready for triangulation",
+  "block.creategeoresonance.seismic_projector.ready": "Triangulation preview ready",
+  "block.creategeoresonance.seismic_projector.exact_ready": "Exact vein reveal ready (2 nodes)",
+  "block.creategeoresonance.seismic_projector.need_third_node": "Load one more node for exact vein reveal",
   "block.creategeoresonance.seismic_projector.matches": "Triangulated matches: %s",
+  "block.creategeoresonance.seismic_projector.exact_matches": "Confirmed exact veins: %s",
   "block.creategeoresonance.seismic_projector.match_line": "%s @ x:%s z:%s ~y:%s (+/-%s)",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
