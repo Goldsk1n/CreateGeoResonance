@@ -33,6 +33,10 @@ public final class SeismogramMapService {
     private static final String TAG_ENTRY_WORLD_X = "WorldX";
     private static final String TAG_ENTRY_WORLD_Z = "WorldZ";
     private static final String TAG_ENTRY_WORLD_Y = "WorldY";
+    private static final String TAG_STATION_X = "StationX";
+    private static final String TAG_STATION_Y = "StationY";
+    private static final String TAG_STATION_Z = "StationZ";
+    private static final String TAG_STATION_DIMENSION = "StationDimension";
     private static final String TAG_EXACT_CLUSTERS = "ExactClusters";
     private static final String TAG_CLUSTER_TYPE = "ClusterType";
     private static final String TAG_CLUSTER_BLOCKS = "Blocks";
@@ -59,7 +63,7 @@ public final class SeismogramMapService {
             return mapStack;
         }
 
-        CompoundTag geoTag = buildGeoTag(centerX, centerZ, stationPos, entries, exactClusters);
+        CompoundTag geoTag = buildGeoTag(centerX, centerZ, stationPos, level.dimension().location().toString(), entries, exactClusters);
         mapStack.getOrCreateTag().put(TAG_ROOT, geoTag);
 
         renderStaticMap(mapData, geoTag);
@@ -89,10 +93,18 @@ public final class SeismogramMapService {
         if (geoTag == null) {
             return null;
         }
+        if (!geoTag.contains(TAG_STATION_X, Tag.TAG_INT)
+            || !geoTag.contains(TAG_STATION_Y, Tag.TAG_INT)
+            || !geoTag.contains(TAG_STATION_Z, Tag.TAG_INT)
+            || !geoTag.contains(TAG_STATION_DIMENSION, Tag.TAG_STRING)) {
+            return null;
+        }
 
         int centerX = geoTag.getInt(TAG_CENTER_X);
         int centerY = geoTag.getInt(TAG_CENTER_Y);
         int centerZ = geoTag.getInt(TAG_CENTER_Z);
+        BlockPos stationPos = new BlockPos(geoTag.getInt(TAG_STATION_X), geoTag.getInt(TAG_STATION_Y), geoTag.getInt(TAG_STATION_Z));
+        String stationDimension = geoTag.getString(TAG_STATION_DIMENSION);
         List<MapSignal> signals = new ArrayList<>();
         List<ExactCluster> exactClusters = new ArrayList<>();
         ListTag entries = geoTag.getList(TAG_ENTRIES, Tag.TAG_COMPOUND);
@@ -134,7 +146,7 @@ public final class SeismogramMapService {
             }
         }
 
-        return new MapSnapshot(centerX, centerY, centerZ, List.copyOf(signals), List.copyOf(exactClusters));
+        return new MapSnapshot(centerX, centerY, centerZ, stationPos, stationDimension, List.copyOf(signals), List.copyOf(exactClusters));
     }
 
     public static boolean isSeismogramStack(ItemStack stack) {
@@ -181,12 +193,17 @@ public final class SeismogramMapService {
     }
 
     private static CompoundTag buildGeoTag(int centerX, int centerZ, BlockPos stationPos,
+                                           String stationDimension,
                                            List<SeismicStationBlockEntity.MapEntry> entries,
                                            List<ExactCluster> exactClusters) {
         CompoundTag tag = new CompoundTag();
         tag.putInt(TAG_CENTER_X, centerX);
         tag.putInt(TAG_CENTER_Y, stationPos.getY());
         tag.putInt(TAG_CENTER_Z, centerZ);
+        tag.putInt(TAG_STATION_X, stationPos.getX());
+        tag.putInt(TAG_STATION_Y, stationPos.getY());
+        tag.putInt(TAG_STATION_Z, stationPos.getZ());
+        tag.putString(TAG_STATION_DIMENSION, stationDimension);
 
         ListTag entryList = new ListTag();
         for (SeismicStationBlockEntity.MapEntry entry : entries) {
@@ -351,7 +368,8 @@ public final class SeismogramMapService {
     private record MarkerState(byte markerX, byte markerZ, byte markerRot) {
     }
 
-    public record MapSnapshot(int centerX, int centerY, int centerZ, List<MapSignal> signals, List<ExactCluster> exactClusters) {
+    public record MapSnapshot(int centerX, int centerY, int centerZ, BlockPos stationPos, String stationDimension,
+                              List<MapSignal> signals, List<ExactCluster> exactClusters) {
     }
 
     public record MapSignal(SeismicAnomalyType type, int worldX, int worldZ, int approxY) {

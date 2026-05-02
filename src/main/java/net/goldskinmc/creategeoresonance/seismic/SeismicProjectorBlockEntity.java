@@ -31,6 +31,10 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     private static final String TAG_CENTER_X = "CenterX";
     private static final String TAG_CENTER_Y = "CenterY";
     private static final String TAG_CENTER_Z = "CenterZ";
+    private static final String TAG_STATION_X = "StationX";
+    private static final String TAG_STATION_Y = "StationY";
+    private static final String TAG_STATION_Z = "StationZ";
+    private static final String TAG_STATION_DIMENSION = "StationDimension";
     private static final String TAG_SIGNALS = "Signals";
     private static final String TAG_SIGNAL_TYPE = "Type";
     private static final String TAG_SIGNAL_X = "X";
@@ -47,6 +51,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     private static final int EXACT_REQUIRED_NODES = 2;
     private static final int MAX_PREVIEW_LINES = 5;
     private static final int MATCH_RADIUS_BLOCKS = 12;
+    private static final int MIN_NODE_DISTANCE_BLOCKS = 8;
 
     private final List<NodeSnapshot> nodes = new ArrayList<>();
 
@@ -60,10 +65,25 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         if (snapshot == null) {
             return false;
         }
+        if (level == null) {
+            return false;
+        }
+        String projectorDimension = level.dimension().location().toString();
+        if (!projectorDimension.equals(snapshot.stationDimension())) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.dimension_mismatch")
+                .withStyle(ChatFormatting.RED), true);
+            return true;
+        }
 
-        BlockPos nodeCenter = new BlockPos(snapshot.centerX(), snapshot.centerY(), snapshot.centerZ());
-        if (containsNodeCenter(nodeCenter)) {
+        if (containsStation(snapshot.stationPos(), snapshot.stationDimension())) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.node_duplicate")
+                .withStyle(ChatFormatting.RED), true);
+            return true;
+        }
+        if (!isFarEnoughFromLoadedStations(snapshot.stationPos(), snapshot.stationDimension())) {
+            player.displayClientMessage(Component.translatable(
+                    "block.creategeoresonance.seismic_projector.node_too_close",
+                    MIN_NODE_DISTANCE_BLOCKS)
                 .withStyle(ChatFormatting.RED), true);
             return true;
         }
@@ -197,6 +217,10 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
             entry.putInt(TAG_CENTER_X, node.center().getX());
             entry.putInt(TAG_CENTER_Y, node.center().getY());
             entry.putInt(TAG_CENTER_Z, node.center().getZ());
+            entry.putInt(TAG_STATION_X, node.stationPos().getX());
+            entry.putInt(TAG_STATION_Y, node.stationPos().getY());
+            entry.putInt(TAG_STATION_Z, node.stationPos().getZ());
+            entry.putString(TAG_STATION_DIMENSION, node.stationDimension());
             ListTag signalsTag = new ListTag();
             for (SeismogramMapService.MapSignal signal : node.signals()) {
                 CompoundTag signalTag = new CompoundTag();
@@ -236,6 +260,8 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         for (Tag raw : list) {
             CompoundTag entry = (CompoundTag) raw;
             BlockPos center = new BlockPos(entry.getInt(TAG_CENTER_X), entry.getInt(TAG_CENTER_Y), entry.getInt(TAG_CENTER_Z));
+            BlockPos stationPos = new BlockPos(entry.getInt(TAG_STATION_X), entry.getInt(TAG_STATION_Y), entry.getInt(TAG_STATION_Z));
+            String stationDimension = entry.getString(TAG_STATION_DIMENSION);
             List<SeismogramMapService.MapSignal> signals = new ArrayList<>();
             ListTag signalsTag = entry.getList(TAG_SIGNALS, Tag.TAG_COMPOUND);
             for (Tag signalRaw : signalsTag) {
@@ -274,7 +300,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
                     exactClusters.add(new SeismogramMapService.ExactCluster(type, List.copyOf(blocks)));
                 }
             }
-            nodes.add(new NodeSnapshot(center, List.copyOf(signals), List.copyOf(exactClusters)));
+            nodes.add(new NodeSnapshot(center, stationPos, stationDimension, List.copyOf(signals), List.copyOf(exactClusters)));
         }
     }
 
@@ -303,13 +329,26 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         }
     }
 
-    private boolean containsNodeCenter(BlockPos center) {
+    private boolean containsStation(BlockPos stationPos, String stationDimension) {
         for (NodeSnapshot node : nodes) {
-            if (node.center().equals(center)) {
+            if (node.stationPos().equals(stationPos) && node.stationDimension().equals(stationDimension)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean isFarEnoughFromLoadedStations(BlockPos stationPos, String stationDimension) {
+        int minDistanceSquared = MIN_NODE_DISTANCE_BLOCKS * MIN_NODE_DISTANCE_BLOCKS;
+        for (NodeSnapshot node : nodes) {
+            if (!node.stationDimension().equals(stationDimension)) {
+                continue;
+            }
+            if (node.stationPos().distSqr(stationPos) < minDistanceSquared) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<TriangulatedCandidate> triangulateCandidates() {
@@ -463,11 +502,14 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         }
     }
 
-    private record NodeSnapshot(BlockPos center, List<SeismogramMapService.MapSignal> signals,
+    private record NodeSnapshot(BlockPos center, BlockPos stationPos, String stationDimension,
+                                List<SeismogramMapService.MapSignal> signals,
                                 List<SeismogramMapService.ExactCluster> exactClusters) {
         private static NodeSnapshot fromSnapshot(SeismogramMapService.MapSnapshot snapshot) {
             return new NodeSnapshot(
                 new BlockPos(snapshot.centerX(), snapshot.centerY(), snapshot.centerZ()),
+                snapshot.stationPos().immutable(),
+                snapshot.stationDimension(),
                 List.copyOf(snapshot.signals()),
                 List.copyOf(snapshot.exactClusters())
             );
