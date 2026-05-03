@@ -81,6 +81,9 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue STATION_NOISE = STAGE2
         .comment("Confidence jitter used for station anomaly evaluation.")
         .defineInRange("stationNoise", 0.08D, 0.0D, 1.0D);
+    public static final ForgeConfigSpec.IntValue PROJECTOR_STATION_RANGE_CHUNKS = STAGE2
+        .comment("Maximum horizontal range in chunks from projector to station for loading seismograms.")
+        .defineInRange("projectorStationRangeChunks", 3, 0, 64);
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_FILL_ENABLED = PROJECTOR_VISUALS
         .comment("Render hologram fill in addition to outlines.")
         .define("fillEnabled", true);

@@ -1,5 +1,6 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import net.goldskinmc.creategeoresonance.Config;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.Connection;
@@ -71,6 +72,13 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         String projectorDimension = level.dimension().location().toString();
         if (!projectorDimension.equals(snapshot.stationDimension())) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.dimension_mismatch")
+                .withStyle(ChatFormatting.RED), true);
+            return true;
+        }
+        if (!isWithinStationRange(snapshot.stationPos())) {
+            player.displayClientMessage(Component.translatable(
+                    "block.creategeoresonance.seismic_projector.station_out_of_range",
+                    Config.PROJECTOR_STATION_RANGE_CHUNKS.get())
                 .withStyle(ChatFormatting.RED), true);
             return true;
         }
@@ -349,6 +357,16 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
             }
         }
         return true;
+    }
+
+    private boolean isWithinStationRange(BlockPos stationPos) {
+        int maxChunks = Math.max(0, Config.PROJECTOR_STATION_RANGE_CHUNKS.get());
+        int maxBlocks = maxChunks * 16;
+        long maxDistanceSquared = (long) maxBlocks * maxBlocks;
+        long dx = (long) stationPos.getX() - worldPosition.getX();
+        long dz = (long) stationPos.getZ() - worldPosition.getZ();
+        long distanceSquared = dx * dx + dz * dz;
+        return distanceSquared <= maxDistanceSquared;
     }
 
     private List<TriangulatedCandidate> triangulateCandidates() {

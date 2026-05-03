@@ -66,6 +66,7 @@
   "block.creategeoresonance.seismic_projector.node_loaded": "Loaded node %s/%s",
   "block.creategeoresonance.seismic_projector.node_duplicate": "Node from this station is already loaded",
   "block.creategeoresonance.seismic_projector.dimension_mismatch": "Seismogram dimension does not match projector dimension",
+  "block.creategeoresonance.seismic_projector.station_out_of_range": "Station is too far from projector (max %s chunks)",
   "block.creategeoresonance.seismic_projector.node_too_close": "Stations must be at least %s blocks apart",
   "block.creategeoresonance.seismic_projector.node_full": "Projector already has two nodes",
   "block.creategeoresonance.seismic_projector.ready": "Triangulation preview ready",
