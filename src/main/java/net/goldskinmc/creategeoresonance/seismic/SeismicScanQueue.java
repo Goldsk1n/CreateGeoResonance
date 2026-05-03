@@ -135,13 +135,6 @@ public final class SeismicScanQueue {
         return anomaly.confidence() * (1.0D + anomaly.radius() * 0.2D);
     }
 
-    private static boolean isOreType(SeismicAnomalyType type) {
-        return switch (type) {
-            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC -> true;
-            default -> false;
-        };
-    }
-
     private static int typePriority(SeismicAnomalyType type) {
         return switch (type) {
             case LAVA -> 5;
@@ -315,7 +308,7 @@ public final class SeismicScanQueue {
                 if (!request.canDetect(type)) {
                     continue;
                 }
-                if (isOreType(type) && scanPos.getY() < 0 && !request.allowBelowZeroOres()) {
+                if (scanPos.getY() < 0 && !request.allowBelowZeroOres()) {
                     continue;
                 }
                 trackExactHit(type, scanPos);
@@ -416,6 +409,9 @@ public final class SeismicScanQueue {
                 origin.getZ() + request.radius() + 1.0D
             );
             for (MinecartChest chestMinecart : request.level().getEntitiesOfClass(MinecartChest.class, bounds)) {
+                if (chestMinecart.blockPosition().getY() < 0 && !request.allowBelowZeroOres()) {
+                    continue;
+                }
                 int offsetX = Mth.floor(chestMinecart.getX()) - origin.getX();
                 int offsetZ = Mth.floor(chestMinecart.getZ()) - origin.getZ();
                 if (offsetX * offsetX + offsetZ * offsetZ > request.radius() * request.radius()) {
