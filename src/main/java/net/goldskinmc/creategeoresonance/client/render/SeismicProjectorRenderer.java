@@ -18,6 +18,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
@@ -226,6 +227,9 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
 
     private static boolean matchesType(BlockState state, SeismicAnomalyType type) {
         return switch (type) {
+            case CAVE -> state.isAir();
+            case WATER -> state.getFluidState().is(FluidTags.WATER);
+            case LAVA -> state.getFluidState().is(FluidTags.LAVA);
             case COAL -> state.is(BlockTags.COAL_ORES);
             case IRON -> state.is(BlockTags.IRON_ORES);
             case COPPER -> state.is(BlockTags.COPPER_ORES);

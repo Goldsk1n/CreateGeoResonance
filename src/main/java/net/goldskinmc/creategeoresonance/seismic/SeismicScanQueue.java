@@ -474,7 +474,7 @@ public final class SeismicScanQueue {
 
         private static boolean shouldTrackExactType(SeismicAnomalyType type) {
             return switch (type) {
-                case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST, CHEST, SPAWNER -> true;
+                case WATER, LAVA, COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST, CHEST, SPAWNER -> true;
                 default -> false;
             };
         }
