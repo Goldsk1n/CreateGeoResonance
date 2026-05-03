@@ -24,6 +24,7 @@ public class CreateGeoResonanceMod {
     public CreateGeoResonanceMod(FMLJavaModLoadingContext context) {
         context.getModEventBus().addListener(this::onBuildCreativeTab);
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        context.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
         GeoResonanceRegistrate.init();
         GeoResonanceBlocks.register();
         GeoResonanceBlockEntityTypes.register();

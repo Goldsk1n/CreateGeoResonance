@@ -4,8 +4,12 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 public class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+    private static final ForgeConfigSpec.Builder CLIENT_BUILDER = new ForgeConfigSpec.Builder();
     private static final ForgeConfigSpec.Builder STAGE1 = BUILDER.comment("Stage 1 seismic hammer tuning").push("stage1");
     private static final ForgeConfigSpec.Builder STAGE2 = BUILDER.comment("Stage 2 seismic station tuning").push("stage2");
+    private static final ForgeConfigSpec.Builder PROJECTOR_VISUALS = CLIENT_BUILDER
+        .comment("Client-side seismic projector hologram rendering.")
+        .push("projectorVisuals");
 
     public static final ForgeConfigSpec.IntValue RADIUS = STAGE1
         .comment("Horizontal scan radius in blocks.")
@@ -77,13 +81,24 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue STATION_NOISE = STAGE2
         .comment("Confidence jitter used for station anomaly evaluation.")
         .defineInRange("stationNoise", 0.08D, 0.0D, 1.0D);
+    public static final ForgeConfigSpec.BooleanValue PROJECTOR_FILL_ENABLED = PROJECTOR_VISUALS
+        .comment("Render hologram fill in addition to outlines.")
+        .define("fillEnabled", true);
+    public static final ForgeConfigSpec.IntValue PROJECTOR_FILL_ALPHA = PROJECTOR_VISUALS
+        .comment("Fill alpha channel (0-255).")
+        .defineInRange("fillAlpha", 96, 0, 255);
+    public static final ForgeConfigSpec.IntValue PROJECTOR_EDGE_ALPHA = PROJECTOR_VISUALS
+        .comment("Outline alpha channel (0-255).")
+        .defineInRange("edgeAlpha", 220, 0, 255);
 
     static {
         STAGE1.pop();
         STAGE2.pop();
+        PROJECTOR_VISUALS.pop();
     }
 
     static final ForgeConfigSpec SPEC = BUILDER.build();
+    static final ForgeConfigSpec CLIENT_SPEC = CLIENT_BUILDER.build();
 
     private Config() {
     }

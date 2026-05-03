@@ -1,12 +1,13 @@
 package net.goldskinmc.creategeoresonance.client.render;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.systems.RenderSystem;
+import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.minecraft.client.renderer.GameRenderer;
@@ -14,14 +15,21 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
-    private static final float BLOCK_EDGE_INSET = 0.02F;
+    private static final float BLOCK_EDGE_INSET = 0.0F;
 
     public SeismicProjectorRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -38,6 +46,13 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
             return;
         }
 
+        boolean fillEnabled = Config.PROJECTOR_FILL_ENABLED.get();
+        float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
+        float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
+        if (edgeAlpha <= 0.0F && (!fillEnabled || fillAlpha <= 0.0F)) {
+            return;
+        }
+
         BlockPos origin = blockEntity.getBlockPos();
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
@@ -45,41 +60,62 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableDepthTest();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
 
         try {
-            bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-            if (!exactVeins.isEmpty()) {
-                for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
-                    float[] color = colorFor(vein.type());
-                    for (BlockPos blockPos : vein.blocks()) {
-                        AABB box = new AABB(
-                            blockPos.getX() - origin.getX() + BLOCK_EDGE_INSET,
-                            blockPos.getY() - origin.getY() + BLOCK_EDGE_INSET,
-                            blockPos.getZ() - origin.getZ() + BLOCK_EDGE_INSET,
-                            blockPos.getX() - origin.getX() + 1.0D - BLOCK_EDGE_INSET,
-                            blockPos.getY() - origin.getY() + 1.0D - BLOCK_EDGE_INSET,
-                            blockPos.getZ() - origin.getZ() + 1.0D - BLOCK_EDGE_INSET
-                        );
-                        drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], 1.0F);
+            if (fillEnabled && fillAlpha > 0.0F) {
+                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                if (!exactVeins.isEmpty()) {
+                    for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+                        float[] color = colorFor(vein.type());
+                        List<FaceQuad> surfaceFaces = buildSurfaceFaces(vein.blocks(), origin);
+                        for (FaceQuad face : surfaceFaces) {
+                            addQuad(bufferBuilder, poseStack.last().pose(),
+                                face.x1(), face.y1(), face.z1(),
+                                face.x2(), face.y2(), face.z2(),
+                                face.x3(), face.y3(), face.z3(),
+                                face.x4(), face.y4(), face.z4(),
+                                color[0], color[1], color[2], fillAlpha);
+                        }
+                    }
+                } else {
+                    for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                        float[] color = colorFor(candidate.type());
+                        AABB box = toLocalCandidateBox(origin, candidate);
+                        drawBoxFaces(bufferBuilder, poseStack, box, color[0], color[1], color[2], fillAlpha);
                     }
                 }
-            } else {
-                for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
-                    float[] color = colorFor(candidate.type());
-                    double centerX = candidate.worldX() + 0.5D - origin.getX();
-                    double centerY = candidate.approxY() + 0.5D - origin.getY();
-                    double centerZ = candidate.worldZ() + 0.5D - origin.getZ();
-                    AABB box = new AABB(
-                        centerX - BOX_SIZE, centerY - BOX_SIZE, centerZ - BOX_SIZE,
-                        centerX + BOX_SIZE, centerY + BOX_SIZE, centerZ + BOX_SIZE
-                    );
-                    drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], 1.0F);
-                }
+                BufferUploader.drawWithShader(bufferBuilder.end());
             }
-            BufferUploader.drawWithShader(bufferBuilder.end());
+
+            if (edgeAlpha > 0.0F) {
+                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                if (!exactVeins.isEmpty()) {
+                    for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+                        float[] color = colorFor(vein.type());
+                        List<LineSegment> joinedEdges = buildJoinedEdges(vein.blocks(), origin);
+                        for (LineSegment edge : joinedEdges) {
+                            addEdge(bufferBuilder, poseStack.last().pose(),
+                                edge.x1(), edge.y1(), edge.z1(), edge.x2(), edge.y2(), edge.z2(),
+                                color[0], color[1], color[2], edgeAlpha);
+                        }
+                    }
+                } else {
+                    for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                        float[] color = colorFor(candidate.type());
+                        AABB box = toLocalCandidateBox(origin, candidate);
+                        drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], edgeAlpha);
+                    }
+                }
+                BufferUploader.drawWithShader(bufferBuilder.end());
+            }
         } finally {
+            RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();
+            RenderSystem.enableCull();
             RenderSystem.disableBlend();
         }
     }
@@ -92,6 +128,172 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
     @Override
     public int getViewDistance() {
         return 128;
+    }
+
+    private static List<LineSegment> buildJoinedEdges(List<BlockPos> blocks, BlockPos origin) {
+        Set<BlockPos> occupied = new HashSet<>(blocks);
+        Map<FaceEdgeKey, Integer> orientedCounts = new HashMap<>();
+
+        for (BlockPos pos : occupied) {
+            int x = pos.getX() - origin.getX();
+            int y = pos.getY() - origin.getY();
+            int z = pos.getZ() - origin.getZ();
+            for (Direction direction : Direction.values()) {
+                if (occupied.contains(pos.relative(direction))) {
+                    continue;
+                }
+                addFaceEdges(orientedCounts, x, y, z, direction);
+            }
+        }
+
+        Set<EdgeKey> deduped = new HashSet<>();
+        List<LineSegment> joined = new ArrayList<>();
+        for (Map.Entry<FaceEdgeKey, Integer> entry : orientedCounts.entrySet()) {
+            if ((entry.getValue() & 1) == 0) {
+                continue;
+            }
+            EdgeKey edge = entry.getKey().edge();
+            if (!deduped.add(edge)) {
+                continue;
+            }
+            joined.add(new LineSegment(
+                edge.a().x(), edge.a().y(), edge.a().z(),
+                edge.b().x(), edge.b().y(), edge.b().z()
+            ));
+        }
+        return joined;
+    }
+
+    private static List<FaceQuad> buildSurfaceFaces(List<BlockPos> blocks, BlockPos origin) {
+        Set<BlockPos> occupied = new HashSet<>(blocks);
+        List<FaceQuad> faces = new ArrayList<>();
+        for (BlockPos pos : occupied) {
+            int x = pos.getX() - origin.getX();
+            int y = pos.getY() - origin.getY();
+            int z = pos.getZ() - origin.getZ();
+            for (Direction direction : Direction.values()) {
+                if (occupied.contains(pos.relative(direction))) {
+                    continue;
+                }
+                addFaceQuad(faces, x, y, z, direction);
+            }
+        }
+        return faces;
+    }
+
+    private static void addFaceQuad(List<FaceQuad> faces, int x, int y, int z, Direction direction) {
+        float minX = x + BLOCK_EDGE_INSET;
+        float minY = y + BLOCK_EDGE_INSET;
+        float minZ = z + BLOCK_EDGE_INSET;
+        float maxX = x + 1.0F - BLOCK_EDGE_INSET;
+        float maxY = y + 1.0F - BLOCK_EDGE_INSET;
+        float maxZ = z + 1.0F - BLOCK_EDGE_INSET;
+
+        switch (direction) {
+            case DOWN -> faces.add(new FaceQuad(minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ));
+            case UP -> faces.add(new FaceQuad(minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ));
+            case NORTH -> faces.add(new FaceQuad(minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ));
+            case SOUTH -> faces.add(new FaceQuad(minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ));
+            case WEST -> faces.add(new FaceQuad(minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ));
+            case EAST -> faces.add(new FaceQuad(maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
+        }
+    }
+
+    private static void addFaceEdges(Map<FaceEdgeKey, Integer> counts, int x, int y, int z, Direction direction) {
+        switch (direction) {
+            case DOWN -> {
+                addOrientedEdge(counts, direction, x, y, z, x + 1, y, z);
+                addOrientedEdge(counts, direction, x + 1, y, z, x + 1, y, z + 1);
+                addOrientedEdge(counts, direction, x + 1, y, z + 1, x, y, z + 1);
+                addOrientedEdge(counts, direction, x, y, z + 1, x, y, z);
+            }
+            case UP -> {
+                addOrientedEdge(counts, direction, x, y + 1, z, x + 1, y + 1, z);
+                addOrientedEdge(counts, direction, x + 1, y + 1, z, x + 1, y + 1, z + 1);
+                addOrientedEdge(counts, direction, x + 1, y + 1, z + 1, x, y + 1, z + 1);
+                addOrientedEdge(counts, direction, x, y + 1, z + 1, x, y + 1, z);
+            }
+            case NORTH -> {
+                addOrientedEdge(counts, direction, x, y, z, x + 1, y, z);
+                addOrientedEdge(counts, direction, x + 1, y, z, x + 1, y + 1, z);
+                addOrientedEdge(counts, direction, x + 1, y + 1, z, x, y + 1, z);
+                addOrientedEdge(counts, direction, x, y + 1, z, x, y, z);
+            }
+            case SOUTH -> {
+                addOrientedEdge(counts, direction, x, y, z + 1, x + 1, y, z + 1);
+                addOrientedEdge(counts, direction, x + 1, y, z + 1, x + 1, y + 1, z + 1);
+                addOrientedEdge(counts, direction, x + 1, y + 1, z + 1, x, y + 1, z + 1);
+                addOrientedEdge(counts, direction, x, y + 1, z + 1, x, y, z + 1);
+            }
+            case WEST -> {
+                addOrientedEdge(counts, direction, x, y, z, x, y, z + 1);
+                addOrientedEdge(counts, direction, x, y, z + 1, x, y + 1, z + 1);
+                addOrientedEdge(counts, direction, x, y + 1, z + 1, x, y + 1, z);
+                addOrientedEdge(counts, direction, x, y + 1, z, x, y, z);
+            }
+            case EAST -> {
+                addOrientedEdge(counts, direction, x + 1, y, z, x + 1, y, z + 1);
+                addOrientedEdge(counts, direction, x + 1, y, z + 1, x + 1, y + 1, z + 1);
+                addOrientedEdge(counts, direction, x + 1, y + 1, z + 1, x + 1, y + 1, z);
+                addOrientedEdge(counts, direction, x + 1, y + 1, z, x + 1, y, z);
+            }
+        }
+    }
+
+    private static void addOrientedEdge(Map<FaceEdgeKey, Integer> counts, Direction normal,
+                                        int x1, int y1, int z1, int x2, int y2, int z2) {
+        EdgeKey edge = EdgeKey.of(x1, y1, z1, x2, y2, z2);
+        FaceEdgeKey key = new FaceEdgeKey(normal, edge);
+        counts.merge(key, 1, Integer::sum);
+    }
+
+    private static AABB toLocalBlockBox(BlockPos origin, BlockPos blockPos) {
+        return new AABB(
+            blockPos.getX() - origin.getX() + BLOCK_EDGE_INSET,
+            blockPos.getY() - origin.getY() + BLOCK_EDGE_INSET,
+            blockPos.getZ() - origin.getZ() + BLOCK_EDGE_INSET,
+            blockPos.getX() - origin.getX() + 1.0D - BLOCK_EDGE_INSET,
+            blockPos.getY() - origin.getY() + 1.0D - BLOCK_EDGE_INSET,
+            blockPos.getZ() - origin.getZ() + 1.0D - BLOCK_EDGE_INSET
+        );
+    }
+
+    private static AABB toLocalCandidateBox(BlockPos origin, SeismicProjectorBlockEntity.TriangulatedCandidate candidate) {
+        double centerX = candidate.worldX() + 0.5D - origin.getX();
+        double centerY = candidate.approxY() + 0.5D - origin.getY();
+        double centerZ = candidate.worldZ() + 0.5D - origin.getZ();
+        return new AABB(
+            centerX - BOX_SIZE, centerY - BOX_SIZE, centerZ - BOX_SIZE,
+            centerX + BOX_SIZE, centerY + BOX_SIZE, centerZ + BOX_SIZE
+        );
+    }
+
+    private static void drawBoxFaces(BufferBuilder builder, PoseStack poseStack, AABB box,
+                                     float r, float g, float b, float a) {
+        Matrix4f matrix = poseStack.last().pose();
+        float minX = (float) box.minX;
+        float minY = (float) box.minY;
+        float minZ = (float) box.minZ;
+        float maxX = (float) box.maxX;
+        float maxY = (float) box.maxY;
+        float maxZ = (float) box.maxZ;
+
+        addQuad(builder, matrix, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ, r, g, b, a);
+        addQuad(builder, matrix, maxX, minY, maxZ, minX, minY, maxZ, minX, maxY, maxZ, maxX, maxY, maxZ, r, g, b, a);
+        addQuad(builder, matrix, minX, minY, maxZ, minX, minY, minZ, minX, maxY, minZ, minX, maxY, maxZ, r, g, b, a);
+        addQuad(builder, matrix, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ, r, g, b, a);
+        addQuad(builder, matrix, minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ, r, g, b, a);
+        addQuad(builder, matrix, minX, minY, maxZ, maxX, minY, maxZ, maxX, minY, minZ, minX, minY, minZ, r, g, b, a);
+    }
+
+    private static void addQuad(BufferBuilder builder, Matrix4f matrix,
+                                float x1, float y1, float z1, float x2, float y2, float z2,
+                                float x3, float y3, float z3, float x4, float y4, float z4,
+                                float r, float g, float b, float a) {
+        builder.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x4, y4, z4).color(r, g, b, a).endVertex();
     }
 
     private static void drawBoxEdges(BufferBuilder builder, PoseStack poseStack, AABB box,
@@ -150,5 +352,42 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
 
     private static float[] rgb(int r, int g, int b) {
         return new float[] {r / 255.0F, g / 255.0F, b / 255.0F};
+    }
+
+    private record IntPoint(int x, int y, int z) {
+    }
+
+    private record EdgeKey(IntPoint a, IntPoint b) {
+        private static EdgeKey of(int x1, int y1, int z1, int x2, int y2, int z2) {
+            IntPoint p1 = new IntPoint(x1, y1, z1);
+            IntPoint p2 = new IntPoint(x2, y2, z2);
+            if (compare(p1, p2) <= 0) {
+                return new EdgeKey(p1, p2);
+            }
+            return new EdgeKey(p2, p1);
+        }
+
+        private static int compare(IntPoint left, IntPoint right) {
+            if (left.x() != right.x()) {
+                return Integer.compare(left.x(), right.x());
+            }
+            if (left.y() != right.y()) {
+                return Integer.compare(left.y(), right.y());
+            }
+            return Integer.compare(left.z(), right.z());
+        }
+    }
+
+    private record FaceEdgeKey(Direction normal, EdgeKey edge) {
+    }
+
+    private record LineSegment(float x1, float y1, float z1, float x2, float y2, float z2) {
+    }
+
+    private record FaceQuad(
+        float x1, float y1, float z1,
+        float x2, float y2, float z2,
+        float x3, float y3, float z3,
+        float x4, float y4, float z4) {
     }
 }
