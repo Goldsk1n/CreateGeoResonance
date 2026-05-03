@@ -90,6 +90,9 @@ public class Config {
     public static final ForgeConfigSpec.IntValue PROJECTOR_EDGE_ALPHA = PROJECTOR_VISUALS
         .comment("Outline alpha channel (0-255).")
         .defineInRange("edgeAlpha", 220, 0, 255);
+    public static final ForgeConfigSpec.BooleanValue PROJECTOR_GUIDE_LINES_ENABLED = PROJECTOR_VISUALS
+        .comment("Render dashed guide lines from the projector to detected targets.")
+        .define("guideLinesEnabled", true);
 
     static {
         STAGE1.pop();

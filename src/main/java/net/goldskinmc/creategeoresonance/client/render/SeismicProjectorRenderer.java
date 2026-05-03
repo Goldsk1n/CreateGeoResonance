@@ -30,6 +30,8 @@ import java.util.Set;
 public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
     private static final float BLOCK_EDGE_INSET = 0.0F;
+    private static final float DASH_LENGTH = 0.65F;
+    private static final float DASH_GAP = 0.4F;
 
     public SeismicProjectorRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -47,6 +49,7 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
         }
 
         boolean fillEnabled = Config.PROJECTOR_FILL_ENABLED.get();
+        boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
         float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
         float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
         if (edgeAlpha <= 0.0F && (!fillEnabled || fillAlpha <= 0.0F)) {
@@ -108,6 +111,38 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
                         float[] color = colorFor(candidate.type());
                         AABB box = toLocalCandidateBox(origin, candidate);
                         drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], edgeAlpha);
+                    }
+                }
+                BufferUploader.drawWithShader(bufferBuilder.end());
+            }
+
+            if (guideLinesEnabled && edgeAlpha > 0.0F) {
+                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                float startX = 0.5F;
+                float startY = 0.5F;
+                float startZ = 0.5F;
+
+                if (!exactVeins.isEmpty()) {
+                    for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+                        float[] color = colorFor(vein.type());
+                        float[] centroid = veinCentroid(origin, vein.blocks());
+                        drawDashedLine(bufferBuilder, poseStack.last().pose(),
+                            startX, startY, startZ,
+                            centroid[0], centroid[1], centroid[2],
+                            color[0], color[1], color[2], edgeAlpha);
+                    }
+                } else {
+                    for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                        float[] color = colorFor(candidate.type());
+                        AABB box = toLocalCandidateBox(origin, candidate);
+                        float targetX = (float) ((box.minX + box.maxX) * 0.5D);
+                        float targetY = (float) ((box.minY + box.maxY) * 0.5D);
+                        float targetZ = (float) ((box.minZ + box.maxZ) * 0.5D);
+                        drawDashedLine(bufferBuilder, poseStack.last().pose(),
+                            startX, startY, startZ,
+                            targetX, targetY, targetZ,
+                            color[0], color[1], color[2], edgeAlpha);
                     }
                 }
                 BufferUploader.drawWithShader(bufferBuilder.end());
@@ -327,6 +362,51 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
                                 float r, float g, float b, float a) {
         builder.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
         builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
+    }
+
+    private static void drawDashedLine(BufferBuilder builder, Matrix4f matrix,
+                                       float x1, float y1, float z1, float x2, float y2, float z2,
+                                       float r, float g, float b, float a) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float dz = z2 - z1;
+        float distance = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+        if (distance <= 0.001F) {
+            return;
+        }
+
+        float inv = 1.0F / distance;
+        float ux = dx * inv;
+        float uy = dy * inv;
+        float uz = dz * inv;
+        float cursor = 0.0F;
+        while (cursor < distance) {
+            float dashEnd = Math.min(distance, cursor + DASH_LENGTH);
+            float ax = x1 + ux * cursor;
+            float ay = y1 + uy * cursor;
+            float az = z1 + uz * cursor;
+            float bx = x1 + ux * dashEnd;
+            float by = y1 + uy * dashEnd;
+            float bz = z1 + uz * dashEnd;
+            addEdge(builder, matrix, ax, ay, az, bx, by, bz, r, g, b, a);
+            cursor = dashEnd + DASH_GAP;
+        }
+    }
+
+    private static float[] veinCentroid(BlockPos origin, List<BlockPos> blocks) {
+        if (blocks.isEmpty()) {
+            return new float[] {0.5F, 0.5F, 0.5F};
+        }
+        double sx = 0.0D;
+        double sy = 0.0D;
+        double sz = 0.0D;
+        for (BlockPos blockPos : blocks) {
+            sx += blockPos.getX() - origin.getX() + 0.5D;
+            sy += blockPos.getY() - origin.getY() + 0.5D;
+            sz += blockPos.getZ() - origin.getZ() + 0.5D;
+        }
+        double invCount = 1.0D / blocks.size();
+        return new float[] {(float) (sx * invCount), (float) (sy * invCount), (float) (sz * invCount)};
     }
 
     private static float[] colorFor(SeismicAnomalyType type) {
