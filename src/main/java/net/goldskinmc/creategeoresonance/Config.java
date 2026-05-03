@@ -93,6 +93,9 @@ public class Config {
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_GUIDE_LINES_ENABLED = PROJECTOR_VISUALS
         .comment("Render dashed guide lines from the projector to detected targets.")
         .define("guideLinesEnabled", true);
+    public static final ForgeConfigSpec.IntValue PROJECTOR_VISIBLE_VEINS_MAX = PROJECTOR_VISUALS
+        .comment("Maximum number of exact veins displayed at once. Closest veins are prioritized.")
+        .defineInRange("visibleVeinsMax", 10, 0, 256);
 
     static {
         STAGE1.pop();

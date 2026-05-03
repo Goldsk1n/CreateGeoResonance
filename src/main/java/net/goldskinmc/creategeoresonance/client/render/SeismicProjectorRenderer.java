@@ -16,7 +16,13 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
 
@@ -26,12 +32,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Comparator;
 
 public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
     private static final float BLOCK_EDGE_INSET = 0.0F;
     private static final float DASH_LENGTH = 0.65F;
     private static final float DASH_GAP = 0.4F;
+    private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
+        ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
     public SeismicProjectorRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -42,9 +51,18 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
         if (blockEntity.getLevel() == null) {
             return;
         }
+
         List<SeismicProjectorBlockEntity.ExactVein> exactVeins = blockEntity.getConfirmedVeins();
+        List<RenderableVein> renderableVeins = filterRenderableVeins(blockEntity, exactVeins);
         List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates = blockEntity.getTriangulatedCandidates();
-        if (exactVeins.isEmpty() && candidates.isEmpty()) {
+        int visibleVeinsMax = Math.max(0, Config.PROJECTOR_VISIBLE_VEINS_MAX.get());
+        List<RenderableVein> visibleVeins = limitVisibleVeins(blockEntity.getBlockPos(), renderableVeins, visibleVeinsMax);
+        boolean hasExactData = !exactVeins.isEmpty();
+        boolean renderExact = !visibleVeins.isEmpty();
+        if (!hasExactData && candidates.isEmpty()) {
+            return;
+        }
+        if (hasExactData && !renderExact) {
             return;
         }
 
@@ -70,8 +88,8 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
             if (fillEnabled && fillAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-                if (!exactVeins.isEmpty()) {
-                    for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+                if (renderExact) {
+                    for (RenderableVein vein : visibleVeins) {
                         float[] color = colorFor(vein.type());
                         List<FaceQuad> surfaceFaces = buildSurfaceFaces(vein.blocks(), origin);
                         for (FaceQuad face : surfaceFaces) {
@@ -96,8 +114,8 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
             if (edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-                if (!exactVeins.isEmpty()) {
-                    for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+                if (renderExact) {
+                    for (RenderableVein vein : visibleVeins) {
                         float[] color = colorFor(vein.type());
                         List<LineSegment> joinedEdges = buildJoinedEdges(vein.blocks(), origin);
                         for (LineSegment edge : joinedEdges) {
@@ -123,13 +141,12 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
                 float startY = 0.5F;
                 float startZ = 0.5F;
 
-                if (!exactVeins.isEmpty()) {
-                    for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
-                        float[] color = colorFor(vein.type());
+                if (renderExact) {
+                    for (RenderableVein vein : visibleVeins) {
                         float[] centroid = veinCentroid(origin, vein.blocks());
+                        float[] color = colorFor(vein.type());
                         drawDashedLine(bufferBuilder, poseStack.last().pose(),
-                            startX, startY, startZ,
-                            centroid[0], centroid[1], centroid[2],
+                            startX, startY, startZ, centroid[0], centroid[1], centroid[2],
                             color[0], color[1], color[2], edgeAlpha);
                     }
                 } else {
@@ -140,8 +157,7 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
                         float targetY = (float) ((box.minY + box.maxY) * 0.5D);
                         float targetZ = (float) ((box.minZ + box.maxZ) * 0.5D);
                         drawDashedLine(bufferBuilder, poseStack.last().pose(),
-                            startX, startY, startZ,
-                            targetX, targetY, targetZ,
+                            startX, startY, startZ, targetX, targetY, targetZ,
                             color[0], color[1], color[2], edgeAlpha);
                     }
                 }
@@ -163,6 +179,71 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
     @Override
     public int getViewDistance() {
         return 128;
+    }
+
+    private static List<RenderableVein> filterRenderableVeins(SeismicProjectorBlockEntity blockEntity,
+                                                              List<SeismicProjectorBlockEntity.ExactVein> exactVeins) {
+        List<RenderableVein> filtered = new ArrayList<>();
+        if (blockEntity.getLevel() == null) {
+            return filtered;
+        }
+        for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+            List<BlockPos> liveBlocks = new ArrayList<>();
+            for (BlockPos blockPos : vein.blocks()) {
+                BlockState state = blockEntity.getLevel().getBlockState(blockPos);
+                if (matchesType(state, vein.type())) {
+                    liveBlocks.add(blockPos.immutable());
+                }
+            }
+            if (!liveBlocks.isEmpty()) {
+                filtered.add(new RenderableVein(vein.type(), List.copyOf(liveBlocks)));
+            }
+        }
+        return filtered;
+    }
+
+    private static List<RenderableVein> limitVisibleVeins(BlockPos origin, List<RenderableVein> veins, int maxVisible) {
+        if (veins.isEmpty() || maxVisible <= 0) {
+            return List.of();
+        }
+        if (veins.size() <= maxVisible) {
+            return veins;
+        }
+        List<RenderableVeinDistance> ranked = new ArrayList<>(veins.size());
+        for (RenderableVein vein : veins) {
+            float[] centroid = veinCentroid(origin, vein.blocks());
+            float distSq = centroid[0] * centroid[0] + centroid[1] * centroid[1] + centroid[2] * centroid[2];
+            ranked.add(new RenderableVeinDistance(vein, distSq));
+        }
+        ranked.sort(Comparator.comparingDouble(RenderableVeinDistance::distanceSq));
+
+        List<RenderableVein> limited = new ArrayList<>(maxVisible);
+        for (int i = 0; i < maxVisible; i++) {
+            limited.add(ranked.get(i).vein());
+        }
+        return limited;
+    }
+
+    private static boolean matchesType(BlockState state, SeismicAnomalyType type) {
+        return switch (type) {
+            case COAL -> state.is(BlockTags.COAL_ORES);
+            case IRON -> state.is(BlockTags.IRON_ORES);
+            case COPPER -> state.is(BlockTags.COPPER_ORES);
+            case GOLD -> state.is(BlockTags.GOLD_ORES);
+            case REDSTONE -> state.is(BlockTags.REDSTONE_ORES);
+            case LAPIS -> state.is(BlockTags.LAPIS_ORES);
+            case EMERALD -> state.is(BlockTags.EMERALD_ORES);
+            case DIAMOND -> state.is(BlockTags.DIAMOND_ORES);
+            case ZINC -> state.is(CREATE_ZINC_ORES);
+            case AMETHYST -> state.is(Blocks.BUDDING_AMETHYST)
+                || state.is(Blocks.AMETHYST_CLUSTER)
+                || state.is(Blocks.LARGE_AMETHYST_BUD)
+                || state.is(Blocks.MEDIUM_AMETHYST_BUD)
+                || state.is(Blocks.SMALL_AMETHYST_BUD);
+            case CHEST -> state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST);
+            case SPAWNER -> state.is(Blocks.SPAWNER);
+            default -> false;
+        };
     }
 
     private static List<LineSegment> buildJoinedEdges(List<BlockPos> blocks, BlockPos origin) {
@@ -280,17 +361,6 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
         EdgeKey edge = EdgeKey.of(x1, y1, z1, x2, y2, z2);
         FaceEdgeKey key = new FaceEdgeKey(normal, edge);
         counts.merge(key, 1, Integer::sum);
-    }
-
-    private static AABB toLocalBlockBox(BlockPos origin, BlockPos blockPos) {
-        return new AABB(
-            blockPos.getX() - origin.getX() + BLOCK_EDGE_INSET,
-            blockPos.getY() - origin.getY() + BLOCK_EDGE_INSET,
-            blockPos.getZ() - origin.getZ() + BLOCK_EDGE_INSET,
-            blockPos.getX() - origin.getX() + 1.0D - BLOCK_EDGE_INSET,
-            blockPos.getY() - origin.getY() + 1.0D - BLOCK_EDGE_INSET,
-            blockPos.getZ() - origin.getZ() + 1.0D - BLOCK_EDGE_INSET
-        );
     }
 
     private static AABB toLocalCandidateBox(BlockPos origin, SeismicProjectorBlockEntity.TriangulatedCandidate candidate) {
@@ -469,5 +539,11 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
         float x2, float y2, float z2,
         float x3, float y3, float z3,
         float x4, float y4, float z4) {
+    }
+
+    private record RenderableVein(SeismicAnomalyType type, List<BlockPos> blocks) {
+    }
+
+    private record RenderableVeinDistance(RenderableVein vein, float distanceSq) {
     }
 }
