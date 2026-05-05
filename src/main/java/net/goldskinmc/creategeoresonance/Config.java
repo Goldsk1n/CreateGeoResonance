@@ -81,6 +81,12 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue STATION_NOISE = STAGE2
         .comment("Confidence jitter used for station anomaly evaluation.")
         .defineInRange("stationNoise", 0.08D, 0.0D, 1.0D);
+    public static final ForgeConfigSpec.IntValue PROJECTOR_MIN_SPEED = STAGE2
+        .comment("Minimum absolute RPM required for the seismic projector to operate.")
+        .defineInRange("projectorMinSpeed", 32, 1, 512);
+    public static final ForgeConfigSpec.DoubleValue PROJECTOR_STRESS_IMPACT = STAGE2
+        .comment("Base stress impact applied by the seismic projector.")
+        .defineInRange("projectorStressImpact", 8.0D, 0.0D, 1024.0D);
     public static final ForgeConfigSpec.IntValue PROJECTOR_STATION_RANGE_CHUNKS = STAGE2
         .comment("Maximum horizontal range in chunks from projector to station for loading seismograms.")
         .defineInRange("projectorStationRangeChunks", 3, 0, 64);

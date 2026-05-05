@@ -7,12 +7,19 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
+import net.createmod.catnip.animation.AnimationTickHolder;
+import net.createmod.catnip.math.AngleHelper;
+import net.createmod.catnip.render.CachedBuffers;
+import net.createmod.catnip.render.SuperByteBuffer;
 import net.goldskinmc.creategeoresonance.Config;
+import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -23,8 +30,10 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -35,21 +44,38 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Comparator;
 
-public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProjectorBlockEntity> {
+public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
     private static final float BLOCK_EDGE_INSET = 0.0F;
     private static final float DASH_LENGTH = 0.65F;
     private static final float DASH_GAP = 0.4F;
+    private static final Direction LOCAL_SHAFT_AXIS = Direction.SOUTH;
+    private static final float SHAFT_PIVOT_X = 8.0F;
+    private static final float SHAFT_PIVOT_Y = 8.0F;
+    private static final float SHAFT_PIVOT_Z = 14.0F;
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
         ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
     public SeismicProjectorRenderer(BlockEntityRendererProvider.Context context) {
+        super(context);
     }
 
     @Override
-    public void render(SeismicProjectorBlockEntity blockEntity, float partialTicks, PoseStack poseStack,
-                       MultiBufferSource buffer, int packedLight, int packedOverlay) {
+    protected void renderSafe(SeismicProjectorBlockEntity blockEntity, float partialTicks, PoseStack poseStack,
+                              MultiBufferSource buffer, int packedLight, int packedOverlay) {
         if (blockEntity.getLevel() == null) {
+            return;
+        }
+        BlockState state = getRenderedBlockState(blockEntity);
+        Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
+        RenderType renderType = getRenderType(blockEntity, state);
+        VertexConsumer vertexConsumer = buffer.getBuffer(renderType);
+        SuperByteBuffer shaft = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_PROJECTOR_SHAFT, state);
+        orientToFacing(shaft, facing);
+        rotateAroundLocalPivot(shaft, shaftAngle(blockEntity, facing), LOCAL_SHAFT_AXIS, SHAFT_PIVOT_X, SHAFT_PIVOT_Y, SHAFT_PIVOT_Z);
+        int shaftLight = LevelRenderer.getLightColor(blockEntity.getLevel(), blockEntity.getBlockPos().relative(facing.getOpposite()));
+        shaft.light(shaftLight).renderInto(poseStack, vertexConsumer);
+        if (!blockEntity.hasRequiredSpeed()) {
             return;
         }
 
@@ -549,5 +575,34 @@ public class SeismicProjectorRenderer implements BlockEntityRenderer<SeismicProj
     }
 
     private record RenderableVeinDistance(RenderableVein vein, float distanceSq) {
+    }
+
+    private static float shaftAngle(SeismicProjectorBlockEntity blockEntity, Direction facing) {
+        if (blockEntity.getLevel() == null) {
+            return 0.0F;
+        }
+        Direction.Axis axis = KineticBlockEntityRenderer.getRotationAxisOf(blockEntity);
+        float time = AnimationTickHolder.getRenderTime(blockEntity.getLevel());
+        float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(blockEntity, blockEntity.getBlockPos(), axis);
+        float rawDegrees = time * blockEntity.getSpeed() * 3f / 10 + offset;
+        float rawAngle = (rawDegrees % 360f) / 180f * (float) Math.PI;
+        float facingSign = facing.getAxis() == Direction.Axis.X ? -1.0F : 1.0F;
+        return -rawAngle * facingSign;
+    }
+
+    private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {
+        buffer.center()
+            .rotateYDegrees(180 + AngleHelper.horizontalAngle(facing))
+            .uncenter();
+    }
+
+    private static void rotateAroundLocalPivot(SuperByteBuffer buffer, float angle, Direction axisDirection,
+                                               float pivotX, float pivotY, float pivotZ) {
+        float px = pivotX / 16.0F;
+        float py = pivotY / 16.0F;
+        float pz = pivotZ / 16.0F;
+        buffer.translate(px, py, pz)
+            .rotate(angle, axisDirection)
+            .translate(-px, -py, -pz);
     }
 }

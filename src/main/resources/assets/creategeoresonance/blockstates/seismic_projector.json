@@ -1,8 +1,12 @@
 {
   "variants": {
-    "facing=north": { "model": "creategeoresonance:block/seismic_projector" },
-    "facing=east": { "model": "creategeoresonance:block/seismic_projector", "y": 90 },
-    "facing=south": { "model": "creategeoresonance:block/seismic_projector", "y": 180 },
-    "facing=west": { "model": "creategeoresonance:block/seismic_projector", "y": 270 }
+    "facing=north,active=false": { "model": "creategeoresonance:block/seismic_projector" },
+    "facing=east,active=false": { "model": "creategeoresonance:block/seismic_projector", "y": 90 },
+    "facing=south,active=false": { "model": "creategeoresonance:block/seismic_projector", "y": 180 },
+    "facing=west,active=false": { "model": "creategeoresonance:block/seismic_projector", "y": 270 },
+    "facing=north,active=true": { "model": "creategeoresonance:block/seismic_projector_active" },
+    "facing=east,active=true": { "model": "creategeoresonance:block/seismic_projector_active", "y": 90 },
+    "facing=south,active=true": { "model": "creategeoresonance:block/seismic_projector_active", "y": 180 },
+    "facing=west,active=true": { "model": "creategeoresonance:block/seismic_projector_active", "y": 270 }
   }
 }

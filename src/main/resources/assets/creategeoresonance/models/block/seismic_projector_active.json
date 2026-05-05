@@ -1,0 +1,6 @@
+{
+  "parent": "creategeoresonance:block/seismic_projector",
+  "textures": {
+    "all": "create:block/rose_quartz_lamp_powered"
+  }
+}

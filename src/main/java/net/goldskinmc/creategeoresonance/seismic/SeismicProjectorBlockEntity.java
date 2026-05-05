@@ -1,10 +1,10 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.goldskinmc.creategeoresonance.Config;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.Connection;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -13,12 +13,10 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,7 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class SeismicProjectorBlockEntity extends BlockEntity {
+public class SeismicProjectorBlockEntity extends KineticBlockEntity {
     private static final String TAG_NODES = "Nodes";
     private static final String TAG_CENTER_X = "CenterX";
     private static final String TAG_CENTER_Y = "CenterY";
@@ -60,6 +58,10 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         super(type, pos, state);
     }
 
+    @Override
+    public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+    }
+
     public boolean tryLoadSeismogram(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
         SeismogramMapService.MapSnapshot snapshot = SeismogramMapService.readSnapshotWithExactData(held);
@@ -68,6 +70,13 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         }
         if (level == null) {
             return false;
+        }
+        if (!hasRequiredSpeed()) {
+            player.displayClientMessage(Component.translatable(
+                    "block.creategeoresonance.seismic_projector.no_rotation",
+                    Config.PROJECTOR_MIN_SPEED.get())
+                .withStyle(ChatFormatting.RED), true);
+            return true;
         }
         String projectorDimension = level.dimension().location().toString();
         if (!projectorDimension.equals(snapshot.stationDimension())) {
@@ -106,6 +115,7 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
             held.shrink(1);
         }
         syncClient();
+        updatePoweredState();
 
         player.displayClientMessage(Component.translatable(
                 "block.creategeoresonance.seismic_projector.node_loaded",
@@ -127,10 +137,20 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     }
 
     public List<ExactVein> getConfirmedVeins() {
+        if (!hasRequiredSpeed()) {
+            return List.of();
+        }
         return List.copyOf(confirmExactVeins());
     }
 
     public void sendStatus(Player player) {
+        if (!hasRequiredSpeed()) {
+            player.displayClientMessage(Component.translatable(
+                    "block.creategeoresonance.seismic_projector.no_rotation",
+                    Config.PROJECTOR_MIN_SPEED.get())
+                .withStyle(ChatFormatting.RED), true);
+            return;
+        }
         player.displayClientMessage(Component.translatable(
                 "block.creategeoresonance.seismic_projector.nodes",
                 nodes.size(),
@@ -217,8 +237,8 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void write(CompoundTag tag, boolean clientPacket) {
+        super.write(tag, clientPacket);
         ListTag list = new ListTag();
         for (NodeSnapshot node : nodes) {
             CompoundTag entry = new CompoundTag();
@@ -261,8 +281,8 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    protected void read(CompoundTag tag, boolean clientPacket) {
+        super.read(tag, clientPacket);
         nodes.clear();
         ListTag list = tag.getList(TAG_NODES, Tag.TAG_COMPOUND);
         for (Tag raw : list) {
@@ -310,30 +330,8 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
             }
             nodes.add(new NodeSnapshot(center, stationPos, stationDimension, List.copyOf(signals), List.copyOf(exactClusters)));
         }
-    }
-
-    @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        saveAdditional(tag);
-        return tag;
-    }
-
-    @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        load(tag);
-    }
-
-    @Nullable
-    @Override
-    public ClientboundBlockEntityDataPacket getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        if (pkt.getTag() != null) {
-            load(pkt.getTag());
+        if (!clientPacket) {
+            updatePoweredState();
         }
     }
 
@@ -518,6 +516,42 @@ public class SeismicProjectorBlockEntity extends BlockEntity {
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
         }
+    }
+
+    @Override
+    public void onSpeedChanged(float previousSpeed) {
+        super.onSpeedChanged(previousSpeed);
+        updatePoweredState();
+    }
+
+    public boolean hasRequiredSpeed() {
+        return Math.abs(getSpeed()) >= Config.PROJECTOR_MIN_SPEED.get();
+    }
+
+    private boolean isProjecting() {
+        return hasRequiredSpeed() && nodes.size() >= PREVIEW_REQUIRED_NODES;
+    }
+
+    private void updatePoweredState() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        BlockState current = getBlockState();
+        if (!current.hasProperty(SeismicProjectorBlock.ACTIVE)) {
+            return;
+        }
+        boolean shouldBePowered = isProjecting();
+        if (current.getValue(SeismicProjectorBlock.ACTIVE) == shouldBePowered) {
+            return;
+        }
+        level.setBlock(worldPosition, current.setValue(SeismicProjectorBlock.ACTIVE, shouldBePowered), Block.UPDATE_ALL);
+        setChanged();
+    }
+
+    @Override
+    public float calculateStressApplied() {
+        lastStressApplied = Config.PROJECTOR_STRESS_IMPACT.get().floatValue();
+        return lastStressApplied;
     }
 
     private record NodeSnapshot(BlockPos center, BlockPos stationPos, String stationDimension,

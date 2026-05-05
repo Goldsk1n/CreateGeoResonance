@@ -51,6 +51,7 @@ public final class GeoResonanceBlocks {
         .properties(properties -> properties
             .strength(3.5F)
             .sound(SoundType.STONE)
+            .lightLevel(state -> state.getValue(SeismicProjectorBlock.ACTIVE) ? 15 : 0)
             .requiresCorrectToolForDrops())
         .item()
         .build()
