@@ -53,6 +53,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float SHAFT_PIVOT_X = 8.0F;
     private static final float SHAFT_PIVOT_Y = 8.0F;
     private static final float SHAFT_PIVOT_Z = 14.0F;
+    private static final float SEISMOGRAM_LEFT_OFFSET_X = 13.9F / 16.0F;
+    private static final float SEISMOGRAM_LEFT_OFFSET_Y = 11.95F / 16.0F;
+    private static final float SEISMOGRAM_LEFT_OFFSET_Z = 2.0F / 16.0F;
+    private static final float SEISMOGRAM_RIGHT_OFFSET_X = 17.4F / 16.0F;
+    private static final float SEISMOGRAM_RIGHT_OFFSET_Y = 11.95F / 16.0F;
+    private static final float SEISMOGRAM_RIGHT_OFFSET_Z = -2.475F / 16.0F;
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
         ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
@@ -75,6 +81,20 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         rotateAroundLocalPivot(shaft, shaftAngle(blockEntity, facing), LOCAL_SHAFT_AXIS, SHAFT_PIVOT_X, SHAFT_PIVOT_Y, SHAFT_PIVOT_Z);
         int shaftLight = LevelRenderer.getLightColor(blockEntity.getLevel(), blockEntity.getBlockPos().relative(facing.getOpposite()));
         shaft.light(shaftLight).renderInto(poseStack, vertexConsumer);
+        int loadedNodes = blockEntity.getLoadedNodeCount();
+        int seismogramLight = LevelRenderer.getLightColor(blockEntity.getLevel(), blockEntity.getBlockPos().above());
+        if (loadedNodes >= 1) {
+            SuperByteBuffer leftSeismogram = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_OUTPUT_SEISMOGRAM, state);
+            orientToFacing(leftSeismogram, facing);
+            leftSeismogram.translate(SEISMOGRAM_LEFT_OFFSET_X, SEISMOGRAM_LEFT_OFFSET_Y, SEISMOGRAM_LEFT_OFFSET_Z);
+            leftSeismogram.light(seismogramLight).renderInto(poseStack, vertexConsumer);
+        }
+        if (loadedNodes >= 2) {
+            SuperByteBuffer rightSeismogram = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_OUTPUT_SEISMOGRAM, state);
+            orientToFacing(rightSeismogram, facing);
+            rightSeismogram.translate(SEISMOGRAM_RIGHT_OFFSET_X, SEISMOGRAM_RIGHT_OFFSET_Y, SEISMOGRAM_RIGHT_OFFSET_Z);
+            rightSeismogram.light(seismogramLight).renderInto(poseStack, vertexConsumer);
+        }
         if (!blockEntity.hasRequiredSpeed()) {
             return;
         }

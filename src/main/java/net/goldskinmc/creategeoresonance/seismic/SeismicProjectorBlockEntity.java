@@ -528,6 +528,10 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         return Math.abs(getSpeed()) >= Config.PROJECTOR_MIN_SPEED.get();
     }
 
+    public int getLoadedNodeCount() {
+        return nodes.size();
+    }
+
     private boolean isProjecting() {
         return hasRequiredSpeed() && nodes.size() >= PREVIEW_REQUIRED_NODES;
     }
