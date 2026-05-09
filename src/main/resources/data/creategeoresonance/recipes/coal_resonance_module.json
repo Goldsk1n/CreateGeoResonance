@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "CBC",
-    "SES",
-    "CAC"
+    "SA",
+    "CB"
   ],
   "key": {
-    "C": {
-      "item": "minecraft:coal"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "A": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "C": { "item": "minecraft:coal" },
+    "B": { "item": "minecraft:coal_block" }
   },
-  "result": {
-    "item": "creategeoresonance:coal_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:coal_resonance_module" }
 }

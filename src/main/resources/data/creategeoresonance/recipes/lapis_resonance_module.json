@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "LBL",
-    "SES",
-    "CLC"
+    "SA",
+    "LB"
   ],
   "key": {
-    "L": {
-      "item": "minecraft:lapis_block"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "L": { "item": "minecraft:lapis_lazuli" },
+    "B": { "item": "minecraft:lapis_block" }
   },
-  "result": {
-    "item": "creategeoresonance:lapis_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:lapis_resonance_module" }
 }

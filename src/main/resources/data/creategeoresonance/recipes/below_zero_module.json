@@ -1,31 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "OIO",
-    "EPE",
-    "BCB"
+    "SA",
+    "DP"
   ],
   "key": {
-    "O": {
-      "item": "minecraft:obsidian"
-    },
-    "I": {
-      "item": "minecraft:blue_ice"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "P": {
-      "item": "create:precision_mechanism"
-    },
-    "B": {
-      "item": "minecraft:blaze_powder"
-    },
-    "C": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "D": { "item": "minecraft:deepslate" },
+    "P": { "item": "minecraft:packed_ice" }
   },
-  "result": {
-    "item": "creategeoresonance:below_zero_module"
-  }
+  "result": { "item": "creategeoresonance:below_zero_module" }
 }

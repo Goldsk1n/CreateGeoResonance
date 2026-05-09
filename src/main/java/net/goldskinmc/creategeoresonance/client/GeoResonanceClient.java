@@ -271,6 +271,10 @@ public final class GeoResonanceClient {
             level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, 0.8F, pitch, false);
         }
 
+        if (scheduled.scannerEntityId() == -1 && level.getBlockEntity(scheduled.origin()) instanceof SeismicStationBlockEntity station) {
+            station.onClientEchoArrival();
+        }
+
         addShakeForLocalPlayer(scheduled.scannerEntityId(), center, 0.18F * confidence, 0.05F * confidence, 6, level.getGameTime());
     }
 

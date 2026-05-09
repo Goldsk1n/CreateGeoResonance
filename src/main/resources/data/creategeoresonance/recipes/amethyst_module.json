@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "ASA",
-    "QEQ",
-    "ABA"
+    "SN",
+    "AB"
   ],
   "key": {
-    "A": {
-      "item": "minecraft:amethyst_shard"
-    },
-    "S": {
-      "item": "create:brass_sheet"
-    },
-    "Q": {
-      "item": "minecraft:spyglass"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "B": {
-      "item": "create:andesite_alloy"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "N": { "item": "create:andesite_alloy" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "B": { "item": "minecraft:amethyst_block" }
   },
-  "result": {
-    "item": "creategeoresonance:amethyst_module"
-  }
+  "result": { "item": "creategeoresonance:amethyst_module" }
 }

@@ -62,7 +62,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     public static final int SLOT_INK_INPUT = 1;
     public static final int SLOT_SEISMOGRAM_OUTPUT = 2;
     public static final int SLOT_MODULE_START = 3;
-    public static final int MODULE_SLOT_COUNT = 16;
+    public static final int MODULE_SLOT_COUNT = 8;
     public static final int SLOT_MODULE_END = SLOT_MODULE_START + MODULE_SLOT_COUNT - 1;
     private static final float MODULE_STRESS_IMPACT = 2.0F;
 
@@ -96,11 +96,26 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         public void deserializeNBT(CompoundTag nbt) {
             stacks = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
             ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
+            List<ItemStack> overflowModules = new ArrayList<>();
             for (Tag tag : tagList) {
                 CompoundTag itemTag = (CompoundTag) tag;
                 int slot = itemTag.getInt("Slot");
+                ItemStack stack = ItemStack.of(itemTag);
                 if (slot >= 0 && slot < getSlots()) {
-                    stacks.set(slot, ItemStack.of(itemTag));
+                    stacks.set(slot, stack);
+                } else if (slot > SLOT_MODULE_END && slot < SLOT_MODULE_START + 16 && SeismicModuleItem.getModuleType(stack) != null) {
+                    overflowModules.add(stack);
+                }
+            }
+
+            if (!overflowModules.isEmpty()) {
+                for (ItemStack moduleStack : overflowModules) {
+                    for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
+                        if (stacks.get(slot).isEmpty()) {
+                            stacks.set(slot, moduleStack.copyWithCount(1));
+                            break;
+                        }
+                    }
                 }
             }
             onLoad();
@@ -121,6 +136,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int comparatorOutputCache = -1;
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
+    private float clientSwingProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+    private int clientSwingDurationTicks = 1;
 
     public SeismicStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -430,6 +447,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return;
         }
         startClientStrikeCycle(getCurrentStrikeIntervalTicks());
+        startClientSwingCycle(clientSwingDurationFor(getCurrentStrikeIntervalTicks()));
+    }
+
+    public void onClientEchoArrival() {
+        if (level == null || !level.isClientSide) {
+            return;
+        }
+        startClientSwingCycle(clientSwingDurationFor(getCurrentStrikeIntervalTicks()));
     }
 
     public float getClientStrikeAnimationPhase(float partialTicks) {
@@ -446,6 +471,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     public int getClientStrikeIntervalTicks() {
         return Math.max(1, clientStrikeIntervalTicks);
+    }
+
+    public float getClientSwingAnimationPhase(float partialTicks) {
+        if (level == null || !level.isClientSide || clientSwingProgressTicks < 0.0F) {
+            return 0.0F;
+        }
+        float duration = Math.max(1.0F, clientSwingDurationTicks);
+        float progress = (clientSwingProgressTicks + partialTicks) / duration;
+        if (progress >= 1.0F) {
+            return 0.0F;
+        }
+        return Mth.clamp(progress, 0.0F, 1.0F);
     }
 
     public boolean tryStartScan(ServerPlayer player) {
@@ -745,18 +782,33 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private void tickClientStrikeAnimation() {
-        if (clientStrikeProgressTicks < 0.0F) {
-            return;
+        if (clientStrikeProgressTicks >= 0.0F) {
+            clientStrikeProgressTicks++;
+            if (clientStrikeProgressTicks >= Math.max(1, clientStrikeIntervalTicks)) {
+                clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+            }
         }
-        clientStrikeProgressTicks++;
-        if (clientStrikeProgressTicks >= Math.max(1, clientStrikeIntervalTicks)) {
-            clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+
+        if (clientSwingProgressTicks >= 0.0F) {
+            clientSwingProgressTicks++;
+            if (clientSwingProgressTicks >= Math.max(1, clientSwingDurationTicks)) {
+                clientSwingProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+            }
         }
     }
 
     private void startClientStrikeCycle(int intervalTicks) {
         clientStrikeIntervalTicks = Math.max(1, intervalTicks);
         clientStrikeProgressTicks = 0.0F;
+    }
+
+    private void startClientSwingCycle(int durationTicks) {
+        clientSwingDurationTicks = Math.max(1, durationTicks);
+        clientSwingProgressTicks = 0.0F;
+    }
+
+    private static int clientSwingDurationFor(int strikeIntervalTicks) {
+        return Mth.clamp(Math.round(strikeIntervalTicks * 0.8F), 8, 20);
     }
 
     public SeismicStationBoundingBlockEntity getInputNode() {

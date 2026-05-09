@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "RBR",
-    "SES",
-    "CRC"
+    "SA",
+    "DR"
   ],
   "key": {
-    "R": {
-      "item": "minecraft:redstone_block"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "D": { "item": "minecraft:redstone" },
+    "R": { "item": "minecraft:redstone_block" }
   },
-  "result": {
-    "item": "creategeoresonance:redstone_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:redstone_resonance_module" }
 }

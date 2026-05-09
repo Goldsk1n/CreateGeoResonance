@@ -1,25 +1,34 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "SPS",
-    "AHA",
-    "SCS"
+    "MCT",
+    "SRP",
+    "SBI"
   ],
   "key": {
     "S": {
-      "item": "create:shaft"
+      "item": "create:sturdy_sheet"
+    },
+    "M": {
+      "item": "create:mechanical_press"
+    },
+    "T": {
+      "item": "minecraft:string"
+    },
+    "I": {
+      "item": "minecraft:iron_nugget"
     },
     "P": {
-      "item": "minecraft:paper"
+      "item": "minecraft:polished_deepslate"
     },
-    "A": {
-      "item": "create:andesite_alloy"
-    },
-    "H": {
-      "item": "creategeoresonance:seismic_hammer"
+    "B": {
+      "item": "create:brass_sheet"
     },
     "C": {
-      "item": "create:andesite_casing"
+      "item": "create:railway_casing"
+    },
+    "R": {
+      "item": "create:precision_mechanism"
     }
   },
   "result": {

@@ -33,14 +33,19 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     private static final float DRUM_PIVOT_X = -8.0F;
     private static final float DRUM_PIVOT_Y = 11.0F;
     private static final float DRUM_PIVOT_Z = 7.915F;
+    private static final Direction LOCAL_SWING_AXIS = Direction.SOUTH;
+    private static final float SWING_PIVOT_X = -8.0F;
+    private static final float SWING_PIVOT_Y = 29.75F;
+    private static final float SWING_PIVOT_Z = 8.0F;
+    private static final float SWING_MAX_ANGLE_DEGREES = 5.0F;
     private static final float PISTON_TRAVEL_BLOCKS = 1.0F;
     private static final float MAX_SPEED_RISE_PORTION = 0.75F;
-    private static final int MODULES_PER_ROW = 6;
-    private static final float MODULE_START_X = -3.0F / 16.0F;
+    private static final int MODULES_PER_ROW = 4;
+    private static final float MODULE_START_X = -3.5F / 16.0F;
     private static final float MODULE_START_Y = 28.5F / 16.0F;
-    private static final float MODULE_START_Z = 1.0F / 16.0F;
-    private static final float MODULE_STEP_X = -2.0F / 16.0F;
-    private static final float MODULE_STEP_Y = 3.0F / 16.0F;
+    private static final float MODULE_START_Z = 1.5F / 16.0F;
+    private static final float MODULE_STEP_X = -3.0F / 16.0F;
+    private static final float MODULE_STEP_Y = 3.5F / 16.0F;
     private static final float MODULE_RENDER_SCALE = 1.0F;
 
     public SeismicStationRenderer(BlockEntityRendererProvider.Context context) {
@@ -72,6 +77,11 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         orientToFacing(drum, facing);
         rotateAroundLocalPivot(drum, drumAngle, Direction.EAST, DRUM_PIVOT_X, DRUM_PIVOT_Y, DRUM_PIVOT_Z);
         drum.light(light).renderInto(ms, vertexConsumer);
+
+        SuperByteBuffer swingingPart = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_SWINGING_PART, state);
+        orientToFacing(swingingPart, facing);
+        rotateAroundLocalPivot(swingingPart, swingingAngleFor(blockEntity, partialTicks), LOCAL_SWING_AXIS, SWING_PIVOT_X, SWING_PIVOT_Y, SWING_PIVOT_Z);
+        swingingPart.light(light).renderInto(ms, vertexConsumer);
 
         SuperByteBuffer lever = CachedBuffers.partial(
             blockEntity.isStartLeverDown()
@@ -163,6 +173,17 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
 
         float t = (phase - risePortion) / descentPortion;
         return 1.0F - (t * t * t);
+    }
+
+    private static float swingingAngleFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
+        float phase = blockEntity.getClientSwingAnimationPhase(partialTicks);
+        if (phase <= 0.0F) {
+            return 0.0F;
+        }
+
+        float smoothPhase = phase * phase * (3.0F - 2.0F * phase);
+        float swingDegrees = SWING_MAX_ANGLE_DEGREES * (float) Math.sin(smoothPhase * ((float) Math.PI * 2.0F));
+        return swingDegrees * ((float) Math.PI / 180.0F);
     }
 
     private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {

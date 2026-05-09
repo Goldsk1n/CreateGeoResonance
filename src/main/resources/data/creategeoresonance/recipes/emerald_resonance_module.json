@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "MBM",
-    "PEP",
-    "CMC"
+    "SA",
+    "EP"
   ],
   "key": {
-    "M": {
-      "item": "minecraft:emerald_block"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "P": {
-      "item": "create:precision_mechanism"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:clock"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "E": { "item": "minecraft:emerald" },
+    "P": { "item": "create:precision_mechanism" }
   },
-  "result": {
-    "item": "creategeoresonance:emerald_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:emerald_resonance_module" }
 }

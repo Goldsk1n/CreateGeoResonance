@@ -1,31 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "CMC",
-    "SBS",
-    "AEA"
+    "SA",
+    "BC"
   ],
   "key": {
-    "C": {
-      "item": "minecraft:chest"
-    },
-    "M": {
-      "item": "minecraft:chest_minecart"
-    },
-    "S": {
-      "item": "create:brass_sheet"
-    },
-    "B": {
-      "item": "create:andesite_casing"
-    },
-    "A": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "B": { "item": "minecraft:beacon" },
+    "C": { "item": "minecraft:chest" }
   },
-  "result": {
-    "item": "creategeoresonance:chest_module"
-  }
+  "result": { "item": "creategeoresonance:chest_module" }
 }

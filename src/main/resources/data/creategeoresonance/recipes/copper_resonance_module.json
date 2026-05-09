@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "IBI",
-    "SES",
-    "CIC"
+    "SA",
+    "RC"
   ],
   "key": {
-    "I": {
-      "tag": "forge:ingots/copper"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "R": { "item": "minecraft:raw_copper" },
+    "C": { "tag": "forge:ingots/copper" }
   },
-  "result": {
-    "item": "creategeoresonance:copper_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:copper_resonance_module" }
 }

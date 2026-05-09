@@ -2,8 +2,8 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     "EPE",
-    "RCR",
-    "S S"
+    "SCS",
+    " R "
   ],
   "key": {
     "E": {
@@ -16,7 +16,7 @@
       "item": "create:rose_quartz_lamp"
     },
     "C": {
-      "item": "create:train_casing"
+      "item": "create:railway_casing"
     },
     "S": {
       "item": "create:shaft"

@@ -1,31 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "ISI",
-    "BEB",
-    "PMP"
+    "SA",
+    "EL"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_bars"
-    },
-    "S": {
-      "item": "minecraft:soul_lantern"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "E": {
-      "item": "minecraft:ender_eye"
-    },
-    "P": {
-      "item": "create:precision_mechanism"
-    },
-    "M": {
-      "item": "minecraft:magma_cream"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "E": { "item": "minecraft:echo_shard" },
+    "L": { "item": "minecraft:soul_lantern" }
   },
-  "result": {
-    "item": "creategeoresonance:spawner_module"
-  }
+  "result": { "item": "creategeoresonance:spawner_module" }
 }

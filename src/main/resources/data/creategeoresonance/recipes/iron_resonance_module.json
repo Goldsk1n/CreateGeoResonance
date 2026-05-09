@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "IBI",
-    "SES",
-    "CIC"
+    "SA",
+    "RN"
   ],
   "key": {
-    "I": {
-      "tag": "forge:ingots/iron"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "R": { "item": "minecraft:raw_iron" },
+    "N": { "item": "minecraft:iron_nugget" }
   },
-  "result": {
-    "item": "creategeoresonance:iron_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:iron_resonance_module" }
 }

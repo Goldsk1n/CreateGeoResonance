@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "WBW",
-    "SES",
-    "WCW"
+    "SA",
+    "WC"
   ],
   "key": {
-    "W": {
-      "item": "minecraft:white_wool"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "minecraft:sculk_sensor"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:comparator"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "W": { "item": "minecraft:white_wool" },
+    "C": { "item": "minecraft:comparator" }
   },
-  "result": {
-    "item": "creategeoresonance:noise_cancellation_module"
-  }
+  "result": { "item": "creategeoresonance:noise_cancellation_module" }
 }

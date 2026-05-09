@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "GBG",
-    "PEP",
-    "CGC"
+    "SA",
+    "GN"
   ],
   "key": {
-    "G": {
-      "item": "minecraft:gold_block"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "P": {
-      "item": "create:precision_mechanism"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:clock"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "G": { "item": "minecraft:raw_gold" },
+    "N": { "item": "minecraft:gold_nugget" }
   },
-  "result": {
-    "item": "creategeoresonance:gold_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:gold_resonance_module" }
 }

@@ -1,28 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "IBI",
-    "SES",
-    "CIC"
+    "SA",
+    "ZR"
   ],
   "key": {
-    "I": {
-      "tag": "forge:ingots/zinc"
-    },
-    "B": {
-      "item": "create:brass_sheet"
-    },
-    "S": {
-      "item": "create:andesite_alloy"
-    },
-    "E": {
-      "item": "create:electron_tube"
-    },
-    "C": {
-      "item": "minecraft:compass"
-    }
+    "S": { "item": "create:sturdy_sheet" },
+    "A": { "item": "create:andesite_alloy" },
+    "Z": { "tag": "forge:ingots/zinc" },
+    "R": { "item": "create:raw_zinc" }
   },
-  "result": {
-    "item": "creategeoresonance:zinc_resonance_module"
-  }
+  "result": { "item": "creategeoresonance:zinc_resonance_module" }
 }
