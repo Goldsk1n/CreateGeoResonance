@@ -35,6 +35,9 @@ import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.createmod.ponder.foundation.PonderIndex;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -58,6 +61,7 @@ public final class GeoResonanceClient {
     }
 
     public static void register() {
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(GeoResonanceClient::onClientSetup);
         ItemProperties.register(Items.FILLED_MAP,
             ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "seismogram"),
             (stack, level, entity, seed) -> SeismogramMapService.isSeismogramStack(stack) ? 1.0F : 0.0F);
@@ -65,6 +69,10 @@ public final class GeoResonanceClient {
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderGuiOverlay);
+    }
+
+    private static void onClientSetup(FMLClientSetupEvent event) {
+        PonderIndex.addPlugin(new GeoResonancePonderPlugin());
     }
 
     public static void handleImpact(S2CSeismicImpactPacket packet) {
