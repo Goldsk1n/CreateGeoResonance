@@ -609,8 +609,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(blockEntity, blockEntity.getBlockPos(), axis);
         float rawDegrees = time * blockEntity.getSpeed() * 3f / 10 + offset;
         float rawAngle = (rawDegrees % 360f) / 180f * (float) Math.PI;
-        float facingSign = facing.getAxis() == Direction.Axis.X ? -1.0F : 1.0F;
-        return -rawAngle * facingSign;
+        Direction shaftSide = facing.getOpposite();
+        float sideSign = shaftSide.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0F : -1.0F;
+        return rawAngle * sideSign;
     }
 
     private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {
