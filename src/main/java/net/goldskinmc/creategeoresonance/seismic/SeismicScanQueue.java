@@ -39,7 +39,12 @@ public final class SeismicScanQueue {
     }
 
     public static void enqueue(SeismicScanRequest request) {
-        JOBS.addLast(new SeismicScanJob(request));
+        SeismicScanJob job = new SeismicScanJob(request);
+        if (request.resultConsumer() != null) {
+            JOBS.addFirst(job);
+            return;
+        }
+        JOBS.addLast(job);
     }
 
     public static void clear() {
@@ -236,6 +241,23 @@ public final class SeismicScanQueue {
         private final int totalCells;
         private final Map<Integer, Aggregate> aggregates;
         private final Map<SeismicAnomalyType, Set<BlockPos>> exactHitsByType;
+        private final boolean detectCave;
+        private final boolean detectWater;
+        private final boolean detectLava;
+        private final boolean detectAmethyst;
+        private final boolean detectSpawner;
+        private final boolean detectChest;
+        private final boolean detectCoal;
+        private final boolean detectIron;
+        private final boolean detectCopper;
+        private final boolean detectGold;
+        private final boolean detectRedstone;
+        private final boolean detectLapis;
+        private final boolean detectEmerald;
+        private final boolean detectDiamond;
+        private final boolean detectZinc;
+        private final boolean detectAnyOre;
+        private final boolean detectAnySolidTarget;
         private int index;
 
         private SeismicScanJob(SeismicScanRequest request) {
@@ -245,6 +267,34 @@ public final class SeismicScanQueue {
             this.totalCells = width * width * request.depth();
             this.aggregates = new HashMap<>();
             this.exactHitsByType = new HashMap<>();
+            this.detectCave = request.canDetect(SeismicAnomalyType.CAVE);
+            this.detectWater = request.canDetect(SeismicAnomalyType.WATER);
+            this.detectLava = request.canDetect(SeismicAnomalyType.LAVA);
+            this.detectAmethyst = request.canDetect(SeismicAnomalyType.AMETHYST);
+            this.detectSpawner = request.canDetect(SeismicAnomalyType.SPAWNER);
+            this.detectChest = request.canDetect(SeismicAnomalyType.CHEST);
+            this.detectCoal = request.canDetect(SeismicAnomalyType.COAL);
+            this.detectIron = request.canDetect(SeismicAnomalyType.IRON);
+            this.detectCopper = request.canDetect(SeismicAnomalyType.COPPER);
+            this.detectGold = request.canDetect(SeismicAnomalyType.GOLD);
+            this.detectRedstone = request.canDetect(SeismicAnomalyType.REDSTONE);
+            this.detectLapis = request.canDetect(SeismicAnomalyType.LAPIS);
+            this.detectEmerald = request.canDetect(SeismicAnomalyType.EMERALD);
+            this.detectDiamond = request.canDetect(SeismicAnomalyType.DIAMOND);
+            this.detectZinc = request.canDetect(SeismicAnomalyType.ZINC);
+            this.detectAnyOre = detectCoal
+                || detectIron
+                || detectCopper
+                || detectGold
+                || detectRedstone
+                || detectLapis
+                || detectEmerald
+                || detectDiamond
+                || detectZinc;
+            this.detectAnySolidTarget = detectAmethyst
+                || detectSpawner
+                || detectChest
+                || detectAnyOre;
             this.index = 0;
         }
 
@@ -271,45 +321,63 @@ public final class SeismicScanQueue {
                 FluidState fluid = state.getFluidState();
                 SeismicAnomalyType type;
                 if (!fluid.isEmpty()) {
-                    type = fluid.is(FluidTags.LAVA) ? SeismicAnomalyType.LAVA : SeismicAnomalyType.WATER;
+                    if (fluid.is(FluidTags.LAVA)) {
+                        if (!detectLava) {
+                            continue;
+                        }
+                        type = SeismicAnomalyType.LAVA;
+                    } else {
+                        if (!detectWater) {
+                            continue;
+                        }
+                        type = SeismicAnomalyType.WATER;
+                    }
                 } else if (state.isAir()) {
+                    if (!detectCave) {
+                        continue;
+                    }
                     type = SeismicAnomalyType.CAVE;
-                } else if (state.is(Blocks.BUDDING_AMETHYST)
-                    || state.is(Blocks.AMETHYST_CLUSTER)
-                    || state.is(Blocks.LARGE_AMETHYST_BUD)
-                    || state.is(Blocks.MEDIUM_AMETHYST_BUD)
-                    || state.is(Blocks.SMALL_AMETHYST_BUD)) {
-                    type = SeismicAnomalyType.AMETHYST;
-                } else if (state.is(Blocks.SPAWNER)) {
-                    type = SeismicAnomalyType.SPAWNER;
-                } else if (state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST)) {
-                    type = SeismicAnomalyType.CHEST;
-                } else if (state.is(BlockTags.COAL_ORES)) {
-                    type = SeismicAnomalyType.COAL;
-                } else if (state.is(BlockTags.IRON_ORES)) {
-                    type = SeismicAnomalyType.IRON;
-                } else if (state.is(BlockTags.COPPER_ORES)) {
-                    type = SeismicAnomalyType.COPPER;
-                } else if (state.is(BlockTags.GOLD_ORES)) {
-                    type = SeismicAnomalyType.GOLD;
-                } else if (state.is(BlockTags.REDSTONE_ORES)) {
-                    type = SeismicAnomalyType.REDSTONE;
-                } else if (state.is(BlockTags.LAPIS_ORES)) {
-                    type = SeismicAnomalyType.LAPIS;
-                } else if (state.is(BlockTags.EMERALD_ORES)) {
-                    type = SeismicAnomalyType.EMERALD;
-                } else if (state.is(BlockTags.DIAMOND_ORES)) {
-                    type = SeismicAnomalyType.DIAMOND;
-                } else if (state.is(CREATE_ZINC_ORES)) {
-                    type = SeismicAnomalyType.ZINC;
                 } else {
-                    continue;
-                }
-                if (!request.canDetect(type)) {
-                    continue;
-                }
-                if (scanPos.getY() < 0 && !request.allowBelowZeroOres()) {
-                    continue;
+                    if (!detectAnySolidTarget) {
+                        continue;
+                    }
+                    if (detectAmethyst && (state.is(Blocks.BUDDING_AMETHYST)
+                        || state.is(Blocks.AMETHYST_CLUSTER)
+                        || state.is(Blocks.LARGE_AMETHYST_BUD)
+                        || state.is(Blocks.MEDIUM_AMETHYST_BUD)
+                        || state.is(Blocks.SMALL_AMETHYST_BUD))) {
+                        type = SeismicAnomalyType.AMETHYST;
+                    } else if (detectSpawner && state.is(Blocks.SPAWNER)) {
+                        type = SeismicAnomalyType.SPAWNER;
+                    } else if (detectChest && (state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST))) {
+                        type = SeismicAnomalyType.CHEST;
+                    } else {
+                        boolean oreDepthAllowed = scanPos.getY() >= 0 || request.allowBelowZeroOres();
+                        if (!detectAnyOre || !oreDepthAllowed) {
+                            continue;
+                        }
+                        if (detectCoal && state.is(BlockTags.COAL_ORES)) {
+                            type = SeismicAnomalyType.COAL;
+                        } else if (detectIron && state.is(BlockTags.IRON_ORES)) {
+                            type = SeismicAnomalyType.IRON;
+                        } else if (detectCopper && state.is(BlockTags.COPPER_ORES)) {
+                            type = SeismicAnomalyType.COPPER;
+                        } else if (detectGold && state.is(BlockTags.GOLD_ORES)) {
+                            type = SeismicAnomalyType.GOLD;
+                        } else if (detectRedstone && state.is(BlockTags.REDSTONE_ORES)) {
+                            type = SeismicAnomalyType.REDSTONE;
+                        } else if (detectLapis && state.is(BlockTags.LAPIS_ORES)) {
+                            type = SeismicAnomalyType.LAPIS;
+                        } else if (detectEmerald && state.is(BlockTags.EMERALD_ORES)) {
+                            type = SeismicAnomalyType.EMERALD;
+                        } else if (detectDiamond && state.is(BlockTags.DIAMOND_ORES)) {
+                            type = SeismicAnomalyType.DIAMOND;
+                        } else if (detectZinc && state.is(CREATE_ZINC_ORES)) {
+                            type = SeismicAnomalyType.ZINC;
+                        } else {
+                            continue;
+                        }
+                    }
                 }
                 trackExactHit(type, scanPos);
 
