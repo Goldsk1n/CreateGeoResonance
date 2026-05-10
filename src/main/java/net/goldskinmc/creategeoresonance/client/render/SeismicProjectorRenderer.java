@@ -79,10 +79,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         RenderType renderType = getRenderType(blockEntity, state);
         VertexConsumer vertexConsumer = buffer.getBuffer(renderType);
+        int shaftLight = LevelRenderer.getLightColor(blockEntity.getLevel(), blockEntity.getBlockPos().relative(facing.getOpposite()));
         SuperByteBuffer shaft = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_PROJECTOR_SHAFT, state);
         orientToFacing(shaft, facing);
         rotateAroundLocalPivot(shaft, shaftAngle(blockEntity, facing), LOCAL_SHAFT_AXIS, SHAFT_PIVOT_X, SHAFT_PIVOT_Y, SHAFT_PIVOT_Z);
-        int shaftLight = LevelRenderer.getLightColor(blockEntity.getLevel(), blockEntity.getBlockPos().relative(facing.getOpposite()));
         shaft.light(shaftLight).renderInto(poseStack, vertexConsumer);
         int loadedNodes = blockEntity.getLoadedNodeCount();
         int seismogramLight = LevelRenderer.getLightColor(blockEntity.getLevel(), blockEntity.getBlockPos().above());
