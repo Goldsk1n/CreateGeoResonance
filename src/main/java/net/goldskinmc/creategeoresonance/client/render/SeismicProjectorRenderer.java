@@ -49,6 +49,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float BLOCK_EDGE_INSET = 0.0F;
     private static final float DASH_LENGTH = 0.65F;
     private static final float DASH_GAP = 0.4F;
+    private static final float GUIDE_START_X = 0.5F;
+    private static final float GUIDE_START_Y = 0.06F;
+    private static final float GUIDE_START_Z = 0.5F;
     private static final Direction LOCAL_SHAFT_AXIS = Direction.SOUTH;
     private static final float SHAFT_PIVOT_X = 8.0F;
     private static final float SHAFT_PIVOT_Y = 8.0F;
@@ -184,9 +187,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-                float startX = 0.5F;
-                float startY = 0.5F;
-                float startZ = 0.5F;
+                float startX = GUIDE_START_X;
+                float startY = GUIDE_START_Y;
+                float startZ = GUIDE_START_Z;
 
                 if (renderExact) {
                     for (RenderableVein vein : visibleVeins) {

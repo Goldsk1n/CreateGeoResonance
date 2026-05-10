@@ -557,7 +557,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         sendData();
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.scan_started")
             .withStyle(ChatFormatting.GOLD), true);
-        playFeedbackSound(SoundEvents.BELL_BLOCK, 0.6F, 1.15F);
+        playFeedbackSound(SoundEvents.ANVIL_PLACE, 0.45F, 1.32F);
+        playFeedbackSound(SoundEvents.PISTON_EXTEND, 0.6F, 0.92F);
         spawnFeedbackParticles(ParticleTypes.CLOUD, 8, 0.25D, 0.01D);
         updateComparatorOutputIfNeeded();
         return true;
