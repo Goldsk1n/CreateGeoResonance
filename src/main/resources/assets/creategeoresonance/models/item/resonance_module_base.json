@@ -6,7 +6,8 @@
 	"render_type": "minecraft:cutout_mipped",
 	"textures": {
 		"3": "creategeoresonance:block/seismic_station/seismic_station_additional",
-		"18": "item/diamond"
+		"18": "item/diamond",
+		"particle": "create:item/andesite_alloy"
 	},
 	"elements": [
 		{
@@ -15,12 +16,12 @@
 			"to": [9, 9.5, 8.5],
 			"rotation": {"angle": 0, "axis": "y", "origin": [8, 8.5, 8.5]},
 			"faces": {
-				"north": {"uv": [8.5, 0, 14.5, 9], "texture": "#3"},
-				"east": {"uv": [14, 9.5, 14.5, 11], "texture": "#3"},
-				"south": {"uv": [8.5, 0, 14.5, 9], "texture": "#3"},
-				"west": {"uv": [13.5, 9.5, 14, 11], "texture": "#3"},
-				"up": {"uv": [13.5, 10.5, 14.5, 11], "texture": "#3"},
-				"down": {"uv": [13.5, 10.5, 14.5, 11], "texture": "#3"}
+				"north": {"uv": [8.5, 0, 10.5, 4], "texture": "#3"},
+				"east": {"uv": [10.5, 0, 11.5, 4], "texture": "#3"},
+				"south": {"uv": [8.5, 0, 10.5, 4], "texture": "#3"},
+				"west": {"uv": [10.5, 0, 11.5, 4], "texture": "#3"},
+				"up": {"uv": [8.5, 4, 10.5, 5], "texture": "#3"},
+				"down": {"uv": [8.5, 4, 10.5, 5], "texture": "#3"}
 			}
 		},
 		{
@@ -62,6 +63,7 @@
 			"scale": [1.5, 1.5, 1.5]
 		},
 		"gui": {
+			"rotation": [-10, -10, 0],
 			"scale": [4, 4, 4]
 		},
 		"head": {
@@ -73,7 +75,7 @@
 		},
 		"on_shelf": {
 			"translation": [0, 0, -2.5],
-			"scale": [3, 3, 3]
+			"scale": [4, 4, 4]
 		}
 	},
 	"groups": [

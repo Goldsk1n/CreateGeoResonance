@@ -59,6 +59,7 @@
   "block.creategeoresonance.seismic_station.no_module": "No module installed",
   "block.creategeoresonance.seismic_station.no_output_ready": "No seismogram ready yet",
   "block.creategeoresonance.seismic_station.output_taken": "Seismogram collected",
+  "block.creategeoresonance.seismic_station.starting": "Starting...",
   "block.creategeoresonance.seismic_station.scan_started": "Seismic scan started",
   "block.creategeoresonance.seismic_station.output_ready": "Seismogram ready",
   "block.creategeoresonance.seismic_station.output_full": "Take the previous seismogram from output first",

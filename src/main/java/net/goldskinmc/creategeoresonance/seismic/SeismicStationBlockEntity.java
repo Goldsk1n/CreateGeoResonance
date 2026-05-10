@@ -57,7 +57,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String REVEAL_INDEX_TAG = "RevealIndex";
     private static final String COOLDOWN_TAG = "CooldownTicks";
     private static final String CURRENT_SCAN_DEPTH_TAG = "CurrentScanDepth";
+    private static final String STARTUP_TIMER_TAG = "StartupTicksRemaining";
     private static final float NO_CLIENT_STRIKE_PROGRESS = -1.0F;
+    private static final int STARTUP_RISE_TICKS = 100;
     public static final int SLOT_PAPER_INPUT = 0;
     public static final int SLOT_INK_INPUT = 1;
     public static final int SLOT_SEISMOGRAM_OUTPUT = 2;
@@ -133,11 +135,13 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int revealIndex;
     private int cooldownTicks;
     private int currentScanDepth;
+    private int startupTicksRemaining;
     private int comparatorOutputCache = -1;
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
     private float clientSwingProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientSwingDurationTicks = 1;
+    private float clientStartupProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
 
     public SeismicStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -182,9 +186,15 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (cooldownTicks > 0) {
             cooldownTicks--;
         }
+        if (scanRunning && startupTicksRemaining > 0) {
+            startupTicksRemaining--;
+        }
         updateComparatorOutputIfNeeded();
 
         if (!scanRunning || awaitingScanResult) {
+            return;
+        }
+        if (startupTicksRemaining > 0) {
             return;
         }
         if (!hasRequiredSpeed()) {
@@ -446,6 +456,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (level == null || !level.isClientSide) {
             return;
         }
+        clientStartupProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
         startClientStrikeCycle(getCurrentStrikeIntervalTicks());
         startClientSwingCycle(clientSwingDurationFor(getCurrentStrikeIntervalTicks()));
     }
@@ -466,6 +477,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (progress >= 1.0F) {
             return 0.0F;
         }
+        return Mth.clamp(progress, 0.0F, 1.0F);
+    }
+
+    public float getClientStartupAnimationPhase(float partialTicks) {
+        if (level == null || !level.isClientSide || clientStartupProgressTicks < 0.0F) {
+            return 0.0F;
+        }
+        float progress = (clientStartupProgressTicks + partialTicks) / STARTUP_RISE_TICKS;
         return Mth.clamp(progress, 0.0F, 1.0F);
     }
 
@@ -526,6 +545,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         mapReady = false;
         strikeTimer = 0;
         revealIndex = 0;
+        startupTicksRemaining = STARTUP_RISE_TICKS;
         mapEntries.clear();
         exactClusters.clear();
         queuedAnomalies.clear();
@@ -555,7 +575,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
         setChanged();
         sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.scan_started")
+        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.starting")
             .withStyle(ChatFormatting.GOLD), true);
         playFeedbackSound(SoundEvents.ANVIL_PLACE, 0.45F, 1.32F);
         playFeedbackSound(SoundEvents.PISTON_EXTEND, 0.6F, 0.92F);
@@ -573,7 +593,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             exactClusters.add(new SeismogramMapService.ExactCluster(cluster.type(), List.copyOf(cluster.blocks())));
         }
         revealIndex = 0;
-        strikeTimer = Math.max(0, Config.STATION_STARTUP_DELAY_TICKS.get()) + calculateStrikeIntervalTicks();
+        strikeTimer = calculateStrikeIntervalTicks();
         awaitingScanResult = false;
         setChanged();
         sendData();
@@ -789,6 +809,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
             }
         }
+        if (clientStartupProgressTicks >= 0.0F && clientStartupProgressTicks < STARTUP_RISE_TICKS) {
+            clientStartupProgressTicks++;
+        }
 
         if (clientSwingProgressTicks >= 0.0F) {
             clientSwingProgressTicks++;
@@ -801,6 +824,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private void startClientStrikeCycle(int intervalTicks) {
         clientStrikeIntervalTicks = Math.max(1, intervalTicks);
         clientStrikeProgressTicks = 0.0F;
+    }
+
+    private void startClientStartupCycle() {
+        clientStartupProgressTicks = 0.0F;
     }
 
     private void startClientSwingCycle(int durationTicks) {
@@ -888,6 +915,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         compound.putInt(REVEAL_INDEX_TAG, revealIndex);
         compound.putInt(COOLDOWN_TAG, cooldownTicks);
         compound.putInt(CURRENT_SCAN_DEPTH_TAG, currentScanDepth);
+        compound.putInt(STARTUP_TIMER_TAG, startupTicksRemaining);
 
         ListTag entriesTag = new ListTag();
         for (MapEntry entry : mapEntries) {
@@ -934,6 +962,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         revealIndex = compound.getInt(REVEAL_INDEX_TAG);
         cooldownTicks = compound.getInt(COOLDOWN_TAG);
         currentScanDepth = Math.max(1, compound.getInt(CURRENT_SCAN_DEPTH_TAG));
+        startupTicksRemaining = Math.max(0, compound.getInt(STARTUP_TIMER_TAG));
 
         mapEntries.clear();
         ListTag entriesTag = compound.getList(MAP_ENTRIES_TAG, Tag.TAG_COMPOUND);
@@ -960,14 +989,22 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
 
         if (clientPacket && level != null && level.isClientSide) {
+            boolean enteredStartup = scanRunning && awaitingScanResult && (!previousScanRunning || !previousAwaitingResult);
+            if (enteredStartup) {
+                startClientStartupCycle();
+                clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+            }
             if (scanRunning && !awaitingScanResult && strikeTimer > 0) {
                 boolean enteredReplay = !previousScanRunning || previousAwaitingResult;
                 boolean strikeWindowChanged = revealIndex != previousRevealIndex || strikeTimer != previousStrikeTimer;
-                if (enteredReplay || strikeWindowChanged) {
+                if ((enteredReplay || strikeWindowChanged) && clientStartupProgressTicks < 0.0F) {
                     startClientStrikeCycle(strikeTimer);
                 }
             } else {
                 clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+            }
+            if (!scanRunning) {
+                clientStartupProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
             }
         } else if (!clientPacket) {
             comparatorOutputCache = -1;
