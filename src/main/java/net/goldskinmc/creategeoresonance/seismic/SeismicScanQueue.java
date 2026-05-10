@@ -62,7 +62,11 @@ public final class SeismicScanQueue {
 
         while (budget > 0 && rotations-- > 0 && !JOBS.isEmpty()) {
             SeismicScanJob job = JOBS.pollFirst();
-            int consumed = job.process(Math.min(maxPerJob, budget));
+            int sliceCap = maxPerJob;
+            if (job.isPriorityJob()) {
+                sliceCap = Math.min(budget, Math.max(maxPerJob, maxPerJob * 6));
+            }
+            int consumed = job.process(Math.min(sliceCap, budget));
             budget -= consumed;
 
             if (job.isComplete()) {
@@ -405,6 +409,10 @@ public final class SeismicScanQueue {
 
         private boolean isComplete() {
             return index >= totalCells;
+        }
+
+        private boolean isPriorityJob() {
+            return request.resultConsumer() != null;
         }
 
         private void finish() {

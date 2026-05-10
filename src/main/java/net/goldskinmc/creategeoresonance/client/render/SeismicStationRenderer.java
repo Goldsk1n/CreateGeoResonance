@@ -153,10 +153,6 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     }
 
     private static float pistonTravelFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
-        float startupPhase = blockEntity.getClientStartupAnimationPhase(partialTicks);
-        if (startupPhase > 0.0F) {
-            return PISTON_TRAVEL_BLOCKS * startupPhase;
-        }
         float phase = blockEntity.getClientStrikeAnimationPhase(partialTicks);
         if (phase <= 0.0F) {
             return 0.0F;

@@ -6,8 +6,7 @@
 	"render_type": "minecraft:cutout_mipped",
 	"textures": {
 		"3": "creategeoresonance:block/seismic_station/seismic_station_additional",
-		"18": "item/diamond",
-		"particle": "create:item/andesite_alloy"
+		"18": "item/diamond"
 	},
 	"elements": [
 		{
