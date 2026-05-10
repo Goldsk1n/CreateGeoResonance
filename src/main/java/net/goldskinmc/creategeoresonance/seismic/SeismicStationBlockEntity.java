@@ -179,9 +179,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return;
         }
 
-        if (cooldownTicks > 0) {
-            cooldownTicks--;
-        }
+        cooldownTicks = 0;
         updateComparatorOutputIfNeeded();
 
         if (!scanRunning || awaitingScanResult) {
@@ -404,10 +402,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         if (scanRunning || awaitingScanResult) {
             return 12;
         }
-        if (cooldownTicks > 0) {
-            return 4;
-        }
-
         boolean hasPaper = !inventory.getStackInSlot(SLOT_PAPER_INPUT).isEmpty();
         boolean hasInk = !inventory.getStackInSlot(SLOT_INK_INPUT).isEmpty();
         if (hasPaper && hasInk && hasRequiredSpeed()) {
@@ -491,11 +485,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
-        if (cooldownTicks > 0) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.cooldown")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
         if (!hasRequiredSpeed()) {
             player.displayClientMessage(Component.translatable(
                     "block.creategeoresonance.seismic_station.no_rotation",
@@ -557,8 +546,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         sendData();
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.starting")
             .withStyle(ChatFormatting.GOLD), true);
-        playFeedbackSound(SoundEvents.ANVIL_PLACE, 0.45F, 1.32F);
-        playFeedbackSound(SoundEvents.PISTON_EXTEND, 0.6F, 0.92F);
+        playFeedbackSound(SoundEvents.LEVER_CLICK, 0.6F, 0.6F);
         spawnFeedbackParticles(ParticleTypes.CLOUD, 8, 0.25D, 0.01D);
         updateComparatorOutputIfNeeded();
         return true;
@@ -676,7 +664,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             generateMapEntries(serverLevel);
             scanRunning = false;
             awaitingScanResult = false;
-            cooldownTicks = Config.STATION_COOLDOWN_TICKS.get();
+            cooldownTicks = 0;
+            playFeedbackSound(SoundEvents.LEVER_CLICK, 0.6F, 0.5F);
             queuedAnomalies.clear();
         }
 
