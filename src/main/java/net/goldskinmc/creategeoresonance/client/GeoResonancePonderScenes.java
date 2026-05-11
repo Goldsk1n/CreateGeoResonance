@@ -15,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Rotations;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
@@ -154,7 +155,7 @@ public final class GeoResonancePonderScenes {
 
         scene.overlay().showControls(util.vector().blockSurface(projector, Direction.UP), Pointing.DOWN, 40)
             .rightClick()
-            .withItem(new ItemStack(Items.FILLED_MAP));
+            .withItem(createPonderSeismogramStack());
         scene.overlay().showText(90)
             .text("Load two seismograms from different stations in the same dimension.")
             .pointAt(util.vector().topOf(projector))
@@ -182,5 +183,13 @@ public final class GeoResonancePonderScenes {
         scene.effects().emitParticles(util.vector().centerOf(pos),
             scene.effects().particleEmitterWithinBlockSpace(dust, util.vector().of(0.45D, 0.06D, 0.45D)), speed, count);
         scene.effects().indicateSuccess(pos);
+    }
+
+    private static ItemStack createPonderSeismogramStack() {
+        ItemStack stack = new ItemStack(Items.FILLED_MAP);
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.put("GeoSeismogram", new CompoundTag());
+        stack.setTag(tag);
+        return stack;
     }
 }

@@ -1,6 +1,8 @@
 package net.goldskinmc.creategeoresonance.client;
 
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import com.simibubi.create.foundation.item.ItemDescription;
+import net.createmod.catnip.lang.FontHelper.Palette;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.client.effect.SeismicWaveEffect;
@@ -20,6 +22,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -33,6 +36,7 @@ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.ViewportEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -69,6 +73,7 @@ public final class GeoResonanceClient {
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderGuiOverlay);
+        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onItemTooltip);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
@@ -402,6 +407,28 @@ public final class GeoResonanceClient {
         }
 
         renderSeismogramSidebar(event.getGuiGraphics(), minecraft, nearestSignals);
+    }
+
+    private static void onItemTooltip(ItemTooltipEvent event) {
+        ItemStack stack = event.getItemStack();
+        if (!SeismogramMapService.isSeismogramStack(stack)) {
+            return;
+        }
+
+        event.getToolTip().removeIf(GeoResonanceClient::isLockedMapTooltipLine);
+
+        ItemDescription description = ItemDescription.create("item.creategeoresonance.seismogram.tooltip", Palette.STANDARD_CREATE);
+        if (description != null) {
+            event.getToolTip().addAll(description.getCurrentLines());
+        }
+    }
+
+    private static boolean isLockedMapTooltipLine(Component line) {
+        if (line.getContents() instanceof TranslatableContents translatable) {
+            String key = translatable.getKey();
+            return "filled_map.locked".equals(key) || "item.minecraft.filled_map.locked".equals(key);
+        }
+        return false;
     }
 
     private static Vec3 sourceAnchor(ClientLevel level, BlockPos origin, int scannerEntityId) {

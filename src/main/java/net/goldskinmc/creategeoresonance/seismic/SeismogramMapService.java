@@ -69,7 +69,8 @@ public final class SeismogramMapService {
         renderStaticMap(mapData, geoTag);
 
         MapItem.lockMap(level, mapStack);
-        mapStack.setHoverName(Component.translatable("item.creategeoresonance.seismogram"));
+        mapStack.setHoverName(Component.translatable("item.creategeoresonance.seismogram")
+            .withStyle(style -> style.withItalic(false)));
         return mapStack;
     }
 
