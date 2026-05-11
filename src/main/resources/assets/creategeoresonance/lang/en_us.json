@@ -78,5 +78,16 @@
   "block.creategeoresonance.seismic_projector.exact_matches": "Confirmed exact veins: %s",
   "block.creategeoresonance.seismic_projector.match_line": "%s @ x:%s z:%s ~y:%s (+/-%s)",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
+  "creategeoresonance.ponder.seismic_hammer/basics.header": "Survey terrain with the Seismic Hammer",
+  "creategeoresonance.ponder.seismic_hammer/basics.text_1": "Right-click to strike the ground.",
+  "creategeoresonance.ponder.seismic_hammer/basics.text_2": "Returning echoes reveal cave, water, and lava.",
+  "creategeoresonance.ponder.seismic_station/operation.header": "Power and run a Seismic Station",
+  "creategeoresonance.ponder.seismic_station/operation.text_1": "Feed rotation into the station's top input shaft.",
+  "creategeoresonance.ponder.seismic_station/operation.text_2": "Insert paper and ink sac on the table side.",
+  "creategeoresonance.ponder.seismic_station/operation.text_3": "Right-click the station to start scanning and generate a seismogram.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.header": "Project anomalies from two seismograms",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_1": "The projector needs rotation from the rear shaft input.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_2": "Load two seismograms from different stations in the same dimension.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_3": "When both maps are valid and spaced apart, holographic veins are projected.",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
 }
