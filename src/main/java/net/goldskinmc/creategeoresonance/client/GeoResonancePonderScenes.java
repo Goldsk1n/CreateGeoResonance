@@ -9,6 +9,7 @@ import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
 import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.SceneBuildingUtil;
+import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
@@ -23,7 +24,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.joml.Vector3f;
 
@@ -150,11 +153,13 @@ public final class GeoResonancePonderScenes {
         BlockPos shaft = util.grid().at(2, 3, 2);
         BlockPos projector = util.grid().at(3, 3, 2);
         BlockPos diamondProjection = util.grid().at(2, 0, 0);
-        BlockPos redstoneA = util.grid().at(0, 1, 2);
-        BlockPos redstoneB = util.grid().at(1, 1, 2);
-        BlockPos redstoneC = util.grid().at(0, 1, 3);
-        BlockPos redstoneD = util.grid().at(1, 1, 3);
+        int redstoneY = Math.max(0, Math.min(2, 1 + Config.PROJECTOR_PONDER_DEBUG_REDSTONE_Y_OFFSET.get()));
+        BlockPos redstoneA = util.grid().at(0, redstoneY, 2);
+        BlockPos redstoneB = util.grid().at(1, redstoneY, 2);
+        BlockPos redstoneC = util.grid().at(0, redstoneY, 3);
+        BlockPos redstoneD = util.grid().at(1, redstoneY, 3);
         List<BlockPos> redstoneCluster = List.of(redstoneA, redstoneB, redstoneC, redstoneD);
+        applyProjectorPonderTerrain(scene, util, diamondProjection, redstoneCluster);
 
         // Re-orient the setup so motor -> shaft -> projector input line is valid on X axis.
         scene.world().modifyBlock(projector, state -> state
@@ -165,6 +170,12 @@ public final class GeoResonancePonderScenes {
             : state, false);
 
         scene.world().showSection(util.select().layer(2), Direction.UP);
+        scene.world().showSection(util.select().layer(1), Direction.UP);
+        scene.world().showSection(util.select().layer(0), Direction.UP);
+        scene.world().showSection(util.select().position(diamondProjection), Direction.UP);
+        for (BlockPos redstonePos : redstoneCluster) {
+            scene.world().showSection(util.select().position(redstonePos), Direction.UP);
+        }
         scene.world().showSection(util.select().position(projector), Direction.UP);
         scene.idle(20);
 
@@ -220,13 +231,6 @@ public final class GeoResonancePonderScenes {
             true, true, true);
         scene.world().modifyBlock(projector, state -> state.setValue(SeismicProjectorBlock.ACTIVE, true), false);
         scene.idle(20);
-        scene.world().showSection(util.select().position(diamondProjection), Direction.UP);
-        scene.world().showSection(util.select().layer(1), Direction.DOWN);
-        scene.world().showSection(util.select().layer(0), Direction.DOWN);
-        scene.world().showSection(util.select().position(redstoneA), Direction.UP);
-        scene.world().showSection(util.select().position(redstoneB), Direction.UP);
-        scene.world().showSection(util.select().position(redstoneC), Direction.UP);
-        scene.world().showSection(util.select().position(redstoneD), Direction.UP);
         scene.idle(45);
         scene.overlay().showText(90)
             .colored(PonderPalette.GREEN)
@@ -249,6 +253,32 @@ public final class GeoResonancePonderScenes {
         scene.effects().emitParticles(util.vector().centerOf(pos),
             scene.effects().particleEmitterWithinBlockSpace(dust, util.vector().of(0.45D, 0.06D, 0.45D)), speed, count);
         scene.effects().indicateSuccess(pos);
+    }
+
+    private static void applyProjectorPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
+                                                    BlockPos diamondProjection, List<BlockPos> redstoneCluster) {
+        boolean removeStoneFill = Config.PROJECTOR_PONDER_DEBUG_REMOVE_STONE_FILL.get();
+        BlockState topState = Blocks.ANDESITE.defaultBlockState();
+        BlockState midState = removeStoneFill ? Blocks.AIR.defaultBlockState() : Blocks.STONE.defaultBlockState();
+        BlockState lowState = removeStoneFill ? Blocks.AIR.defaultBlockState() : Blocks.STONE.defaultBlockState();
+
+        for (int x = 0; x <= 5; x++) {
+            for (int z = 0; z <= 5; z++) {
+                BlockPos top = util.grid().at(x, 2, z);
+                BlockPos middle = util.grid().at(x, 1, z);
+                BlockPos stone = util.grid().at(x, 0, z);
+
+                if (!redstoneCluster.contains(top)) {
+                    scene.world().setBlocks(util.select().position(top), topState, false);
+                }
+                if (!redstoneCluster.contains(middle)) {
+                    scene.world().setBlocks(util.select().position(middle), midState, false);
+                }
+                if (!stone.equals(diamondProjection)) {
+                    scene.world().setBlocks(util.select().position(stone), lowState, false);
+                }
+            }
+        }
     }
 
     private static ItemStack createPonderSeismogramStack() {

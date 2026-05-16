@@ -111,6 +111,12 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_BLOCK_EDGE_INSET = PROJECTOR_VISUALS
         .comment("Ponder-only hologram face offset from block borders. Negative expands, positive shrinks.")
         .defineInRange("ponderBlockEdgeInset", 0.0D, -0.45D, 0.45D);
+    public static final ForgeConfigSpec.IntValue PROJECTOR_PONDER_DEBUG_REDSTONE_Y_OFFSET = PROJECTOR_VISUALS
+        .comment("Debug: vertical offset for projector Ponder redstone cluster (-1..1 from default Y=1).")
+        .defineInRange("ponderDebugRedstoneYOffset", 0, -1, 1);
+    public static final ForgeConfigSpec.BooleanValue PROJECTOR_PONDER_DEBUG_REMOVE_STONE_FILL = PROJECTOR_VISUALS
+        .comment("Debug: remove non-ore stone fill in projector Ponder underground layers.")
+        .define("ponderDebugRemoveStoneFill", false);
 
     static {
         STAGE1.pop();
