@@ -10,9 +10,13 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
+import net.createmod.catnip.outliner.Outliner;
+import net.createmod.catnip.render.BindableTexture;
 import net.createmod.catnip.render.CachedBuffers;
 import net.createmod.catnip.render.SuperByteBuffer;
+import net.createmod.catnip.theme.Color;
 import net.createmod.ponder.api.level.PonderLevel;
+import net.createmod.ponder.foundation.PonderScene;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
@@ -67,6 +71,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float MIN_EXACT_FILL_ALPHA = 0.38F;
     private static final float MIN_EXACT_EDGE_ALPHA = 0.9F;
     private static final float EXACT_GUIDE_ALPHA_SCALE = 0.82F;
+    private static final int MAX_PONDER_OUTLINES = 48;
+    private static final ResourceLocation PONDER_HOLOGRAM_FACE_LOCATION = ResourceLocation.fromNamespaceAndPath(
+        "creategeoresonance", "textures/block/seismic_wave_clear.png");
+    private static final BindableTexture PONDER_HOLOGRAM_FACE = () -> PONDER_HOLOGRAM_FACE_LOCATION;
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
         ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
@@ -80,6 +88,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         if (blockEntity.getLevel() == null) {
             return;
         }
+        boolean ponderLevel = blockEntity.getLevel() instanceof PonderLevel;
         BlockState state = getRenderedBlockState(blockEntity);
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         RenderType renderType = getRenderType(blockEntity, state);
@@ -104,11 +113,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             rightSeismogram.light(seismogramLight).renderInto(poseStack, vertexConsumer);
         }
         if (!blockEntity.hasRequiredSpeed()) {
+            if (ponderLevel) {
+                clearPonderOutlines(resolvePonderOutliner((PonderLevel) blockEntity.getLevel()), blockEntity.getBlockPos());
+            }
             return;
         }
 
         List<SeismicProjectorBlockEntity.ExactVein> exactVeins = blockEntity.getConfirmedVeins();
-        boolean ponderLevel = blockEntity.getLevel() instanceof PonderLevel;
         List<RenderableVein> renderableVeins = ponderLevel
             ? toRenderableVeins(exactVeins)
             : filterRenderableVeins(blockEntity, exactVeins);
@@ -118,9 +129,20 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         boolean hasExactData = !exactVeins.isEmpty();
         boolean renderExact = !visibleVeins.isEmpty();
         if (!hasExactData && candidates.isEmpty()) {
+            if (ponderLevel) {
+                clearPonderOutlines(resolvePonderOutliner((PonderLevel) blockEntity.getLevel()), blockEntity.getBlockPos());
+            }
             return;
         }
         if (hasExactData && !renderExact) {
+            if (ponderLevel) {
+                clearPonderOutlines(resolvePonderOutliner((PonderLevel) blockEntity.getLevel()), blockEntity.getBlockPos());
+            }
+            return;
+        }
+        if (ponderLevel) {
+            renderPonderOutlines(resolvePonderOutliner((PonderLevel) blockEntity.getLevel()),
+                blockEntity.getBlockPos(), visibleVeins);
             return;
         }
 
@@ -274,6 +296,61 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             renderable.add(new RenderableVein(vein.type(), List.copyOf(vein.blocks())));
         }
         return renderable;
+    }
+
+    private static void renderPonderOutlines(Outliner outliner, BlockPos projectorPos, List<RenderableVein> visibleVeins) {
+        if (outliner == null) {
+            return;
+        }
+        int index = 0;
+        for (RenderableVein vein : visibleVeins) {
+            if (index >= MAX_PONDER_OUTLINES) {
+                break;
+            }
+            Object key = ponderOutlineKey(projectorPos, index);
+            outliner.showCluster(key, vein.blocks())
+                .colored(outlineColorFor(vein.type()))
+                .lineWidth(0.05F)
+                .disableCull()
+                .withFaceTexture(PONDER_HOLOGRAM_FACE);
+            outliner.keep(key);
+            index++;
+        }
+        for (int i = index; i < MAX_PONDER_OUTLINES; i++) {
+            outliner.remove(ponderOutlineKey(projectorPos, i));
+        }
+    }
+
+    private static void clearPonderOutlines(Outliner outliner, BlockPos projectorPos) {
+        if (outliner == null) {
+            return;
+        }
+        for (int i = 0; i < MAX_PONDER_OUTLINES; i++) {
+            outliner.remove(ponderOutlineKey(projectorPos, i));
+        }
+    }
+
+    private static Outliner resolvePonderOutliner(PonderLevel level) {
+        if (level == null) {
+            return null;
+        }
+        PonderScene scene = level.scene;
+        if (scene == null) {
+            return null;
+        }
+        return scene.getOutliner();
+    }
+
+    private static Object ponderOutlineKey(BlockPos projectorPos, int index) {
+        return "gr_ponder_projector_" + projectorPos.asLong() + "_" + index;
+    }
+
+    private static Color outlineColorFor(SeismicAnomalyType type) {
+        float[] rgb = colorFor(type);
+        int r = Mth.clamp((int) (rgb[0] * 255.0F), 0, 255);
+        int g = Mth.clamp((int) (rgb[1] * 255.0F), 0, 255);
+        int b = Mth.clamp((int) (rgb[2] * 255.0F), 0, 255);
+        return new Color(r, g, b, 190);
     }
 
     private static List<RenderableVein> limitVisibleVeins(BlockPos origin, List<RenderableVein> veins, int maxVisible) {
