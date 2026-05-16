@@ -136,7 +136,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             return;
         }
         if (ponderLevel) {
-            renderPonderOutlines((PonderLevel) blockEntity.getLevel(), blockEntity.getBlockPos(), visibleVeins);
+            renderPonderOutlines((PonderLevel) blockEntity.getLevel(), blockEntity.getBlockPos(), facing, visibleVeins);
             return;
         }
 
@@ -215,8 +215,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             }
 
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
+                float guideHalfWidth = guideLineHalfWidth(projectorGuideLineWidth());
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 float[] guideStart = guideStartForFacing(facing);
                 float startX = guideStart[0];
                 float startY = guideStart[1];
@@ -226,9 +227,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                     for (RenderableVein vein : visibleVeins) {
                         float[] centroid = veinCentroid(origin, vein.blocks());
                         float[] color = colorFor(vein.type());
-                        drawDashedLine(bufferBuilder, poseStack.last().pose(),
+                        drawDashedLineThick(bufferBuilder, poseStack.last().pose(),
                             startX, startY, startZ, centroid[0], centroid[1], centroid[2],
-                            color[0], color[1], color[2], exactGuideAlpha);
+                            color[0], color[1], color[2], exactGuideAlpha, guideHalfWidth);
                     }
                 } else {
                     for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
@@ -237,9 +238,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                         float targetX = (float) ((box.minX + box.maxX) * 0.5D);
                         float targetY = (float) ((box.minY + box.maxY) * 0.5D);
                         float targetZ = (float) ((box.minZ + box.maxZ) * 0.5D);
-                        drawDashedLine(bufferBuilder, poseStack.last().pose(),
+                        drawDashedLineThick(bufferBuilder, poseStack.last().pose(),
                             startX, startY, startZ, targetX, targetY, targetZ,
-                            color[0], color[1], color[2], edgeAlpha);
+                            color[0], color[1], color[2], edgeAlpha, guideHalfWidth);
                     }
                 }
                 BufferUploader.drawWithShader(bufferBuilder.end());
@@ -294,7 +295,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return renderable;
     }
 
-    private static void renderPonderOutlines(PonderLevel level, BlockPos projectorPos, List<RenderableVein> visibleVeins) {
+    private static void renderPonderOutlines(PonderLevel level, BlockPos projectorPos, Direction facing, List<RenderableVein> visibleVeins) {
         Outliner outliner = resolvePonderOutliner(level);
         if (outliner == null) {
             return;
@@ -305,7 +306,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 break;
             }
             Object key = ponderOutlineKey(projectorPos, index);
-            outliner.showOutline(key, new PonderNoDepthVeinOutline(projectorPos, vein.type(), vein.blocks()))
+            outliner.showOutline(key, new PonderNoDepthVeinOutline(projectorPos, facing, vein.type(), vein.blocks()))
                 .lineWidth(0.05F)
                 .disableCull();
             outliner.keep(key);
@@ -525,14 +526,14 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
     }
 
-    private static void drawDashedLine(BufferBuilder builder, Matrix4f matrix,
-                                       float x1, float y1, float z1, float x2, float y2, float z2,
-                                       float r, float g, float b, float a) {
+    private static void drawDashedLineThick(BufferBuilder builder, Matrix4f matrix,
+                                            float x1, float y1, float z1, float x2, float y2, float z2,
+                                            float r, float g, float b, float a, float halfWidth) {
         float dx = x2 - x1;
         float dy = y2 - y1;
         float dz = z2 - z1;
         float distance = Mth.sqrt(dx * dx + dy * dy + dz * dz);
-        if (distance <= 0.001F) {
+        if (distance <= 0.001F || halfWidth <= 0.0F) {
             return;
         }
 
@@ -549,9 +550,89 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             float bx = x1 + ux * dashEnd;
             float by = y1 + uy * dashEnd;
             float bz = z1 + uz * dashEnd;
-            addEdge(builder, matrix, ax, ay, az, bx, by, bz, r, g, b, a);
+            drawPrismSegment(builder, matrix, ax, ay, az, bx, by, bz, halfWidth, r, g, b, a);
             cursor = dashEnd + DASH_GAP;
         }
+    }
+
+    private static void drawPrismSegment(BufferBuilder builder, Matrix4f matrix,
+                                         float ax, float ay, float az, float bx, float by, float bz,
+                                         float halfWidth, float r, float g, float b, float a) {
+        float dx = bx - ax;
+        float dy = by - ay;
+        float dz = bz - az;
+        float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length <= 0.001F) {
+            return;
+        }
+        float inv = 1.0F / length;
+        float nx = dx * inv;
+        float ny = dy * inv;
+        float nz = dz * inv;
+
+        float rx = 0.0F;
+        float ry = 1.0F;
+        float rz = 0.0F;
+        if (Math.abs(ny) > 0.99F) {
+            rx = 1.0F;
+            ry = 0.0F;
+            rz = 0.0F;
+        }
+
+        float rightX = ny * rz - nz * ry;
+        float rightY = nz * rx - nx * rz;
+        float rightZ = nx * ry - ny * rx;
+        float rightLen = Mth.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
+        if (rightLen <= 0.001F) {
+            return;
+        }
+        float rightInv = halfWidth / rightLen;
+        rightX *= rightInv;
+        rightY *= rightInv;
+        rightZ *= rightInv;
+
+        float upX = rightY * nz - rightZ * ny;
+        float upY = rightZ * nx - rightX * nz;
+        float upZ = rightX * ny - rightY * nx;
+        float upLen = Mth.sqrt(upX * upX + upY * upY + upZ * upZ);
+        if (upLen <= 0.001F) {
+            return;
+        }
+        float upInv = halfWidth / upLen;
+        upX *= upInv;
+        upY *= upInv;
+        upZ *= upInv;
+
+        float a1x = ax + rightX + upX;
+        float a1y = ay + rightY + upY;
+        float a1z = az + rightZ + upZ;
+        float a2x = ax - rightX + upX;
+        float a2y = ay - rightY + upY;
+        float a2z = az - rightZ + upZ;
+        float a3x = ax - rightX - upX;
+        float a3y = ay - rightY - upY;
+        float a3z = az - rightZ - upZ;
+        float a4x = ax + rightX - upX;
+        float a4y = ay + rightY - upY;
+        float a4z = az + rightZ - upZ;
+
+        float b1x = bx + rightX + upX;
+        float b1y = by + rightY + upY;
+        float b1z = bz + rightZ + upZ;
+        float b2x = bx - rightX + upX;
+        float b2y = by - rightY + upY;
+        float b2z = bz - rightZ + upZ;
+        float b3x = bx - rightX - upX;
+        float b3y = by - rightY - upY;
+        float b3z = bz - rightZ - upZ;
+        float b4x = bx + rightX - upX;
+        float b4y = by + rightY - upY;
+        float b4z = bz + rightZ - upZ;
+
+        addQuad(builder, matrix, a1x, a1y, a1z, a2x, a2y, a2z, b2x, b2y, b2z, b1x, b1y, b1z, r, g, b, a);
+        addQuad(builder, matrix, a2x, a2y, a2z, a3x, a3y, a3z, b3x, b3y, b3z, b2x, b2y, b2z, r, g, b, a);
+        addQuad(builder, matrix, a3x, a3y, a3z, a4x, a4y, a4z, b4x, b4y, b4z, b3x, b3y, b3z, r, g, b, a);
+        addQuad(builder, matrix, a4x, a4y, a4z, a1x, a1y, a1z, b1x, b1y, b1z, b4x, b4y, b4z, r, g, b, a);
     }
 
     private static float[] veinCentroid(BlockPos origin, List<BlockPos> blocks) {
@@ -581,17 +662,31 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return Mth.clamp(Config.PROJECTOR_BLOCK_EDGE_INSET.get().floatValue(), -0.45F, 0.45F);
     }
 
+    private static float projectorGuideLineWidth() {
+        return Mth.clamp(Config.PROJECTOR_GUIDE_LINE_WIDTH.get().floatValue(), 0.2F, 1.0F);
+    }
+
+    private static float guideLineHalfWidth(float configuredWidth) {
+        return configuredWidth * 0.0125F;
+    }
+
     private static float ponderBlockInset() {
         return Mth.clamp(Config.PROJECTOR_PONDER_BLOCK_EDGE_INSET.get().floatValue(), -0.45F, 0.45F);
     }
 
+    private static float ponderGuideLineWidth() {
+        return Mth.clamp(Config.PROJECTOR_PONDER_GUIDE_LINE_WIDTH.get().floatValue(), 0.2F, 1.0F);
+    }
+
     private static final class PonderNoDepthVeinOutline extends Outline {
         private final BlockPos projectorPos;
+        private final Direction facing;
         private final SeismicAnomalyType type;
         private final List<BlockPos> blocks;
 
-        private PonderNoDepthVeinOutline(BlockPos projectorPos, SeismicAnomalyType type, List<BlockPos> blocks) {
+        private PonderNoDepthVeinOutline(BlockPos projectorPos, Direction facing, SeismicAnomalyType type, List<BlockPos> blocks) {
             this.projectorPos = projectorPos.immutable();
+            this.facing = facing;
             this.type = type;
             this.blocks = List.copyOf(blocks);
         }
@@ -604,9 +699,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             float[] color = colorFor(type);
             float fillAlpha = Math.max(0.26F, Math.max(MIN_EXACT_FILL_ALPHA, Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F)));
             float edgeAlpha = Math.max(MIN_EXACT_EDGE_ALPHA, Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F));
+            float guideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
+            boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
             float inset = ponderBlockInset();
             List<FaceQuad> surfaceFaces = buildSurfaceFaces(blocks, projectorPos, inset);
             List<LineSegment> surfaceEdges = buildJoinedEdges(surfaceFaces);
+            float[] guideStart = guideStartForFacing(facing);
+            float[] centroid = veinCentroid(projectorPos, blocks);
 
             poseStack.pushPose();
             poseStack.translate(
@@ -650,6 +749,19 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                             edge.x2(), edge.y2(), edge.z2(),
                             color[0], color[1], color[2], edgeAlpha);
                     }
+                    BufferUploader.drawWithShader(builder.end());
+                }
+
+                if (guideLinesEnabled && guideAlpha > 0.0F) {
+                    float guideHalfWidth = guideLineHalfWidth(ponderGuideLineWidth());
+                    Tesselator tesselator = Tesselator.getInstance();
+                    BufferBuilder builder = tesselator.getBuilder();
+                    RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                    builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                    drawDashedLineThick(builder, matrix,
+                        guideStart[0], guideStart[1], guideStart[2],
+                        centroid[0], centroid[1], centroid[2],
+                        color[0], color[1], color[2], guideAlpha, guideHalfWidth);
                     BufferUploader.drawWithShader(builder.end());
                 }
             } finally {

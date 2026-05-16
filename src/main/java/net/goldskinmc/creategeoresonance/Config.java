@@ -105,12 +105,18 @@ public class Config {
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_GUIDE_LINES_ENABLED = PROJECTOR_VISUALS
         .comment("Render dashed guide lines from the projector to detected targets.")
         .define("guideLinesEnabled", true);
+    public static final ForgeConfigSpec.DoubleValue PROJECTOR_GUIDE_LINE_WIDTH = PROJECTOR_VISUALS
+        .comment("In-world projector dashed guide line thickness.")
+        .defineInRange("guideLineWidth", 0.5D, 0.2D, 1.0D);
     public static final ForgeConfigSpec.IntValue PROJECTOR_VISIBLE_VEINS_MAX = PROJECTOR_VISUALS
         .comment("Maximum number of exact veins displayed at once. Closest veins are prioritized.")
         .defineInRange("visibleVeinsMax", 10, 0, 256);
     public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_BLOCK_EDGE_INSET = PROJECTOR_VISUALS
         .comment("Ponder-only hologram face offset from block borders. Negative expands, positive shrinks.")
         .defineInRange("ponderBlockEdgeInset", 0.0D, -0.45D, 0.45D);
+    public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_GUIDE_LINE_WIDTH = PROJECTOR_VISUALS
+        .comment("Ponder projector dashed guide line thickness.")
+        .defineInRange("ponderGuideLineWidth", 0.5D, 0.2D, 1.0D);
     public static final ForgeConfigSpec.IntValue PROJECTOR_PONDER_DEBUG_REDSTONE_Y_OFFSET = PROJECTOR_VISUALS
         .comment("Debug: vertical offset for projector Ponder redstone cluster (-1..1 from default Y=1).")
         .defineInRange("ponderDebugRedstoneYOffset", 0, -1, 1);
