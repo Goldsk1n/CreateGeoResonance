@@ -12,6 +12,7 @@ import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.render.CachedBuffers;
 import net.createmod.catnip.render.SuperByteBuffer;
+import net.createmod.ponder.api.level.PonderLevel;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
@@ -46,12 +47,13 @@ import java.util.Comparator;
 
 public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
-    private static final float BLOCK_EDGE_INSET = 0.0F;
+    private static final float BLOCK_EDGE_INSET = -0.09F;
     private static final float DASH_LENGTH = 0.65F;
     private static final float DASH_GAP = 0.4F;
-    private static final float GUIDE_START_X = 0.5F;
-    private static final float GUIDE_START_Y = 0.06F;
-    private static final float GUIDE_START_Z = 0.5F;
+    private static final float GUIDE_CENTER_X = 0.5F;
+    private static final float GUIDE_CENTER_Y = 0.73F;
+    private static final float GUIDE_CENTER_Z = 0.5F;
+    private static final float GUIDE_FORWARD_OFFSET = 0.34F;
     private static final Direction LOCAL_SHAFT_AXIS = Direction.SOUTH;
     private static final float SHAFT_PIVOT_X = 8.0F;
     private static final float SHAFT_PIVOT_Y = 8.0F;
@@ -62,6 +64,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float SEISMOGRAM_RIGHT_OFFSET_X = 17.4F / 16.0F;
     private static final float SEISMOGRAM_RIGHT_OFFSET_Y = 11.95F / 16.0F;
     private static final float SEISMOGRAM_RIGHT_OFFSET_Z = -2.475F / 16.0F;
+    private static final float MIN_EXACT_FILL_ALPHA = 0.38F;
+    private static final float MIN_EXACT_EDGE_ALPHA = 0.9F;
+    private static final float EXACT_GUIDE_ALPHA_SCALE = 0.82F;
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
         ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
@@ -103,7 +108,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
 
         List<SeismicProjectorBlockEntity.ExactVein> exactVeins = blockEntity.getConfirmedVeins();
-        List<RenderableVein> renderableVeins = filterRenderableVeins(blockEntity, exactVeins);
+        boolean ponderLevel = blockEntity.getLevel() instanceof PonderLevel;
+        List<RenderableVein> renderableVeins = ponderLevel
+            ? toRenderableVeins(exactVeins)
+            : filterRenderableVeins(blockEntity, exactVeins);
         List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates = blockEntity.getTriangulatedCandidates();
         int visibleVeinsMax = Math.max(0, Config.PROJECTOR_VISIBLE_VEINS_MAX.get());
         List<RenderableVein> visibleVeins = limitVisibleVeins(blockEntity.getBlockPos(), renderableVeins, visibleVeinsMax);
@@ -120,6 +128,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
         float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
         float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
+        if (renderExact) {
+            fillAlpha = Math.max(fillAlpha, MIN_EXACT_FILL_ALPHA);
+            edgeAlpha = Math.max(edgeAlpha, MIN_EXACT_EDGE_ALPHA);
+        }
         if (edgeAlpha <= 0.0F && (!fillEnabled || fillAlpha <= 0.0F)) {
             return;
         }
@@ -187,17 +199,18 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-                float startX = GUIDE_START_X;
-                float startY = GUIDE_START_Y;
-                float startZ = GUIDE_START_Z;
-
+                float[] guideStart = guideStartForFacing(facing);
+                float startX = guideStart[0];
+                float startY = guideStart[1];
+                float startZ = guideStart[2];
                 if (renderExact) {
+                    float exactGuideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
                     for (RenderableVein vein : visibleVeins) {
                         float[] centroid = veinCentroid(origin, vein.blocks());
                         float[] color = colorFor(vein.type());
                         drawDashedLine(bufferBuilder, poseStack.last().pose(),
                             startX, startY, startZ, centroid[0], centroid[1], centroid[2],
-                            color[0], color[1], color[2], edgeAlpha);
+                            color[0], color[1], color[2], exactGuideAlpha);
                     }
                 } else {
                     for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
@@ -250,6 +263,17 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             }
         }
         return filtered;
+    }
+
+    private static List<RenderableVein> toRenderableVeins(List<SeismicProjectorBlockEntity.ExactVein> exactVeins) {
+        List<RenderableVein> renderable = new ArrayList<>();
+        for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+            if (vein.blocks().isEmpty()) {
+                continue;
+            }
+            renderable.add(new RenderableVein(vein.type(), List.copyOf(vein.blocks())));
+        }
+        return renderable;
     }
 
     private static List<RenderableVein> limitVisibleVeins(BlockPos origin, List<RenderableVein> veins, int maxVisible) {
@@ -530,6 +554,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
         double invCount = 1.0D / blocks.size();
         return new float[] {(float) (sx * invCount), (float) (sy * invCount), (float) (sz * invCount)};
+    }
+
+    private static float[] guideStartForFacing(Direction facing) {
+        float startX = GUIDE_CENTER_X + facing.getStepX() * GUIDE_FORWARD_OFFSET;
+        float startY = GUIDE_CENTER_Y;
+        float startZ = GUIDE_CENTER_Z + facing.getStepZ() * GUIDE_FORWARD_OFFSET;
+        return new float[] {startX, startY, startZ};
     }
 
     private static float[] colorFor(SeismicAnomalyType type) {

@@ -89,8 +89,10 @@
   "creategeoresonance.ponder.seismic_station/operation.text_2": "Insert paper and ink sac on the table side.",
   "creategeoresonance.ponder.seismic_station/operation.text_3": "Right-click the station to start scanning and generate a seismogram.",
   "creategeoresonance.ponder.seismic_projector/triangulation.header": "Project anomalies from two seismograms",
-  "creategeoresonance.ponder.seismic_projector/triangulation.text_1": "The projector needs rotation from the rear shaft input.",
-  "creategeoresonance.ponder.seismic_projector/triangulation.text_2": "Load two seismograms from different stations in the same dimension.",
-  "creategeoresonance.ponder.seismic_projector/triangulation.text_3": "When both maps are valid and spaced apart, holographic veins are projected.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_1": "Place the Seismic Projector first.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_2": "Load the first seismogram.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_3": "Load the second seismogram. Stations must be in the same dimension and at least 8 blocks apart.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_4": "Power the rear shaft input to start projection.",
+  "creategeoresonance.ponder.seismic_projector/triangulation.text_5": "With two valid records, holograms appear at estimated depth.",
   "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
 }

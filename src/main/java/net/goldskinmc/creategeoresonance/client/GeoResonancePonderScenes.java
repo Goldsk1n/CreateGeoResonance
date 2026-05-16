@@ -11,16 +11,23 @@ import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.SceneBuildingUtil;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Rotations;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.joml.Vector3f;
+
+import java.util.List;
 
 public final class GeoResonancePonderScenes {
     private GeoResonancePonderScenes() {
@@ -137,37 +144,96 @@ public final class GeoResonancePonderScenes {
         CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         scene.title("seismic_projector/triangulation", "Project anomalies from two seismograms");
         scene.configureBasePlate(0, 0, 5);
-        scene.showBasePlate();
+        scene.scaleSceneView(0.9F);
 
-        BlockPos motor = util.grid().at(1, 1, 2);
-        BlockPos shaft = util.grid().at(2, 1, 2);
-        BlockPos projector = util.grid().at(3, 1, 2);
+        BlockPos motor = util.grid().at(1, 3, 2);
+        BlockPos shaft = util.grid().at(2, 3, 2);
+        BlockPos projector = util.grid().at(3, 3, 2);
+        BlockPos diamondProjection = util.grid().at(2, 0, 0);
+        BlockPos redstoneA = util.grid().at(0, 1, 2);
+        BlockPos redstoneB = util.grid().at(1, 1, 2);
+        BlockPos redstoneC = util.grid().at(0, 1, 3);
+        BlockPos redstoneD = util.grid().at(1, 1, 3);
+        List<BlockPos> redstoneCluster = List.of(redstoneA, redstoneB, redstoneC, redstoneD);
 
-        scene.world().showSection(util.select().fromTo(0, 0, 0, 5, 1, 5), Direction.DOWN);
+        // Re-orient the setup so motor -> shaft -> projector input line is valid on X axis.
+        scene.world().modifyBlock(projector, state -> state
+            .setValue(HorizontalDirectionalBlock.FACING, Direction.EAST)
+            .setValue(SeismicProjectorBlock.ACTIVE, false), false);
+        scene.world().modifyBlock(motor, state -> state.hasProperty(BlockStateProperties.FACING)
+            ? state.setValue(BlockStateProperties.FACING, Direction.EAST)
+            : state, false);
+
+        scene.world().showSection(util.select().layer(2), Direction.UP);
+        scene.world().showSection(util.select().position(projector), Direction.UP);
         scene.idle(20);
 
-        scene.world().setKineticSpeed(util.select().position(motor), 96.0F);
-        scene.overlay().showText(80)
-            .text("The projector needs rotation from the rear shaft input.")
-            .pointAt(util.vector().centerOf(shaft))
+        scene.overlay().showText(70)
+            .text("Place the Seismic Projector first.")
+            .pointAt(util.vector().topOf(projector))
             .placeNearTarget();
-        scene.idle(50);
+        scene.idle(75);
 
         scene.overlay().showControls(util.vector().blockSurface(projector, Direction.UP), Pointing.DOWN, 40)
             .rightClick()
             .withItem(createPonderSeismogramStack());
-        scene.overlay().showText(90)
-            .text("Load two seismograms from different stations in the same dimension.")
+        scene.overlay().showText(70)
+            .text("Load the first seismogram.")
             .pointAt(util.vector().topOf(projector))
             .placeNearTarget();
-        scene.idle(60);
+        scene.idle(10);
+        setProjectorNodeData(scene, util, projector,
+            diamondProjection, redstoneCluster,
+            false, true, false);
+        scene.effects().indicateSuccess(projector);
+        scene.idle(65);
 
+        scene.overlay().showControls(util.vector().blockSurface(projector, Direction.UP), Pointing.DOWN, 45)
+            .rightClick()
+            .withItem(createPonderSeismogramStack());
+        scene.overlay().showText(100)
+            .text("Load the second seismogram. Stations must be in the same dimension and at least 8 blocks apart.")
+            .pointAt(util.vector().topOf(projector))
+            .placeNearTarget();
+        scene.idle(12);
+        setProjectorNodeData(scene, util, projector,
+            diamondProjection, redstoneCluster,
+            true, true, false);
+        scene.effects().indicateSuccess(projector);
+        scene.idle(95);
+
+        scene.world().showSection(util.select().position(shaft), Direction.UP);
+        scene.idle(14);
+        scene.world().showSection(util.select().position(motor), Direction.UP);
+        scene.idle(10);
+        scene.overlay().showText(80)
+            .text("Power the rear shaft input to start projection.")
+            .pointAt(util.vector().centerOf(shaft))
+            .placeNearTarget();
+        scene.idle(20);
+        scene.world().setKineticSpeed(util.select().position(motor), 96.0F);
+        scene.world().setKineticSpeed(util.select().position(shaft), 96.0F);
+        scene.world().setKineticSpeed(util.select().position(projector), 96.0F);
+        scene.effects().rotationSpeedIndicator(shaft);
+        setProjectorNodeData(scene, util, projector,
+            diamondProjection, redstoneCluster,
+            true, true, true);
+        scene.world().modifyBlock(projector, state -> state.setValue(SeismicProjectorBlock.ACTIVE, true), false);
+        scene.idle(20);
+        scene.world().showSection(util.select().position(diamondProjection), Direction.UP);
+        scene.world().showSection(util.select().layer(1), Direction.DOWN);
+        scene.world().showSection(util.select().layer(0), Direction.DOWN);
+        scene.world().showSection(util.select().position(redstoneA), Direction.UP);
+        scene.world().showSection(util.select().position(redstoneB), Direction.UP);
+        scene.world().showSection(util.select().position(redstoneC), Direction.UP);
+        scene.world().showSection(util.select().position(redstoneD), Direction.UP);
+        scene.idle(45);
         scene.overlay().showText(90)
             .colored(PonderPalette.GREEN)
-            .text("When both maps are valid and spaced apart, holographic veins are projected.")
+            .text("With two valid records, holograms appear at estimated depth.")
             .pointAt(util.vector().topOf(projector))
             .placeNearTarget();
-        scene.idle(60);
+        scene.idle(100);
     }
 
     private static void setActorArmPose(CreateSceneBuilder scene, ElementLink<EntityElement> actor, Rotations pose) {
@@ -191,5 +257,93 @@ public final class GeoResonancePonderScenes {
         tag.put("GeoSeismogram", new CompoundTag());
         stack.setTag(tag);
         return stack;
+    }
+
+    private static void setProjectorNodeData(CreateSceneBuilder scene, SceneBuildingUtil util, BlockPos projectorPos,
+                                             BlockPos diamondOre, List<BlockPos> redstoneCluster,
+                                             boolean twoNodes, boolean includeSignals, boolean includeDepthTargets) {
+        scene.world().modifyBlockEntityNBT(util.select().position(projectorPos), SeismicProjectorBlockEntity.class, tag -> {
+            ListTag nodes = new ListTag();
+            nodes.add(createProjectorNodeTag(
+                0, 64, 0,
+                -12, 70, -8,
+                "minecraft:overworld",
+                includeSignals ? List.of(
+                    createSignalTag("DIAMOND", 24, 12, includeDepthTargets ? 18 : 62),
+                    createSignalTag("REDSTONE", 18, 14, includeDepthTargets ? 20 : 63)
+                ) : List.of(),
+                includeDepthTargets ? List.of(
+                    createExactClusterTag("DIAMOND", List.of(diamondOre)),
+                    createExactClusterTag("REDSTONE", redstoneCluster)
+                ) : List.of()
+            ));
+            if (twoNodes) {
+                nodes.add(createProjectorNodeTag(
+                    16, 64, 16,
+                    18, 72, 14,
+                    "minecraft:overworld",
+                    includeSignals ? List.of(
+                        createSignalTag("DIAMOND", 23, 11, includeDepthTargets ? 17 : 61),
+                        createSignalTag("REDSTONE", 17, 13, includeDepthTargets ? 20 : 63)
+                    ) : List.of(),
+                    includeDepthTargets ? List.of(
+                        createExactClusterTag("DIAMOND", List.of(diamondOre)),
+                        createExactClusterTag("REDSTONE", redstoneCluster)
+                    ) : List.of()
+                ));
+            }
+            tag.put("Nodes", nodes);
+        }, false);
+    }
+
+    private static CompoundTag createProjectorNodeTag(int centerX, int centerY, int centerZ,
+                                                      int stationX, int stationY, int stationZ,
+                                                      String stationDimension,
+                                                      List<CompoundTag> signals,
+                                                      List<CompoundTag> exactClusters) {
+        CompoundTag node = new CompoundTag();
+        node.putInt("CenterX", centerX);
+        node.putInt("CenterY", centerY);
+        node.putInt("CenterZ", centerZ);
+        node.putInt("StationX", stationX);
+        node.putInt("StationY", stationY);
+        node.putInt("StationZ", stationZ);
+        node.putString("StationDimension", stationDimension);
+
+        ListTag signalsTag = new ListTag();
+        for (CompoundTag signal : signals) {
+            signalsTag.add(signal);
+        }
+        node.put("Signals", signalsTag);
+        ListTag exactClustersTag = new ListTag();
+        for (CompoundTag cluster : exactClusters) {
+            exactClustersTag.add(cluster);
+        }
+        node.put("ExactClusters", exactClustersTag);
+        return node;
+    }
+
+    private static CompoundTag createSignalTag(String type, int worldX, int worldZ, int approxY) {
+        CompoundTag signal = new CompoundTag();
+        signal.putString("Type", type);
+        signal.putInt("X", worldX);
+        signal.putInt("Z", worldZ);
+        signal.putInt("Y", approxY);
+        return signal;
+    }
+
+    private static CompoundTag createExactClusterTag(String type, List<BlockPos> blocks) {
+        CompoundTag cluster = new CompoundTag();
+        cluster.putString("ClusterType", type);
+        ListTag blockList = new ListTag();
+        for (BlockPos blockPos : blocks) {
+            CompoundTag blockTag = new CompoundTag();
+            blockTag.putInt("BlockX", blockPos.getX());
+            blockTag.putInt("BlockY", blockPos.getY());
+            blockTag.putInt("BlockZ", blockPos.getZ());
+            blockList.add(blockTag);
+        }
+        cluster.put("Blocks", blockList);
+        return cluster;
     }
 }

@@ -32,10 +32,20 @@ import java.util.Set;
 
 public final class SeismicScanQueue {
     private static final Deque<SeismicScanJob> JOBS = new ArrayDeque<>();
-    private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
-        ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
     private SeismicScanQueue() {
+    }
+
+    private static TagKey<Block> createZincOresTag() {
+        return TagHolder.CREATE_ZINC_ORES;
+    }
+
+    private static final class TagHolder {
+        private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
+            ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
+
+        private TagHolder() {
+        }
     }
 
     public static void enqueue(SeismicScanRequest request) {
@@ -376,7 +386,7 @@ public final class SeismicScanQueue {
                             type = SeismicAnomalyType.EMERALD;
                         } else if (detectDiamond && state.is(BlockTags.DIAMOND_ORES)) {
                             type = SeismicAnomalyType.DIAMOND;
-                        } else if (detectZinc && state.is(CREATE_ZINC_ORES)) {
+                        } else if (detectZinc && state.is(createZincOresTag())) {
                             type = SeismicAnomalyType.ZINC;
                         } else {
                             continue;
