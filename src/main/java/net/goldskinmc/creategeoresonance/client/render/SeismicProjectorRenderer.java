@@ -385,20 +385,25 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private static List<LineSegment> buildJoinedEdges(List<FaceQuad> faces) {
-        Map<FloatEdgeKey, Integer> edgeCounts = new HashMap<>();
+        Map<FloatFaceEdgeKey, Integer> orientedCounts = new HashMap<>();
         for (FaceQuad face : faces) {
-            addFaceEdge(edgeCounts, face.x1(), face.y1(), face.z1(), face.x2(), face.y2(), face.z2());
-            addFaceEdge(edgeCounts, face.x2(), face.y2(), face.z2(), face.x3(), face.y3(), face.z3());
-            addFaceEdge(edgeCounts, face.x3(), face.y3(), face.z3(), face.x4(), face.y4(), face.z4());
-            addFaceEdge(edgeCounts, face.x4(), face.y4(), face.z4(), face.x1(), face.y1(), face.z1());
+            Direction normal = face.normal();
+            addFaceEdge(orientedCounts, normal, face.x1(), face.y1(), face.z1(), face.x2(), face.y2(), face.z2());
+            addFaceEdge(orientedCounts, normal, face.x2(), face.y2(), face.z2(), face.x3(), face.y3(), face.z3());
+            addFaceEdge(orientedCounts, normal, face.x3(), face.y3(), face.z3(), face.x4(), face.y4(), face.z4());
+            addFaceEdge(orientedCounts, normal, face.x4(), face.y4(), face.z4(), face.x1(), face.y1(), face.z1());
         }
 
+        Set<FloatEdgeKey> deduped = new HashSet<>();
         List<LineSegment> joined = new ArrayList<>();
-        for (Map.Entry<FloatEdgeKey, Integer> entry : edgeCounts.entrySet()) {
+        for (Map.Entry<FloatFaceEdgeKey, Integer> entry : orientedCounts.entrySet()) {
             if ((entry.getValue() & 1) == 0) {
                 continue;
             }
-            FloatEdgeKey edge = entry.getKey();
+            FloatEdgeKey edge = entry.getKey().edge();
+            if (!deduped.add(edge)) {
+                continue;
+            }
             joined.add(new LineSegment(
                 edge.a().x(), edge.a().y(), edge.a().z(),
                 edge.b().x(), edge.b().y(), edge.b().z()
@@ -407,9 +412,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return joined;
     }
 
-    private static void addFaceEdge(Map<FloatEdgeKey, Integer> counts,
+    private static void addFaceEdge(Map<FloatFaceEdgeKey, Integer> counts, Direction normal,
                                     float x1, float y1, float z1, float x2, float y2, float z2) {
-        FloatEdgeKey key = FloatEdgeKey.of(x1, y1, z1, x2, y2, z2);
+        FloatEdgeKey edge = FloatEdgeKey.of(x1, y1, z1, x2, y2, z2);
+        FloatFaceEdgeKey key = new FloatFaceEdgeKey(normal, edge);
         counts.merge(key, 1, Integer::sum);
     }
 
@@ -439,12 +445,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float maxZ = z + 1.0F - inset;
 
         switch (direction) {
-            case DOWN -> faces.add(new FaceQuad(minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ));
-            case UP -> faces.add(new FaceQuad(minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ));
-            case NORTH -> faces.add(new FaceQuad(minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ));
-            case SOUTH -> faces.add(new FaceQuad(minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ));
-            case WEST -> faces.add(new FaceQuad(minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ));
-            case EAST -> faces.add(new FaceQuad(maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
+            case DOWN -> faces.add(new FaceQuad(Direction.DOWN, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ));
+            case UP -> faces.add(new FaceQuad(Direction.UP, minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ));
+            case NORTH -> faces.add(new FaceQuad(Direction.NORTH, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ));
+            case SOUTH -> faces.add(new FaceQuad(Direction.SOUTH, minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ));
+            case WEST -> faces.add(new FaceQuad(Direction.WEST, minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ));
+            case EAST -> faces.add(new FaceQuad(Direction.EAST, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
         }
     }
 
@@ -708,10 +714,14 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
     }
 
+    private record FloatFaceEdgeKey(Direction normal, FloatEdgeKey edge) {
+    }
+
     private record LineSegment(float x1, float y1, float z1, float x2, float y2, float z2) {
     }
 
     private record FaceQuad(
+        Direction normal,
         float x1, float y1, float z1,
         float x2, float y2, float z2,
         float x3, float y3, float z3,
