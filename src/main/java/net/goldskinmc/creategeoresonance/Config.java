@@ -99,12 +99,18 @@ public class Config {
     public static final ForgeConfigSpec.IntValue PROJECTOR_EDGE_ALPHA = PROJECTOR_VISUALS
         .comment("Outline alpha channel (0-255).")
         .defineInRange("edgeAlpha", 220, 0, 255);
+    public static final ForgeConfigSpec.DoubleValue PROJECTOR_BLOCK_EDGE_INSET = PROJECTOR_VISUALS
+        .comment("World hologram face offset from block borders. Negative expands, positive shrinks.")
+        .defineInRange("blockEdgeInset", 0.0D, -0.45D, 0.45D);
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_GUIDE_LINES_ENABLED = PROJECTOR_VISUALS
         .comment("Render dashed guide lines from the projector to detected targets.")
         .define("guideLinesEnabled", true);
     public static final ForgeConfigSpec.IntValue PROJECTOR_VISIBLE_VEINS_MAX = PROJECTOR_VISUALS
         .comment("Maximum number of exact veins displayed at once. Closest veins are prioritized.")
         .defineInRange("visibleVeinsMax", 10, 0, 256);
+    public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_BLOCK_EDGE_INSET = PROJECTOR_VISUALS
+        .comment("Ponder-only hologram face offset from block borders. Negative expands, positive shrinks.")
+        .defineInRange("ponderBlockEdgeInset", 0.0D, -0.45D, 0.45D);
 
     static {
         STAGE1.pop();
