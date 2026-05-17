@@ -160,6 +160,7 @@ public final class GeoResonancePonderScenes {
         BlockPos redstoneD = util.grid().at(1, 0, 3);
         List<BlockPos> redstoneCluster = List.of(redstoneA, redstoneB, redstoneC, redstoneD);
         Vec3 seismogramPoint = projectorRearUpperRightPoint(util, projector, Direction.EAST);
+        Vec3 seismogramHintPoint = projectorFrontUpperRightPoint(util, projector, Direction.EAST);
         Vec3 redstoneCenter = clusterCenter(util, redstoneCluster);
         applyProjectorPonderTerrain(scene, util, diamondProjection, redstoneCluster);
 
@@ -187,7 +188,7 @@ public final class GeoResonancePonderScenes {
             .placeNearTarget();
         scene.idle(75);
 
-        scene.overlay().showControls(util.vector().blockSurface(projector, Direction.UP), Pointing.DOWN, 40)
+        scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 40)
             .rightClick()
             .withItem(createPonderSeismogramStack());
         scene.overlay().showText(70)
@@ -201,7 +202,7 @@ public final class GeoResonancePonderScenes {
         scene.effects().indicateSuccess(projector);
         scene.idle(65);
 
-        scene.overlay().showControls(util.vector().blockSurface(projector, Direction.UP), Pointing.DOWN, 45)
+        scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 45)
             .rightClick()
             .withItem(createPonderSeismogramStack());
         scene.overlay().showText(100)
@@ -292,6 +293,28 @@ public final class GeoResonancePonderScenes {
         tag.put("GeoSeismogram", new CompoundTag());
         stack.setTag(tag);
         return stack;
+    }
+
+    private static Vec3 projectorFrontUpperLeftPoint(SceneBuildingUtil util, BlockPos projectorPos, Direction facing) {
+        Direction front = facing;
+        Direction left = facing.getCounterClockWise();
+        Vec3 center = util.vector().centerOf(projectorPos);
+        return center.add(
+            front.getStepX() * 0.42D + left.getStepX() * 0.42D,
+            0.42D,
+            front.getStepZ() * 0.42D + left.getStepZ() * 0.42D
+        );
+    }
+
+    private static Vec3 projectorFrontUpperRightPoint(SceneBuildingUtil util, BlockPos projectorPos, Direction facing) {
+        Direction front = facing;
+        Direction right = facing.getClockWise();
+        Vec3 center = util.vector().centerOf(projectorPos);
+        return center.add(
+            front.getStepX() * 0.42D + right.getStepX() * 0.42D,
+            0.42D,
+            front.getStepZ() * 0.42D + right.getStepZ() * 0.42D
+        );
     }
 
     private static Vec3 projectorRearUpperRightPoint(SceneBuildingUtil util, BlockPos projectorPos, Direction facing) {
