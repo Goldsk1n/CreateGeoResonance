@@ -300,13 +300,17 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         if (outliner == null) {
             return;
         }
+        BlockState projectorState = level.getBlockState(projectorPos);
+        Direction facing = projectorState.hasProperty(HorizontalDirectionalBlock.FACING)
+            ? projectorState.getValue(HorizontalDirectionalBlock.FACING)
+            : Direction.NORTH;
         int index = 0;
         for (RenderableVein vein : visibleVeins) {
             if (index >= MAX_PONDER_OUTLINES) {
                 break;
             }
             Object key = ponderOutlineKey(projectorPos, index);
-            outliner.showOutline(key, new PonderNoDepthVeinOutline(projectorPos, vein.type(), vein.blocks()))
+            outliner.showOutline(key, new PonderNoDepthVeinOutline(projectorPos, facing, vein.type(), vein.blocks()))
                 .lineWidth(0.05F)
                 .disableCull();
             outliner.keep(key);
@@ -680,11 +684,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
     private static final class PonderNoDepthVeinOutline extends Outline {
         private final BlockPos projectorPos;
+        private final Direction facing;
         private final SeismicAnomalyType type;
         private final List<BlockPos> blocks;
 
-        private PonderNoDepthVeinOutline(BlockPos projectorPos, SeismicAnomalyType type, List<BlockPos> blocks) {
+        private PonderNoDepthVeinOutline(BlockPos projectorPos, Direction facing, SeismicAnomalyType type, List<BlockPos> blocks) {
             this.projectorPos = projectorPos.immutable();
+            this.facing = facing;
             this.type = type;
             this.blocks = List.copyOf(blocks);
         }
@@ -742,6 +748,24 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                             edge.x1(), edge.y1(), edge.z1(),
                             edge.x2(), edge.y2(), edge.z2(),
                             color[0], color[1], color[2], edgeAlpha);
+                    }
+                    BufferUploader.drawWithShader(builder.end());
+                }
+
+                if (Config.PROJECTOR_GUIDE_LINES_ENABLED.get() && edgeAlpha > 0.0F) {
+                    Tesselator tesselator = Tesselator.getInstance();
+                    BufferBuilder builder = tesselator.getBuilder();
+                    RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                    builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                    float[] guideStart = guideStartForFacing(facing);
+                    float guideHalfWidth = guideLineHalfWidth(ponderGuideLineWidth());
+                    float guideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
+                    for (RenderableVein vein : List.of(new RenderableVein(type, blocks))) {
+                        float[] centroid = veinCentroid(projectorPos, vein.blocks());
+                        drawDashedLineThick(builder, matrix,
+                            guideStart[0], guideStart[1], guideStart[2],
+                            centroid[0], centroid[1], centroid[2],
+                            color[0], color[1], color[2], guideAlpha, guideHalfWidth);
                     }
                     BufferUploader.drawWithShader(builder.end());
                 }
