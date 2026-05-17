@@ -182,18 +182,17 @@ public final class GeoResonancePonderScenes {
         scene.idle(16);
         scene.world().showSection(util.select().position(projector), Direction.DOWN);
         scene.idle(20);
-        scene.addKeyframe();
-
-        scene.overlay().showText(70)
+        scene.overlay().showText(55)
             .text("Place the Seismic Projector first.")
             .pointAt(util.vector().topOf(projector))
             .placeNearTarget();
         scene.idle(75);
 
+        scene.addKeyframe();
         scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 40)
             .rightClick()
             .withItem(createPonderSeismogramStack());
-        scene.overlay().showText(70)
+        scene.overlay().showText(55)
             .text("Load the first seismogram.")
             .pointAt(seismogramPoint)
             .placeNearTarget();
@@ -208,7 +207,7 @@ public final class GeoResonancePonderScenes {
         scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 45)
             .rightClick()
             .withItem(createPonderSeismogramStack());
-        scene.overlay().showText(100)
+        scene.overlay().showText(85)
             .text("Load the second seismogram. Stations must be in the same dimension and at least 8 blocks apart.")
             .pointAt(seismogramPoint)
             .placeNearTarget();
@@ -224,7 +223,7 @@ public final class GeoResonancePonderScenes {
         scene.idle(14);
         scene.world().showSection(util.select().position(motor), Direction.DOWN);
         scene.idle(10);
-        scene.overlay().showText(80)
+        scene.overlay().showText(65)
             .text("Power the rear shaft input to start projection.")
             .pointAt(util.vector().centerOf(shaft))
             .placeNearTarget();
@@ -239,8 +238,7 @@ public final class GeoResonancePonderScenes {
         scene.world().modifyBlock(projector, state -> state.setValue(SeismicProjectorBlock.ACTIVE, true), false);
         scene.idle(20);
         scene.idle(45);
-        scene.addKeyframe();
-        scene.overlay().showText(90)
+        scene.overlay().showText(75)
             .colored(PonderPalette.GREEN)
             .text("With two valid records, holograms appear at estimated depth.")
             .pointAt(redstoneCenter)
