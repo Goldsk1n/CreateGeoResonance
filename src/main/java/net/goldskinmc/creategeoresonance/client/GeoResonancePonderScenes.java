@@ -216,9 +216,9 @@ public final class GeoResonancePonderScenes {
         scene.effects().indicateSuccess(projector);
         scene.idle(95);
 
-        scene.world().showSection(util.select().position(shaft), Direction.UP);
+        scene.world().showSection(util.select().position(shaft), Direction.DOWN);
         scene.idle(14);
-        scene.world().showSection(util.select().position(motor), Direction.UP);
+        scene.world().showSection(util.select().position(motor), Direction.DOWN);
         scene.idle(10);
         scene.overlay().showText(80)
             .text("Power the rear shaft input to start projection.")
