@@ -179,8 +179,10 @@ public final class GeoResonancePonderScenes {
         for (BlockPos redstonePos : redstoneCluster) {
             scene.world().showSection(util.select().position(redstonePos), Direction.UP);
         }
-        scene.world().showSection(util.select().position(projector), Direction.UP);
+        scene.idle(16);
+        scene.world().showSection(util.select().position(projector), Direction.DOWN);
         scene.idle(20);
+        scene.addKeyframe();
 
         scene.overlay().showText(70)
             .text("Place the Seismic Projector first.")
@@ -201,6 +203,7 @@ public final class GeoResonancePonderScenes {
             false, true, false);
         scene.effects().indicateSuccess(projector);
         scene.idle(65);
+        scene.addKeyframe();
 
         scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 45)
             .rightClick()
@@ -215,6 +218,7 @@ public final class GeoResonancePonderScenes {
             true, true, false);
         scene.effects().indicateSuccess(projector);
         scene.idle(95);
+        scene.addKeyframe();
 
         scene.world().showSection(util.select().position(shaft), Direction.DOWN);
         scene.idle(14);
@@ -235,6 +239,7 @@ public final class GeoResonancePonderScenes {
         scene.world().modifyBlock(projector, state -> state.setValue(SeismicProjectorBlock.ACTIVE, true), false);
         scene.idle(20);
         scene.idle(45);
+        scene.addKeyframe();
         scene.overlay().showText(90)
             .colored(PonderPalette.GREEN)
             .text("With two valid records, holograms appear at estimated depth.")
