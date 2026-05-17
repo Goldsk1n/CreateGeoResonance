@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -158,6 +159,8 @@ public final class GeoResonancePonderScenes {
         BlockPos redstoneC = util.grid().at(0, 0, 3);
         BlockPos redstoneD = util.grid().at(1, 0, 3);
         List<BlockPos> redstoneCluster = List.of(redstoneA, redstoneB, redstoneC, redstoneD);
+        Vec3 seismogramPoint = projectorRearUpperRightPoint(util, projector, Direction.EAST);
+        Vec3 redstoneCenter = clusterCenter(util, redstoneCluster);
         applyProjectorPonderTerrain(scene, util, diamondProjection, redstoneCluster);
 
         // Re-orient the setup so motor -> shaft -> projector input line is valid on X axis.
@@ -189,7 +192,7 @@ public final class GeoResonancePonderScenes {
             .withItem(createPonderSeismogramStack());
         scene.overlay().showText(70)
             .text("Load the first seismogram.")
-            .pointAt(util.vector().topOf(projector))
+            .pointAt(seismogramPoint)
             .placeNearTarget();
         scene.idle(10);
         setProjectorNodeData(scene, util, projector,
@@ -203,7 +206,7 @@ public final class GeoResonancePonderScenes {
             .withItem(createPonderSeismogramStack());
         scene.overlay().showText(100)
             .text("Load the second seismogram. Stations must be in the same dimension and at least 8 blocks apart.")
-            .pointAt(util.vector().topOf(projector))
+            .pointAt(seismogramPoint)
             .placeNearTarget();
         scene.idle(12);
         setProjectorNodeData(scene, util, projector,
@@ -234,7 +237,7 @@ public final class GeoResonancePonderScenes {
         scene.overlay().showText(90)
             .colored(PonderPalette.GREEN)
             .text("With two valid records, holograms appear at estimated depth.")
-            .pointAt(util.vector().topOf(projector))
+            .pointAt(redstoneCenter)
             .placeNearTarget();
         scene.idle(100);
     }
@@ -289,6 +292,34 @@ public final class GeoResonancePonderScenes {
         tag.put("GeoSeismogram", new CompoundTag());
         stack.setTag(tag);
         return stack;
+    }
+
+    private static Vec3 projectorRearUpperRightPoint(SceneBuildingUtil util, BlockPos projectorPos, Direction facing) {
+        Direction rear = facing.getOpposite();
+        Direction right = facing.getClockWise();
+        Vec3 center = util.vector().centerOf(projectorPos);
+        return center.add(
+            rear.getStepX() * 0.42D + right.getStepX() * 0.42D,
+            0.42D,
+            rear.getStepZ() * 0.42D + right.getStepZ() * 0.42D
+        );
+    }
+
+    private static Vec3 clusterCenter(SceneBuildingUtil util, List<BlockPos> cluster) {
+        if (cluster.isEmpty()) {
+            return util.vector().of(0.5D, 0.5D, 0.5D);
+        }
+        double sx = 0.0D;
+        double sy = 0.0D;
+        double sz = 0.0D;
+        for (BlockPos pos : cluster) {
+            Vec3 center = util.vector().centerOf(pos);
+            sx += center.x;
+            sy += center.y;
+            sz += center.z;
+        }
+        double inv = 1.0D / cluster.size();
+        return new Vec3(sx * inv, sy * inv, sz * inv);
     }
 
     private static void setProjectorNodeData(CreateSceneBuilder scene, SceneBuildingUtil util, BlockPos projectorPos,

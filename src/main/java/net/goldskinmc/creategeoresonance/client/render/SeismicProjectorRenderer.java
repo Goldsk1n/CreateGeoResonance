@@ -136,7 +136,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             return;
         }
         if (ponderLevel) {
-            renderPonderOutlines((PonderLevel) blockEntity.getLevel(), blockEntity.getBlockPos(), facing, visibleVeins);
+            renderPonderOutlines((PonderLevel) blockEntity.getLevel(), blockEntity.getBlockPos(), visibleVeins);
             return;
         }
 
@@ -295,7 +295,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return renderable;
     }
 
-    private static void renderPonderOutlines(PonderLevel level, BlockPos projectorPos, Direction facing, List<RenderableVein> visibleVeins) {
+    private static void renderPonderOutlines(PonderLevel level, BlockPos projectorPos, List<RenderableVein> visibleVeins) {
         Outliner outliner = resolvePonderOutliner(level);
         if (outliner == null) {
             return;
@@ -306,7 +306,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 break;
             }
             Object key = ponderOutlineKey(projectorPos, index);
-            outliner.showOutline(key, new PonderNoDepthVeinOutline(projectorPos, facing, vein.type(), vein.blocks()))
+            outliner.showOutline(key, new PonderNoDepthVeinOutline(projectorPos, vein.type(), vein.blocks()))
                 .lineWidth(0.05F)
                 .disableCull();
             outliner.keep(key);
@@ -680,13 +680,11 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
     private static final class PonderNoDepthVeinOutline extends Outline {
         private final BlockPos projectorPos;
-        private final Direction facing;
         private final SeismicAnomalyType type;
         private final List<BlockPos> blocks;
 
-        private PonderNoDepthVeinOutline(BlockPos projectorPos, Direction facing, SeismicAnomalyType type, List<BlockPos> blocks) {
+        private PonderNoDepthVeinOutline(BlockPos projectorPos, SeismicAnomalyType type, List<BlockPos> blocks) {
             this.projectorPos = projectorPos.immutable();
-            this.facing = facing;
             this.type = type;
             this.blocks = List.copyOf(blocks);
         }
@@ -699,13 +697,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             float[] color = colorFor(type);
             float fillAlpha = Math.max(0.26F, Math.max(MIN_EXACT_FILL_ALPHA, Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F)));
             float edgeAlpha = Math.max(MIN_EXACT_EDGE_ALPHA, Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F));
-            float guideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
-            boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
             float inset = ponderBlockInset();
             List<FaceQuad> surfaceFaces = buildSurfaceFaces(blocks, projectorPos, inset);
             List<LineSegment> surfaceEdges = buildJoinedEdges(surfaceFaces);
-            float[] guideStart = guideStartForFacing(facing);
-            float[] centroid = veinCentroid(projectorPos, blocks);
 
             poseStack.pushPose();
             poseStack.translate(
@@ -752,18 +746,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                     BufferUploader.drawWithShader(builder.end());
                 }
 
-                if (guideLinesEnabled && guideAlpha > 0.0F) {
-                    float guideHalfWidth = guideLineHalfWidth(ponderGuideLineWidth());
-                    Tesselator tesselator = Tesselator.getInstance();
-                    BufferBuilder builder = tesselator.getBuilder();
-                    RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                    builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-                    drawDashedLineThick(builder, matrix,
-                        guideStart[0], guideStart[1], guideStart[2],
-                        centroid[0], centroid[1], centroid[2],
-                        color[0], color[1], color[2], guideAlpha, guideHalfWidth);
-                    BufferUploader.drawWithShader(builder.end());
-                }
             } finally {
                 RenderSystem.depthMask(true);
                 RenderSystem.enableDepthTest();
