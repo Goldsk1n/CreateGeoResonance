@@ -153,11 +153,10 @@ public final class GeoResonancePonderScenes {
         BlockPos shaft = util.grid().at(2, 3, 2);
         BlockPos projector = util.grid().at(3, 3, 2);
         BlockPos diamondProjection = util.grid().at(2, 0, 0);
-        int redstoneY = Math.max(0, Math.min(2, 1 + Config.PROJECTOR_PONDER_DEBUG_REDSTONE_Y_OFFSET.get()));
-        BlockPos redstoneA = util.grid().at(0, redstoneY, 2);
-        BlockPos redstoneB = util.grid().at(1, redstoneY, 2);
-        BlockPos redstoneC = util.grid().at(0, redstoneY, 3);
-        BlockPos redstoneD = util.grid().at(1, redstoneY, 3);
+        BlockPos redstoneA = util.grid().at(0, 0, 2);
+        BlockPos redstoneB = util.grid().at(1, 0, 2);
+        BlockPos redstoneC = util.grid().at(0, 0, 3);
+        BlockPos redstoneD = util.grid().at(1, 0, 3);
         List<BlockPos> redstoneCluster = List.of(redstoneA, redstoneB, redstoneC, redstoneD);
         applyProjectorPonderTerrain(scene, util, diamondProjection, redstoneCluster);
 
@@ -274,10 +273,13 @@ public final class GeoResonancePonderScenes {
                 if (!redstoneCluster.contains(middle)) {
                     scene.world().setBlocks(util.select().position(middle), midState, false);
                 }
-                if (!stone.equals(diamondProjection)) {
+                if (!stone.equals(diamondProjection) && !redstoneCluster.contains(stone)) {
                     scene.world().setBlocks(util.select().position(stone), lowState, false);
                 }
             }
+        }
+        for (BlockPos redstonePos : redstoneCluster) {
+            scene.world().setBlocks(util.select().position(redstonePos), Blocks.REDSTONE_ORE.defaultBlockState(), false);
         }
     }
 

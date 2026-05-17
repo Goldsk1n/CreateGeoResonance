@@ -117,9 +117,6 @@ public class Config {
     public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_GUIDE_LINE_WIDTH = PROJECTOR_VISUALS
         .comment("Ponder projector dashed guide line thickness.")
         .defineInRange("ponderGuideLineWidth", 0.5D, 0.2D, 1.0D);
-    public static final ForgeConfigSpec.IntValue PROJECTOR_PONDER_DEBUG_REDSTONE_Y_OFFSET = PROJECTOR_VISUALS
-        .comment("Debug: vertical offset for projector Ponder redstone cluster (-1..1 from default Y=1).")
-        .defineInRange("ponderDebugRedstoneYOffset", 0, -1, 1);
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_PONDER_DEBUG_REMOVE_STONE_FILL = PROJECTOR_VISUALS
         .comment("Debug: remove non-ore stone fill in projector Ponder underground layers.")
         .define("ponderDebugRemoveStoneFill", false);
