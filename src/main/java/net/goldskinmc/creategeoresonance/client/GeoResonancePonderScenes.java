@@ -1,7 +1,14 @@
 package net.goldskinmc.creategeoresonance.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.tterrag.registrate.util.entry.ItemProviderEntry;
+import net.createmod.catnip.outliner.Outline;
+import net.createmod.catnip.render.BindableTexture;
+import net.createmod.catnip.render.PonderRenderTypes;
+import net.createmod.catnip.render.SuperRenderTypeBuffer;
+import net.createmod.catnip.theme.Color;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.element.ElementLink;
@@ -10,15 +17,21 @@ import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
 import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.SceneBuildingUtil;
 import net.goldskinmc.creategeoresonance.Config;
+import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
+import net.createmod.ponder.foundation.PonderScene;
+import net.createmod.ponder.foundation.instruction.PonderInstruction;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Rotations;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -29,10 +42,16 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import java.util.List;
+import java.util.UUID;
 
 public final class GeoResonancePonderScenes {
+    private static final BindableTexture PONDER_SEISMIC_WAVE_TEXTURE =
+        () -> ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "textures/block/seismic_wave_clear.png");
+
     private GeoResonancePonderScenes() {
     }
 
@@ -70,6 +89,7 @@ public final class GeoResonancePonderScenes {
         for (BlockPos marker : stoneMarkerCluster) {
             scene.world().showSection(util.select().position(marker), Direction.UP);
         }
+        BlockPos impact = util.grid().at(2, 2, 2);
         BlockPos actorPos = util.grid().at(3, 3, 4);
         ElementLink<EntityElement> actor = scene.world().createEntity(level -> {
             ArmorStand stand = new ArmorStand(level, actorPos.getX() + 0.5D, actorPos.getY(), actorPos.getZ() + 0.5D);
@@ -91,11 +111,27 @@ public final class GeoResonancePonderScenes {
                 stand.setLeftArmPose(new Rotations(-10.0F, 0.0F, -5.0F));
             }
         });
-        scene.overlay().showText(70)
-            .text("Terrain scaffold for hammer scan demonstration.")
-            .pointAt(util.vector().centerOf(stoneMarkerA))
+        scene.overlay().showText(55)
+            .text("Right-click the top block with the Seismic Hammer.")
+            .pointAt(util.vector().topOf(impact))
             .placeNearTarget();
-        scene.idle(80);
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 35)
+            .rightClick()
+            .withItem(new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
+        scene.idle(12);
+        scene.world().modifyEntity(actor, entity -> {
+            if (entity instanceof ArmorStand stand) {
+                stand.setRightArmPose(new Rotations(30.0F, 0.0F, 6.0F));
+            }
+        });
+        scene.idle(3);
+        scene.world().modifyEntity(actor, entity -> {
+            if (entity instanceof ArmorStand stand) {
+                stand.setRightArmPose(new Rotations(-18.0F, 0.0F, 10.0F));
+            }
+        });
+        emitWaveEcho(scene, util, impact, 0xC2C2C2, 0.75F, 0.2F, 16, 6.5F);
+        scene.idle(35);
     }
 
     private static void seismicStationOperation(SceneBuilder builder, SceneBuildingUtil util) {
@@ -265,6 +301,13 @@ public final class GeoResonancePonderScenes {
         for (BlockPos marker : stoneMarkerCluster) {
             scene.world().setBlocks(util.select().position(marker), Blocks.STONE.defaultBlockState(), false);
         }
+    }
+
+    private static void emitWaveEcho(CreateSceneBuilder scene, SceneBuildingUtil util, BlockPos pos, int rgb, float opacity,
+                                     float blur, int lifetimeTicks, float maxRadius) {
+        Vec3 center = util.vector().centerOf(pos);
+        scene.addInstruction(new PonderSeismicWaveInstruction(UUID.randomUUID(), center, rgb, opacity, blur, lifetimeTicks, maxRadius));
+        scene.effects().indicateSuccess(pos);
     }
 
     private static void applyProjectorPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
@@ -440,6 +483,102 @@ public final class GeoResonancePonderScenes {
         }
         cluster.put("Blocks", blockList);
         return cluster;
+    }
+
+    private static final class PonderSeismicWaveInstruction extends PonderInstruction {
+        private final Object slot;
+        private final Vec3 center;
+        private final int rgb;
+        private final float opacity;
+        private final float blur;
+        private final int lifetimeTicks;
+        private final float maxRadius;
+        private int age;
+
+        private PonderSeismicWaveInstruction(Object slot, Vec3 center, int rgb, float opacity, float blur, int lifetimeTicks, float maxRadius) {
+            this.slot = slot;
+            this.center = center;
+            this.rgb = rgb & 0x00FFFFFF;
+            this.opacity = Mth.clamp(opacity, 0.0F, 1.0F);
+            this.blur = Math.max(0.0F, blur);
+            this.lifetimeTicks = Math.max(1, lifetimeTicks);
+            this.maxRadius = Math.max(0.1F, maxRadius);
+        }
+
+        @Override
+        public boolean isComplete() {
+            return age > lifetimeTicks;
+        }
+
+        @Override
+        public void tick(PonderScene scene) {
+            if (isComplete()) {
+                scene.getOutliner().remove(slot);
+                return;
+            }
+
+            float progress = Mth.clamp(age / (float) lifetimeTicks, 0.0F, 1.0F);
+            float radius = 0.35F + progress * maxRadius;
+            float thickness = 0.04F + blur * 0.08F;
+            float alpha = Mth.clamp(opacity * (1.0F - progress), 0.0F, 1.0F);
+            int argb = ((int) (alpha * 255.0F) << 24) | rgb;
+            double y = center.y + 0.02D + blur * 0.03F;
+
+            scene.getOutliner().showOutline(slot, new PonderSeismicWaveOutline(center, y, radius, thickness))
+                .lineWidth(0.0F)
+                .disableCull()
+                .disableLineNormals()
+                .lightmap(LightTexture.FULL_BRIGHT)
+                .colored(new Color(argb, true));
+
+            age++;
+        }
+    }
+
+    private static final class PonderSeismicWaveOutline extends Outline {
+        private final Vec3 center;
+        private final double y;
+        private final float radius;
+        private final float thickness;
+
+        private PonderSeismicWaveOutline(Vec3 center, double y, float radius, float thickness) {
+            this.center = center;
+            this.y = y;
+            this.radius = radius;
+            this.thickness = thickness;
+        }
+
+        @Override
+        public void render(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, float pt) {
+            params.loadColor(colorTemp);
+            Vector4f color = colorTemp;
+            if (color.w() <= 0.0F) {
+                return;
+            }
+
+            VertexConsumer consumer = buffer.getLateBuffer(PonderRenderTypes.outlineTranslucent(PONDER_SEISMIC_WAVE_TEXTURE.getLocation(), false));
+
+            ms.pushPose();
+            ms.translate(center.x - camera.x, y - camera.y, center.z - camera.z);
+
+            PoseStack.Pose pose = ms.last();
+            Vector3f p0 = new Vector3f(-radius, 0.0F, -radius);
+            Vector3f p1 = new Vector3f(-radius, 0.0F, radius);
+            Vector3f p2 = new Vector3f(radius, 0.0F, radius);
+            Vector3f p3 = new Vector3f(radius, 0.0F, -radius);
+
+            Vector3f p4 = new Vector3f(-radius, thickness, -radius);
+            Vector3f p5 = new Vector3f(-radius, thickness, radius);
+            Vector3f p6 = new Vector3f(radius, thickness, radius);
+            Vector3f p7 = new Vector3f(radius, thickness, -radius);
+
+            // Top and bottom faces keep UV 0..1 regardless of scale, matching the single-ring in-game look.
+            int light = LightTexture.FULL_BRIGHT;
+            bufferQuad(pose, consumer, p4, p5, p6, p7, color, 0.0F, 0.0F, 1.0F, 1.0F, light, new Vector3f(0.0F, 1.0F, 0.0F));
+            bufferQuad(pose, consumer, p0, p1, p2, p3, color, 0.0F, 0.0F, 1.0F, 1.0F, light, new Vector3f(0.0F, -1.0F, 0.0F));
+
+            ms.popPose();
+        }
     }
 
 }
