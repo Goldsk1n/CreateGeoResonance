@@ -80,6 +80,9 @@ public final class GeoResonancePonderScenes {
         BlockPos stoneMarkerB3 = util.grid().at(0, 0, 3);
         BlockPos stoneMarkerB4 = util.grid().at(1, 0, 3);
         List<BlockPos> stoneMarkerCluster = List.of(stoneMarkerB1, stoneMarkerB2, stoneMarkerB3, stoneMarkerB4);
+        BlockPos caveEcho = util.grid().at(1, 2, 1);
+        BlockPos waterEcho = util.grid().at(1, 2, 4);
+        BlockPos lavaEcho = util.grid().at(4, 2, 1);
 
         applyHammerPonderTerrain(scene, util, stoneMarkerA, stoneMarkerCluster);
         scene.world().showSection(util.select().layer(2), Direction.UP);
@@ -131,7 +134,16 @@ public final class GeoResonancePonderScenes {
             }
         });
         emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 16, 3.25F,
-            0.3F, 0.0F, 1.0F);
+            0.52F, 0.0F, 1.0F);
+        scene.idle(8);
+        emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(8);
+        emitWaveEcho(scene, util, waterEcho, 0x4AA8FF, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(8);
+        emitWaveEcho(scene, util, lavaEcho, 0xFF9A3D, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
         scene.idle(35);
     }
 
@@ -301,6 +313,45 @@ public final class GeoResonancePonderScenes {
         scene.world().setBlocks(util.select().position(stoneMarkerA), Blocks.STONE.defaultBlockState(), false);
         for (BlockPos marker : stoneMarkerCluster) {
             scene.world().setBlocks(util.select().position(marker), Blocks.STONE.defaultBlockState(), false);
+        }
+
+        // Keep the full lowest layer solid for clearer depth contrast in this scene.
+        for (int x = 0; x <= 5; x++) {
+            for (int z = 0; z <= 5; z++) {
+                scene.world().setBlocks(util.select().position(util.grid().at(x, 0, z)), Blocks.STONE.defaultBlockState(), false);
+            }
+        }
+
+        for (int x = 0; x <= 1; x++) {
+            for (int z = 0; z <= 1; z++) {
+                for (int y = 0; y <= 1; y++) {
+                    BlockState state = y == 0 ? Blocks.AIR.defaultBlockState() : Blocks.STONE.defaultBlockState();
+                    scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), state, false);
+                }
+            }
+        }
+        for (int x = 4; x <= 5; x++) {
+            for (int z = 0; z <= 1; z++) {
+                for (int y = 0; y <= 1; y++) {
+                    BlockState state = y == 1 ? Blocks.LAVA.defaultBlockState() : Blocks.AIR.defaultBlockState();
+                    scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), state, false);
+                }
+            }
+        }
+        for (int x = 0; x <= 1; x++) {
+            for (int z = 4; z <= 5; z++) {
+                for (int y = 0; y <= 1; y++) {
+                    BlockState state = y == 1 ? Blocks.WATER.defaultBlockState() : Blocks.AIR.defaultBlockState();
+                    scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), state, false);
+                }
+            }
+        }
+        for (int x = 4; x <= 5; x++) {
+            for (int z = 4; z <= 5; z++) {
+                for (int y = 0; y <= 1; y++) {
+                    scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), Blocks.STONE.defaultBlockState(), false);
+                }
+            }
         }
     }
 
