@@ -3,8 +3,6 @@ package net.goldskinmc.creategeoresonance.client;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.tterrag.registrate.util.entry.ItemProviderEntry;
 import net.createmod.catnip.math.Pointing;
-import net.createmod.ponder.api.element.ElementLink;
-import net.createmod.ponder.api.element.EntityElement;
 import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
 import net.createmod.ponder.api.scene.SceneBuilder;
@@ -16,12 +14,8 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Rotations;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -29,7 +23,6 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -53,58 +46,30 @@ public final class GeoResonancePonderScenes {
     private static void seismicHammerBasics(SceneBuilder builder, SceneBuildingUtil util) {
         CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         scene.title("seismic_hammer/basics", "Survey terrain with the Seismic Hammer");
-        scene.configureBasePlate(0, 0, 6);
-        scene.showBasePlate();
+        scene.configureBasePlate(0, 0, 5);
         scene.scaleSceneView(0.9F);
 
-        scene.world().showSection(util.select().fromTo(0, 0, 0, 6, 1, 6), Direction.UP);
-        BlockPos impact = util.grid().at(3, 1, 3);
-        BlockPos actorPos = util.grid().at(3, 1, 5);
-        BlockPos caveEcho = util.grid().at(2, 1, 2);
-        BlockPos waterEcho = util.grid().at(5, 1, 3);
-        BlockPos lavaEcho = util.grid().at(1, 1, 4);
+        BlockPos stoneMarkerA = util.grid().at(2, 0, 0);
+        BlockPos stoneMarkerB1 = util.grid().at(0, 0, 2);
+        BlockPos stoneMarkerB2 = util.grid().at(1, 0, 2);
+        BlockPos stoneMarkerB3 = util.grid().at(0, 0, 3);
+        BlockPos stoneMarkerB4 = util.grid().at(1, 0, 3);
+        List<BlockPos> stoneMarkerCluster = List.of(stoneMarkerB1, stoneMarkerB2, stoneMarkerB3, stoneMarkerB4);
 
-        ElementLink<EntityElement> actor = scene.world().createEntity(level -> {
-            ArmorStand stand = new ArmorStand(level, actorPos.getX() + 0.5D, actorPos.getY(), actorPos.getZ() + 0.5D);
-            stand.setNoBasePlate(true);
-            stand.setShowArms(true);
-            stand.setYRot(180.0F);
-            stand.setRightArmPose(new Rotations(-8.0F, 0.0F, 7.0F));
-            stand.setLeftArmPose(new Rotations(-14.0F, 0.0F, -5.0F));
-            stand.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
-            return stand;
-        });
-        scene.idle(15);
-
-        scene.overlay().showText(60)
-            .text("Right-click to strike the ground.")
-            .pointAt(util.vector().topOf(impact))
-            .placeNearTarget();
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 35)
-            .rightClick()
-            .withItem(new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
-        scene.idle(12);
-
-        setActorArmPose(scene, actor, new Rotations(32.0F, 0.0F, 6.0F));
-        scene.idle(3);
-        setActorArmPose(scene, actor, new Rotations(-8.0F, 0.0F, 7.0F));
-
-        emitEcho(scene, util, impact, new Vector3f(0.78F, 0.78F, 0.78F), 34, 0.18F);
-        scene.idle(20);
-
-        scene.overlay().showText(90)
-            .colored(PonderPalette.BLUE)
-            .text("Returning echoes reveal cave, water, and lava.")
-            .pointAt(util.vector().topOf(impact))
-            .placeNearTarget();
-        emitEcho(scene, util, caveEcho, new Vector3f(0.70F, 0.70F, 0.70F), 26, 0.12F);
-        scene.idle(14);
-
-        emitEcho(scene, util, waterEcho, new Vector3f(0.24F, 0.64F, 0.96F), 30, 0.12F);
+        applyHammerPonderTerrain(scene, util, stoneMarkerA, stoneMarkerCluster);
+        scene.world().showSection(util.select().layer(2), Direction.UP);
+        scene.world().showSection(util.select().layer(1), Direction.UP);
+        scene.world().showSection(util.select().layer(0), Direction.UP);
+        scene.world().showSection(util.select().position(stoneMarkerA), Direction.UP);
+        for (BlockPos marker : stoneMarkerCluster) {
+            scene.world().showSection(util.select().position(marker), Direction.UP);
+        }
         scene.idle(16);
-
-        emitEcho(scene, util, lavaEcho, new Vector3f(1.00F, 0.54F, 0.20F), 30, 0.12F);
-        scene.idle(32);
+        scene.overlay().showText(70)
+            .text("Terrain scaffold for hammer scan demonstration.")
+            .pointAt(util.vector().centerOf(stoneMarkerA))
+            .placeNearTarget();
+        scene.idle(80);
     }
 
     private static void seismicStationOperation(SceneBuilder builder, SceneBuildingUtil util) {
@@ -246,19 +211,34 @@ public final class GeoResonancePonderScenes {
         scene.idle(100);
     }
 
-    private static void setActorArmPose(CreateSceneBuilder scene, ElementLink<EntityElement> actor, Rotations pose) {
-        scene.world().modifyEntity(actor, entity -> {
-            if (entity instanceof ArmorStand stand) {
-                stand.setRightArmPose(pose);
-            }
-        });
-    }
+    private static void applyHammerPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
+                                                 BlockPos stoneMarkerA, List<BlockPos> stoneMarkerCluster) {
+        BlockState topState = Blocks.ANDESITE.defaultBlockState();
+        BlockState middleState = Blocks.STONE.defaultBlockState();
+        BlockState lowerState = Blocks.STONE.defaultBlockState();
 
-    private static void emitEcho(CreateSceneBuilder scene, SceneBuildingUtil util, BlockPos pos, Vector3f color, int count, float speed) {
-        DustParticleOptions dust = new DustParticleOptions(color, 1.0F);
-        scene.effects().emitParticles(util.vector().centerOf(pos),
-            scene.effects().particleEmitterWithinBlockSpace(dust, util.vector().of(0.45D, 0.06D, 0.45D)), speed, count);
-        scene.effects().indicateSuccess(pos);
+        for (int x = 0; x <= 5; x++) {
+            for (int z = 0; z <= 5; z++) {
+                BlockPos top = util.grid().at(x, 2, z);
+                BlockPos middle = util.grid().at(x, 1, z);
+                BlockPos lower = util.grid().at(x, 0, z);
+                if (!stoneMarkerCluster.contains(top)) {
+                    scene.world().setBlocks(util.select().position(top), topState, false);
+                }
+                if (!stoneMarkerCluster.contains(middle)) {
+                    scene.world().setBlocks(util.select().position(middle), middleState, false);
+                }
+                if (!lower.equals(stoneMarkerA) && !stoneMarkerCluster.contains(lower)) {
+                    scene.world().setBlocks(util.select().position(lower), lowerState, false);
+                }
+            }
+        }
+
+        // Mirror projector cutaway structure, but use stone instead of ore markers.
+        scene.world().setBlocks(util.select().position(stoneMarkerA), Blocks.STONE.defaultBlockState(), false);
+        for (BlockPos marker : stoneMarkerCluster) {
+            scene.world().setBlocks(util.select().position(marker), Blocks.STONE.defaultBlockState(), false);
+        }
     }
 
     private static void applyProjectorPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
@@ -435,4 +415,5 @@ public final class GeoResonancePonderScenes {
         cluster.put("Blocks", blockList);
         return cluster;
     }
+
 }
