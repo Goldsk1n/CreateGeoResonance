@@ -98,7 +98,7 @@ public class Config {
         .defineInRange("fillAlpha", 96, 0, 255);
     public static final ForgeConfigSpec.IntValue PROJECTOR_EDGE_ALPHA = PROJECTOR_VISUALS
         .comment("Outline alpha channel (0-255).")
-        .defineInRange("edgeAlpha", 220, 0, 255);
+        .defineInRange("edgeAlpha", 255, 0, 255);
     public static final ForgeConfigSpec.DoubleValue PROJECTOR_BLOCK_EDGE_INSET = PROJECTOR_VISUALS
         .comment("World hologram face offset from block borders. Negative expands, positive shrinks.")
         .defineInRange("blockEdgeInset", 0.0D, -0.45D, 0.45D);
@@ -120,7 +120,6 @@ public class Config {
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_PONDER_DEBUG_REMOVE_STONE_FILL = PROJECTOR_VISUALS
         .comment("Debug: remove non-ore stone fill in projector Ponder underground layers.")
         .define("ponderDebugRemoveStoneFill", false);
-
     static {
         STAGE1.pop();
         STAGE2.pop();

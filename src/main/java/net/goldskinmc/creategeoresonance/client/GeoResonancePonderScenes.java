@@ -130,7 +130,8 @@ public final class GeoResonancePonderScenes {
                 stand.setRightArmPose(new Rotations(-18.0F, 0.0F, 10.0F));
             }
         });
-        emitWaveEcho(scene, util, impact, 0xC2C2C2, 0.75F, 0.2F, 16, 6.5F);
+        emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 16, 3.25F,
+            0.3F, 0.0F, 1.0F);
         scene.idle(35);
     }
 
@@ -275,7 +276,7 @@ public final class GeoResonancePonderScenes {
 
     private static void applyHammerPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
                                                  BlockPos stoneMarkerA, List<BlockPos> stoneMarkerCluster) {
-        BlockState topState = Blocks.ANDESITE.defaultBlockState();
+        BlockState topState = Blocks.GRASS_BLOCK.defaultBlockState();
         BlockState middleState = Blocks.STONE.defaultBlockState();
         BlockState lowerState = Blocks.STONE.defaultBlockState();
 
@@ -304,9 +305,11 @@ public final class GeoResonancePonderScenes {
     }
 
     private static void emitWaveEcho(CreateSceneBuilder scene, SceneBuildingUtil util, BlockPos pos, int rgb, float opacity,
-                                     float blur, int lifetimeTicks, float maxRadius) {
+                                     float blur, int lifetimeTicks, float maxRadius, float yOffset, float yDeviation,
+                                     float thicknessScale) {
         Vec3 center = util.vector().centerOf(pos);
-        scene.addInstruction(new PonderSeismicWaveInstruction(UUID.randomUUID(), center, rgb, opacity, blur, lifetimeTicks, maxRadius));
+        scene.addInstruction(new PonderSeismicWaveInstruction(UUID.randomUUID(), center, rgb, opacity, blur, lifetimeTicks, maxRadius,
+            yOffset, yDeviation, thicknessScale));
         scene.effects().indicateSuccess(pos);
     }
 
@@ -493,9 +496,13 @@ public final class GeoResonancePonderScenes {
         private final float blur;
         private final int lifetimeTicks;
         private final float maxRadius;
+        private final float yOffset;
+        private final float yDeviation;
+        private final float thicknessScale;
         private int age;
 
-        private PonderSeismicWaveInstruction(Object slot, Vec3 center, int rgb, float opacity, float blur, int lifetimeTicks, float maxRadius) {
+        private PonderSeismicWaveInstruction(Object slot, Vec3 center, int rgb, float opacity, float blur, int lifetimeTicks,
+                                             float maxRadius, float yOffset, float yDeviation, float thicknessScale) {
             this.slot = slot;
             this.center = center;
             this.rgb = rgb & 0x00FFFFFF;
@@ -503,6 +510,9 @@ public final class GeoResonancePonderScenes {
             this.blur = Math.max(0.0F, blur);
             this.lifetimeTicks = Math.max(1, lifetimeTicks);
             this.maxRadius = Math.max(0.1F, maxRadius);
+            this.yOffset = yOffset;
+            this.yDeviation = Math.max(0.0F, yDeviation);
+            this.thicknessScale = Math.max(0.1F, thicknessScale);
         }
 
         @Override
@@ -519,10 +529,10 @@ public final class GeoResonancePonderScenes {
 
             float progress = Mth.clamp(age / (float) lifetimeTicks, 0.0F, 1.0F);
             float radius = 0.35F + progress * maxRadius;
-            float thickness = 0.04F + blur * 0.08F;
+            float thickness = (0.04F + blur * 0.08F) * thicknessScale;
             float alpha = Mth.clamp(opacity * (1.0F - progress), 0.0F, 1.0F);
             int argb = ((int) (alpha * 255.0F) << 24) | rgb;
-            double y = center.y + 0.02D + blur * 0.03F;
+            double y = center.y + yOffset + blur * 0.03F + (Mth.sin(progress * Mth.PI) * yDeviation);
 
             scene.getOutliner().showOutline(slot, new PonderSeismicWaveOutline(center, y, radius, thickness))
                 .lineWidth(0.0F)
