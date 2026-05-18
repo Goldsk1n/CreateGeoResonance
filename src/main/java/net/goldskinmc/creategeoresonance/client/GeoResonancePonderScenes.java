@@ -4,6 +4,8 @@ import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.tterrag.registrate.util.entry.ItemProviderEntry;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
+import net.createmod.ponder.api.element.ElementLink;
+import net.createmod.ponder.api.element.EntityElement;
 import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
 import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.SceneBuildingUtil;
@@ -14,8 +16,12 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Rotations;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -47,7 +53,7 @@ public final class GeoResonancePonderScenes {
         CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         scene.title("seismic_hammer/basics", "Survey terrain with the Seismic Hammer");
         scene.configureBasePlate(0, 0, 5);
-        scene.scaleSceneView(0.9F);
+        scene.scaleSceneView(0.85F);
 
         BlockPos stoneMarkerA = util.grid().at(2, 0, 0);
         BlockPos stoneMarkerB1 = util.grid().at(0, 0, 2);
@@ -64,7 +70,27 @@ public final class GeoResonancePonderScenes {
         for (BlockPos marker : stoneMarkerCluster) {
             scene.world().showSection(util.select().position(marker), Direction.UP);
         }
+        BlockPos actorPos = util.grid().at(3, 3, 4);
+        ElementLink<EntityElement> actor = scene.world().createEntity(level -> {
+            ArmorStand stand = new ArmorStand(level, actorPos.getX() + 0.5D, actorPos.getY(), actorPos.getZ() + 0.5D);
+            stand.setNoBasePlate(true);
+            stand.setShowArms(true);
+            stand.setYRot(180.0F);
+            stand.setRightArmPose(new Rotations(-18.0F, 0.0F, 10.0F));
+            stand.setLeftArmPose(new Rotations(-8.0F, 0.0F, -4.0F));
+            stand.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
+            stand.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.PLAYER_HEAD));
+            stand.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.LEATHER_CHESTPLATE));
+            stand.setItemSlot(EquipmentSlot.LEGS, new ItemStack(Items.LEATHER_LEGGINGS));
+            stand.setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
+            return stand;
+        });
         scene.idle(16);
+        scene.world().modifyEntity(actor, entity -> {
+            if (entity instanceof ArmorStand stand) {
+                stand.setLeftArmPose(new Rotations(-10.0F, 0.0F, -5.0F));
+            }
+        });
         scene.overlay().showText(70)
             .text("Terrain scaffold for hammer scan demonstration.")
             .pointAt(util.vector().centerOf(stoneMarkerA))
