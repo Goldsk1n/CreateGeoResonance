@@ -108,26 +108,33 @@ public final class GeoResonancePonderScenes {
             stand.setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
             return stand;
         });
-        scene.idle(16);
+        scene.idle(32);
         scene.world().modifyEntity(actor, entity -> {
             if (entity instanceof ArmorStand stand) {
                 stand.setLeftArmPose(new Rotations(-10.0F, 0.0F, -5.0F));
             }
         });
-        scene.overlay().showText(55)
-            .text("Right-click the top block with the Seismic Hammer.")
+        scene.overlay().showText(75)
+            .text("Seismic Hammer reveals underground anomalies using surface impacts.")
+            .pointAt(util.vector().centerOf(impact))
+            .placeNearTarget();
+        scene.idle(90);
+
+        scene.addKeyframe();
+        scene.overlay().showText(78)
+            .text("Strike the surface to send a seismic pulse.")
             .pointAt(util.vector().topOf(impact))
             .placeNearTarget();
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 35)
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 70)
             .rightClick()
             .withItem(new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
-        scene.idle(12);
+        scene.idle(32);
         scene.world().modifyEntity(actor, entity -> {
             if (entity instanceof ArmorStand stand) {
                 stand.setRightArmPose(new Rotations(30.0F, 0.0F, 6.0F));
             }
         });
-        scene.idle(3);
+        scene.idle(6);
         scene.world().modifyEntity(actor, entity -> {
             if (entity instanceof ArmorStand stand) {
                 stand.setRightArmPose(new Rotations(-18.0F, 0.0F, 10.0F));
@@ -135,16 +142,32 @@ public final class GeoResonancePonderScenes {
         });
         emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 16, 3.25F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(8);
-        emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
-            0.52F, 0.0F, 1.0F);
-        scene.idle(8);
+        scene.idle(48);
+
+        scene.addKeyframe();
+        scene.overlay().showText(40)
+            .text("Blue return marks water.")
+            .pointAt(util.vector().topOf(waterEcho))
+            .placeNearTarget();
         emitWaveEcho(scene, util, waterEcho, 0x4AA8FF, 1.0F, 0.15F, 16, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(8);
+        scene.idle(48);
+        scene.overlay().showText(40)
+            .text("Orange return marks lava.")
+            .pointAt(util.vector().topOf(lavaEcho))
+            .placeNearTarget();
         emitWaveEcho(scene, util, lavaEcho, 0xFF9A3D, 1.0F, 0.15F, 16, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(35);
+        scene.idle(48);
+
+        scene.addKeyframe();
+        scene.overlay().showText(80)
+            .text("Gray return suggests a cavity. Deeper objects echoes take longer to return.")
+            .pointAt(util.vector().topOf(caveEcho))
+            .placeNearTarget();
+        emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(90);
     }
 
     private static void seismicStationOperation(SceneBuilder builder, SceneBuildingUtil util) {
@@ -569,6 +592,17 @@ public final class GeoResonancePonderScenes {
         @Override
         public boolean isComplete() {
             return age > lifetimeTicks;
+        }
+
+        @Override
+        public void reset(PonderScene scene) {
+            age = 0;
+            scene.getOutliner().remove(slot);
+        }
+
+        @Override
+        public void onScheduled(PonderScene scene) {
+            age = 0;
         }
 
         @Override
