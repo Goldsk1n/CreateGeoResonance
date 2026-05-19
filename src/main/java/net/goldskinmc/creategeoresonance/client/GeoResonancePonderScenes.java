@@ -2,6 +2,7 @@ package net.goldskinmc.creategeoresonance.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.tterrag.registrate.util.entry.ItemProviderEntry;
 import net.createmod.catnip.outliner.Outline;
@@ -22,6 +23,8 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlock;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlock;
 import net.createmod.ponder.foundation.PonderScene;
 import net.createmod.ponder.foundation.instruction.PonderInstruction;
 import net.minecraft.client.renderer.LightTexture;
@@ -173,38 +176,108 @@ public final class GeoResonancePonderScenes {
     private static void seismicStationOperation(SceneBuilder builder, SceneBuildingUtil util) {
         CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         scene.title("seismic_station/operation", "Power and run a Seismic Station");
-        scene.configureBasePlate(0, 0, 6);
-        scene.showBasePlate();
+        scene.configureBasePlate(0, 0, 5);
+        scene.scaleSceneView(0.85F);
 
-        BlockPos motor = util.grid().at(1, 2, 2);
-        BlockPos input = util.grid().at(3, 2, 2);
-        BlockPos station = util.grid().at(3, 1, 2);
+        BlockPos stoneMarkerA = util.grid().at(2, 0, 0);
+        BlockPos stoneMarkerB1 = util.grid().at(0, 0, 2);
+        BlockPos stoneMarkerB2 = util.grid().at(1, 0, 2);
+        BlockPos stoneMarkerB3 = util.grid().at(0, 0, 3);
+        BlockPos stoneMarkerB4 = util.grid().at(1, 0, 3);
+        List<BlockPos> stoneMarkerCluster = List.of(stoneMarkerB1, stoneMarkerB2, stoneMarkerB3, stoneMarkerB4);
+        BlockPos caveEcho = util.grid().at(1, 2, 1);
+        BlockPos waterEcho = util.grid().at(1, 2, 4);
+        BlockPos lavaEcho = util.grid().at(4, 2, 1);
 
-        scene.world().showSection(util.select().fromTo(0, 0, 0, 6, 2, 5), Direction.DOWN);
-        scene.idle(20);
+        applyHammerPonderTerrain(scene, util, stoneMarkerA, stoneMarkerCluster);
+        scene.world().showSection(util.select().layer(2), Direction.UP);
+        scene.world().showSection(util.select().layer(1), Direction.UP);
+        scene.world().showSection(util.select().layer(0), Direction.UP);
+        scene.world().showSection(util.select().position(stoneMarkerA), Direction.UP);
+        for (BlockPos marker : stoneMarkerCluster) {
+            scene.world().showSection(util.select().position(marker), Direction.UP);
+        }
 
+        BlockPos impact = util.grid().at(3, 3, 2);
+        Direction stationFacing = Direction.NORTH;
+        BlockPos stationLeft = SeismicStationBlock.getLeftPos(impact, stationFacing);
+        BlockPos stationUpperRight = SeismicStationBlock.getUpperRightPos(impact);
+        BlockPos stationUpperLeft = SeismicStationBlock.getUpperLeftPos(impact, stationFacing);
+        BlockPos shaft = stationUpperRight.south();
+        BlockPos motor = shaft.south();
+        BlockState stationController = GeoResonanceBlocks.SEISMIC_STATION.getDefaultState()
+            .setValue(HorizontalDirectionalBlock.FACING, stationFacing);
+        BlockState stationBounding = GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.getDefaultState()
+            .setValue(HorizontalDirectionalBlock.FACING, stationFacing);
+        BlockState shaftState = AllBlocks.SHAFT.getDefaultState()
+            .setValue(BlockStateProperties.AXIS, Direction.Axis.Z);
+        BlockState motorState = AllBlocks.CREATIVE_MOTOR.getDefaultState();
+        if (motorState.hasProperty(BlockStateProperties.FACING)) {
+            motorState = motorState.setValue(BlockStateProperties.FACING, Direction.NORTH);
+        }
+        scene.world().setBlocks(util.select().position(impact), stationController, false);
+        scene.world().setBlocks(util.select().position(stationLeft),
+            stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.LOWER_LEFT), false);
+        scene.world().setBlocks(util.select().position(stationUpperRight),
+            stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.UPPER_RIGHT), false);
+        scene.world().setBlocks(util.select().position(stationUpperLeft),
+            stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.UPPER_LEFT), false);
+        scene.world().setBlocks(util.select().position(shaft), shaftState, false);
+        scene.world().setBlocks(util.select().position(motor), motorState, false);
+        scene.world().showSection(util.select().position(impact), Direction.UP);
+        scene.world().showSection(util.select().position(stationLeft), Direction.UP);
+        scene.world().showSection(util.select().position(stationUpperRight), Direction.UP);
+        scene.world().showSection(util.select().position(stationUpperLeft), Direction.UP);
+        scene.world().showSection(util.select().position(shaft), Direction.UP);
+        scene.world().showSection(util.select().position(motor), Direction.UP);
+        scene.world().showSection(util.select().fromTo(0, 0, 0, 5, 5, 5), Direction.UP);
         scene.world().setKineticSpeed(util.select().position(motor), 64.0F);
-        scene.effects().rotationSpeedIndicator(input);
-        scene.overlay().showText(80)
-            .text("Feed rotation into the station's top input shaft.")
-            .pointAt(util.vector().centerOf(input))
-            .placeNearTarget();
-        scene.idle(50);
+        scene.world().setKineticSpeed(util.select().position(shaft), 64.0F);
 
-        scene.overlay().showControls(util.vector().blockSurface(station, Direction.NORTH), Pointing.RIGHT, 35)
+        scene.idle(32);
+        scene.overlay().showText(75)
+            .text("Seismic Hammer reveals underground anomalies using surface impacts.")
+            .pointAt(util.vector().centerOf(impact))
+            .placeNearTarget();
+        scene.idle(90);
+
+        scene.addKeyframe();
+        scene.overlay().showText(78)
+            .text("Strike the surface to send a seismic pulse.")
+            .pointAt(util.vector().topOf(impact))
+            .placeNearTarget();
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 70)
             .rightClick()
-            .withItem(new ItemStack(Items.PAPER));
-        scene.overlay().showText(70)
-            .text("Insert paper and ink sac on the table side.")
-            .pointAt(util.vector().centerOf(station))
-            .placeNearTarget();
-        scene.idle(40);
+            .withItem(new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
+        scene.idle(32);
+        emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 16, 3.25F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(48);
 
-        scene.overlay().showText(80)
-            .text("Right-click the station to start scanning and generate a seismogram.")
-            .pointAt(util.vector().topOf(station))
+        scene.addKeyframe();
+        scene.overlay().showText(40)
+            .text("Blue return marks water.")
+            .pointAt(util.vector().topOf(waterEcho))
             .placeNearTarget();
-        scene.idle(50);
+        emitWaveEcho(scene, util, waterEcho, 0x4AA8FF, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(48);
+        scene.overlay().showText(40)
+            .text("Orange return marks lava.")
+            .pointAt(util.vector().topOf(lavaEcho))
+            .placeNearTarget();
+        emitWaveEcho(scene, util, lavaEcho, 0xFF9A3D, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(48);
+
+        scene.addKeyframe();
+        scene.overlay().showText(80)
+            .text("Gray return suggests a cavity. Deeper objects echoes take longer to return.")
+            .pointAt(util.vector().topOf(caveEcho))
+            .placeNearTarget();
+        emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        scene.idle(90);
     }
 
     private static void seismicProjectorTriangulation(SceneBuilder builder, SceneBuildingUtil util) {
