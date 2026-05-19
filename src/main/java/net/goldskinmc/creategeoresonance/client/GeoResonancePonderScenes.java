@@ -447,7 +447,7 @@ public final class GeoResonancePonderScenes {
         for (int x = 4; x <= 5; x++) {
             for (int z = 0; z <= 1; z++) {
                 for (int y = 0; y <= 1; y++) {
-                    BlockState state = y == 1 ? Blocks.LAVA.defaultBlockState() : Blocks.AIR.defaultBlockState();
+                    BlockState state = y == 1 ? Blocks.LAVA.defaultBlockState() : Blocks.STONE.defaultBlockState();
                     scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), state, false);
                 }
             }
@@ -455,7 +455,7 @@ public final class GeoResonancePonderScenes {
         for (int x = 0; x <= 1; x++) {
             for (int z = 4; z <= 5; z++) {
                 for (int y = 0; y <= 1; y++) {
-                    BlockState state = y == 1 ? Blocks.WATER.defaultBlockState() : Blocks.AIR.defaultBlockState();
+                    BlockState state = y == 1 ? Blocks.WATER.defaultBlockState() : Blocks.STONE.defaultBlockState();
                     scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), state, false);
                 }
             }
