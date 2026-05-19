@@ -203,8 +203,15 @@ public final class GeoResonancePonderScenes {
         BlockPos stationLeft = SeismicStationBlock.getLeftPos(impact, stationFacing);
         BlockPos stationUpperRight = SeismicStationBlock.getUpperRightPos(impact);
         BlockPos stationUpperLeft = SeismicStationBlock.getUpperLeftPos(impact, stationFacing);
-        BlockPos shaft = stationUpperRight.south();
-        BlockPos motor = shaft.south();
+        BlockPos upperLayerPlaceholderA = util.grid().at(5, 4, 5);
+        BlockPos upperLayerPlaceholderB = util.grid().at(5, 5, 5);
+        BlockPos legacyProjector = util.grid().at(3, 3, 2);
+        BlockPos legacyShaft = util.grid().at(2, 3, 2);
+        BlockPos legacyMotor = util.grid().at(1, 3, 2);
+        int revealMinY = Mth.clamp(Config.STATION_PONDER_REVEAL_MIN_Y.get(), 0, 12);
+        int revealMaxY = Mth.clamp(Config.STATION_PONDER_REVEAL_MAX_Y.get(), revealMinY, 12);
+        BlockPos shaft = util.grid().at(3, 4, 3);
+        BlockPos motor = util.grid().at(3, 4, 4);
         BlockState stationController = GeoResonanceBlocks.SEISMIC_STATION.getDefaultState()
             .setValue(HorizontalDirectionalBlock.FACING, stationFacing);
         BlockState stationBounding = GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.getDefaultState()
@@ -215,6 +222,12 @@ public final class GeoResonancePonderScenes {
         if (motorState.hasProperty(BlockStateProperties.FACING)) {
             motorState = motorState.setValue(BlockStateProperties.FACING, Direction.NORTH);
         }
+        // Clear hidden template placeholders used to initialize upper render layers (y4/y5).
+        scene.world().setBlocks(util.select().position(upperLayerPlaceholderA), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(upperLayerPlaceholderB), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(legacyProjector), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(legacyShaft), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(legacyMotor), Blocks.AIR.defaultBlockState(), false);
         scene.world().setBlocks(util.select().position(impact), stationController, false);
         scene.world().setBlocks(util.select().position(stationLeft),
             stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.LOWER_LEFT), false);
@@ -230,7 +243,12 @@ public final class GeoResonancePonderScenes {
         scene.world().showSection(util.select().position(stationUpperLeft), Direction.UP);
         scene.world().showSection(util.select().position(shaft), Direction.UP);
         scene.world().showSection(util.select().position(motor), Direction.UP);
-        scene.world().showSection(util.select().fromTo(0, 0, 0, 5, 5, 5), Direction.UP);
+        scene.world().showSection(util.select().fromTo(0, revealMinY, 0, 5, revealMaxY, 5), Direction.UP);
+        if (Config.STATION_PONDER_RESHOW_DRIVETRAIN.get()) {
+            scene.idle(1);
+            scene.world().showSection(util.select().position(shaft), Direction.UP);
+            scene.world().showSection(util.select().position(motor), Direction.UP);
+        }
         scene.world().setKineticSpeed(util.select().position(motor), 64.0F);
         scene.world().setKineticSpeed(util.select().position(shaft), 64.0F);
 
