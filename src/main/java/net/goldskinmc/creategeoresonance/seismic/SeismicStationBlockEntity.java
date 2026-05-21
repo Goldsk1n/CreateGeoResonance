@@ -436,11 +436,22 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             && strikeTimer > getCurrentStrikeIntervalTicks();
     }
 
+    public void onClientStrikeCycleStart() {
+        onClientStrikeCycleStart(getCurrentStrikeIntervalTicks());
+    }
+
+    public void onClientStrikeCycleStart(int intervalTicks) {
+        if (level == null || !level.isClientSide) {
+            return;
+        }
+        startClientStrikeCycle(intervalTicks);
+    }
+
     public void onClientStrikeImpact() {
         if (level == null || !level.isClientSide) {
             return;
         }
-        startClientStrikeCycle(getCurrentStrikeIntervalTicks());
+        onClientStrikeCycleStart();
         startClientSwingCycle(clientSwingDurationFor(getCurrentStrikeIntervalTicks()));
     }
 

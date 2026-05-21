@@ -25,6 +25,7 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlock;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.createmod.ponder.foundation.PonderScene;
 import net.createmod.ponder.foundation.instruction.PonderInstruction;
 import net.minecraft.client.renderer.LightTexture;
@@ -54,6 +55,8 @@ import java.util.UUID;
 public final class GeoResonancePonderScenes {
     private static final BindableTexture PONDER_SEISMIC_WAVE_TEXTURE =
         () -> ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "textures/block/seismic_wave_clear.png");
+    private static final int STATION_PONDER_WAVE_IMPACT_OFFSET_TICKS = 20;
+    private static final float STATION_PONDER_IMPACT_WAVE_Y_OFFSET = -0.48F;
 
     private GeoResonancePonderScenes() {
     }
@@ -208,10 +211,13 @@ public final class GeoResonancePonderScenes {
         BlockPos legacyProjector = util.grid().at(3, 3, 2);
         BlockPos legacyShaft = util.grid().at(2, 3, 2);
         BlockPos legacyMotor = util.grid().at(1, 3, 2);
-        int revealMinY = Mth.clamp(Config.STATION_PONDER_REVEAL_MIN_Y.get(), 0, 12);
-        int revealMaxY = Mth.clamp(Config.STATION_PONDER_REVEAL_MAX_Y.get(), revealMinY, 12);
         BlockPos shaft = util.grid().at(3, 4, 3);
         BlockPos motor = util.grid().at(3, 4, 4);
+        BlockPos ioSide = stationLeft;
+        int ponderStrikeIntervalTicks = 24;
+        int ponderAnomalyWaveDelayTicks = 36;
+        int ponderBetweenStrikeTicks = 40;
+
         BlockState stationController = GeoResonanceBlocks.SEISMIC_STATION.getDefaultState()
             .setValue(HorizontalDirectionalBlock.FACING, stationFacing);
         BlockState stationBounding = GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.getDefaultState()
@@ -222,12 +228,13 @@ public final class GeoResonancePonderScenes {
         if (motorState.hasProperty(BlockStateProperties.FACING)) {
             motorState = motorState.setValue(BlockStateProperties.FACING, Direction.NORTH);
         }
-        // Clear hidden template placeholders used to initialize upper render layers (y4/y5).
+
         scene.world().setBlocks(util.select().position(upperLayerPlaceholderA), Blocks.AIR.defaultBlockState(), false);
         scene.world().setBlocks(util.select().position(upperLayerPlaceholderB), Blocks.AIR.defaultBlockState(), false);
         scene.world().setBlocks(util.select().position(legacyProjector), Blocks.AIR.defaultBlockState(), false);
         scene.world().setBlocks(util.select().position(legacyShaft), Blocks.AIR.defaultBlockState(), false);
         scene.world().setBlocks(util.select().position(legacyMotor), Blocks.AIR.defaultBlockState(), false);
+
         scene.world().setBlocks(util.select().position(impact), stationController, false);
         scene.world().setBlocks(util.select().position(stationLeft),
             stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.LOWER_LEFT), false);
@@ -237,65 +244,143 @@ public final class GeoResonancePonderScenes {
             stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.UPPER_LEFT), false);
         scene.world().setBlocks(util.select().position(shaft), shaftState, false);
         scene.world().setBlocks(util.select().position(motor), motorState, false);
-        scene.world().showSection(util.select().position(impact), Direction.UP);
-        scene.world().showSection(util.select().position(stationLeft), Direction.UP);
-        scene.world().showSection(util.select().position(stationUpperRight), Direction.UP);
-        scene.world().showSection(util.select().position(stationUpperLeft), Direction.UP);
-        scene.world().showSection(util.select().position(shaft), Direction.UP);
-        scene.world().showSection(util.select().position(motor), Direction.UP);
-        scene.world().showSection(util.select().fromTo(0, revealMinY, 0, 5, revealMaxY, 5), Direction.UP);
-        if (Config.STATION_PONDER_RESHOW_DRIVETRAIN.get()) {
-            scene.idle(1);
-            scene.world().showSection(util.select().position(shaft), Direction.UP);
-            scene.world().showSection(util.select().position(motor), Direction.UP);
-        }
-        scene.world().setKineticSpeed(util.select().position(motor), 64.0F);
-        scene.world().setKineticSpeed(util.select().position(shaft), 64.0F);
 
-        scene.idle(32);
-        scene.overlay().showText(75)
-            .text("Seismic Hammer reveals underground anomalies using surface impacts.")
+        setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
+        setStationPonderRunning(scene, util, impact, false, 0, 0);
+
+        scene.idle(16);
+        scene.overlay().showText(72)
+            .text("Place the Seismic Station on the surveyed terrain.")
             .pointAt(util.vector().centerOf(impact))
             .placeNearTarget();
-        scene.idle(90);
+        scene.idle(82);
+
+        scene.addKeyframe();
+        scene.world().showSection(util.select().position(impact), Direction.DOWN);
+        scene.world().showSection(util.select().position(stationLeft), Direction.DOWN);
+        scene.world().showSection(util.select().position(stationUpperRight), Direction.DOWN);
+        scene.world().showSection(util.select().position(stationUpperLeft), Direction.DOWN);
+        scene.idle(34);
+        scene.overlay().showText(72)
+            .text("Power the station by driving the shaft and motor above it.")
+            .pointAt(util.vector().centerOf(shaft))
+            .placeNearTarget();
+        scene.idle(36);
+        scene.world().showSection(util.select().position(shaft), Direction.DOWN);
+        scene.idle(24);
+        scene.world().showSection(util.select().position(motor), Direction.DOWN);
+        scene.idle(24);
+        scene.world().setKineticSpeed(util.select().position(motor), 64.0F);
+        scene.world().setKineticSpeed(util.select().position(shaft), 64.0F);
+        scene.effects().rotationSpeedIndicator(shaft);
+        scene.idle(50);
 
         scene.addKeyframe();
         scene.overlay().showText(78)
-            .text("Strike the surface to send a seismic pulse.")
+            .text("Load paper and ink sac on the table side.")
+            .pointAt(util.vector().centerOf(ioSide))
+            .placeNearTarget();
+        scene.overlay().showControls(util.vector().blockSurface(ioSide, Direction.NORTH), Pointing.RIGHT, 50)
+            .rightClick()
+            .withItem(new ItemStack(Items.PAPER));
+        scene.idle(30);
+        setStationPonderInventory(scene, impact, new ItemStack(Items.PAPER), ItemStack.EMPTY, ItemStack.EMPTY);
+        scene.idle(40);
+        scene.overlay().showControls(util.vector().blockSurface(ioSide, Direction.NORTH), Pointing.RIGHT, 50)
+            .rightClick()
+            .withItem(new ItemStack(Items.INK_SAC));
+        scene.idle(30);
+        setStationPonderInventory(scene, impact, new ItemStack(Items.PAPER), new ItemStack(Items.INK_SAC), ItemStack.EMPTY);
+        scene.idle(40);
+        scene.overlay().showText(84)
+            .text("Right-click the station to start scanning. Each strike returns one echo.")
             .pointAt(util.vector().topOf(impact))
             .placeNearTarget();
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 70)
-            .rightClick()
-            .withItem(new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
-        scene.idle(32);
-        emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 16, 3.25F,
-            0.52F, 0.0F, 1.0F);
-        scene.idle(48);
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 80)
+            .rightClick();
+        scene.idle(12);
+        setStationPonderRunning(scene, util, impact, true, ponderStrikeIntervalTicks, 0);
+        setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
+        scene.idle(22);
 
         scene.addKeyframe();
-        scene.overlay().showText(40)
-            .text("Blue return marks water.")
-            .pointAt(util.vector().topOf(waterEcho))
-            .placeNearTarget();
-        emitWaveEcho(scene, util, waterEcho, 0x4AA8FF, 1.0F, 0.15F, 16, 2.2F,
+        setStationPonderRunning(scene, util, impact, true, ponderStrikeIntervalTicks, 1);
+        scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class,
+            station -> station.onClientStrikeCycleStart(ponderStrikeIntervalTicks));
+        scene.idle(stationPonderImpactDelayTicks(ponderStrikeIntervalTicks));
+        scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class, SeismicStationBlockEntity::onClientEchoArrival);
+        emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 20, 3.25F,
+            STATION_PONDER_IMPACT_WAVE_Y_OFFSET, 0.0F, 1.0F);
+        scene.idle(ponderAnomalyWaveDelayTicks);
+        emitWaveEcho(scene, util, waterEcho, 0x4AA8FF, 1.0F, 0.15F, 18, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(48);
-        scene.overlay().showText(40)
-            .text("Orange return marks lava.")
-            .pointAt(util.vector().topOf(lavaEcho))
-            .placeNearTarget();
-        emitWaveEcho(scene, util, lavaEcho, 0xFF9A3D, 1.0F, 0.15F, 16, 2.2F,
+        scene.idle(ponderBetweenStrikeTicks);
+
+        setStationPonderRunning(scene, util, impact, true, ponderStrikeIntervalTicks, 2);
+        scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class,
+            station -> station.onClientStrikeCycleStart(ponderStrikeIntervalTicks));
+        scene.idle(stationPonderImpactDelayTicks(ponderStrikeIntervalTicks));
+        scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class, SeismicStationBlockEntity::onClientEchoArrival);
+        emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 20, 3.25F,
+            STATION_PONDER_IMPACT_WAVE_Y_OFFSET, 0.0F, 1.0F);
+        scene.idle(ponderAnomalyWaveDelayTicks);
+        emitWaveEcho(scene, util, lavaEcho, 0xFF9A3D, 1.0F, 0.15F, 18, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(48);
+        scene.idle(ponderBetweenStrikeTicks);
+
+        setStationPonderRunning(scene, util, impact, true, ponderStrikeIntervalTicks, 3);
+        scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class,
+            station -> station.onClientStrikeCycleStart(ponderStrikeIntervalTicks));
+        scene.idle(stationPonderImpactDelayTicks(ponderStrikeIntervalTicks));
+        scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class, SeismicStationBlockEntity::onClientEchoArrival);
+        emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 20, 3.25F,
+            STATION_PONDER_IMPACT_WAVE_Y_OFFSET, 0.0F, 1.0F);
+        scene.idle(ponderAnomalyWaveDelayTicks);
+        emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 18, 2.2F,
+            0.52F, 0.0F, 1.0F);
+        setStationPonderRunning(scene, util, impact, false, 0, 3);
+        setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, createPonderSeismogramStack());
+        scene.effects().indicateSuccess(ioSide);
+        scene.idle(20);
 
         scene.addKeyframe();
-        scene.overlay().showText(80)
-            .text("Gray return suggests a cavity. Deeper objects echoes take longer to return.")
-            .pointAt(util.vector().topOf(caveEcho))
+        scene.overlay().showText(86)
+            .text("When scanning finishes, collect the Seismogram from the table side.")
+            .pointAt(util.vector().centerOf(ioSide))
             .placeNearTarget();
-        emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
-            0.52F, 0.0F, 1.0F);
-        scene.idle(90);
+        scene.overlay().showControls(util.vector().blockSurface(ioSide, Direction.NORTH), Pointing.RIGHT, 90)
+            .rightClick();
+        scene.idle(130);
+        setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
+    }
+
+    private static void setStationPonderInventory(CreateSceneBuilder scene, BlockPos stationPos,
+                                                  ItemStack paper, ItemStack ink, ItemStack output) {
+        scene.world().modifyBlockEntity(stationPos, SeismicStationBlockEntity.class, station -> {
+            station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_PAPER_INPUT, paper.copy());
+            station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_INK_INPUT, ink.copy());
+            station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_SEISMOGRAM_OUTPUT, output.copy());
+        });
+    }
+
+    private static void setStationPonderRunning(CreateSceneBuilder scene, SceneBuildingUtil util, BlockPos stationPos,
+                                                boolean running, int strikeTimer, int revealIndex) {
+        scene.world().modifyBlockEntityNBT(util.select().position(stationPos), SeismicStationBlockEntity.class, tag -> {
+            tag.putBoolean("ScanRunning", running);
+            tag.putBoolean("AwaitingResult", false);
+            tag.putInt("StrikeTimer", Math.max(0, strikeTimer));
+            tag.putInt("RevealIndex", Math.max(0, revealIndex));
+        }, true);
+    }
+
+    private static int stationPonderImpactDelayTicks(int strikeIntervalTicks) {
+        int safeInterval = Math.max(1, strikeIntervalTicks);
+        int minIntervalTicks = Math.max(1, Config.STATION_MIN_STRIKE_INTERVAL_TICKS.get() * Config.STATION_STRIKE_INTERVAL_MULTIPLIER.get());
+        float descentTicks = 0.25F * minIntervalTicks;
+        float descentPortion = Math.min(0.95F, Math.max(0.05F, descentTicks / safeInterval));
+        float risePortion = 1.0F - descentPortion;
+        int baseDelay = Math.max(1, Math.round(safeInterval * risePortion));
+        return Mth.clamp(baseDelay + STATION_PONDER_WAVE_IMPACT_OFFSET_TICKS, 0, Math.max(0, safeInterval - 1));
     }
 
     private static void seismicProjectorTriangulation(SceneBuilder builder, SceneBuildingUtil util) {

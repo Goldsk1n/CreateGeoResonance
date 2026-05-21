@@ -14,8 +14,10 @@ base {
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+def fastDev = providers.gradleProperty('fastDev').map { it.toBoolean() }.orElse(false).get()
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+println "Dev profile: ${fastDev ? 'fastDev' : 'fullDev'}"
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
     copyIdeResources = true
@@ -23,8 +25,14 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
+            if (fastDev) {
+                // Faster startup for short manual test loops.
+                property 'forge.logging.console.level', 'warn'
+                jvmArgs '-XX:+TieredCompilation', '-XX:TieredStopAtLevel=1', '-XX:+UseSerialGC'
+            } else {
+                property 'forge.logging.markers', 'REGISTRIES'
+                property 'forge.logging.console.level', 'debug'
+            }
 
             mods {
                 "${mod_id}" {
@@ -90,8 +98,11 @@ dependencies {
     runtimeOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"))
     implementation(fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}"))
     // Dev-only comfort/debug mods. runtimeOnly keeps them out of the final published jar.
-    runtimeOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))
-    runtimeOnly(fg.deobf("curse.maven:the-one-probe-245211:${top_file_id}"))
+    // Omitted in fastDev profile to reduce startup/world-load overhead.
+    if (!fastDev) {
+        runtimeOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))
+        runtimeOnly(fg.deobf("curse.maven:the-one-probe-245211:${top_file_id}"))
+    }
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation("io.github.llamalad7:mixinextras-forge:0.4.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")

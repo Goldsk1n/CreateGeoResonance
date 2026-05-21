@@ -120,21 +120,6 @@ public class Config {
     public static final ForgeConfigSpec.BooleanValue PROJECTOR_PONDER_DEBUG_REMOVE_STONE_FILL = PROJECTOR_VISUALS
         .comment("Debug: remove non-ore stone fill in projector Ponder underground layers.")
         .define("ponderDebugRemoveStoneFill", false);
-    public static final ForgeConfigSpec.IntValue STATION_PONDER_SHAFT_Y = PROJECTOR_VISUALS
-        .comment("Y level for the helper shaft in the Seismic Station Ponder scene.")
-        .defineInRange("stationPonderShaftY", 4, 0, 8);
-    public static final ForgeConfigSpec.IntValue STATION_PONDER_MOTOR_Y = PROJECTOR_VISUALS
-        .comment("Y level for the helper motor in the Seismic Station Ponder scene.")
-        .defineInRange("stationPonderMotorY", 5, 0, 8);
-    public static final ForgeConfigSpec.IntValue STATION_PONDER_REVEAL_MIN_Y = PROJECTOR_VISUALS
-        .comment("Lower Y bound of forced reveal area in Seismic Station Ponder scene.")
-        .defineInRange("stationPonderRevealMinY", 0, 0, 8);
-    public static final ForgeConfigSpec.IntValue STATION_PONDER_REVEAL_MAX_Y = PROJECTOR_VISUALS
-        .comment("Upper Y bound of forced reveal area in Seismic Station Ponder scene.")
-        .defineInRange("stationPonderRevealMaxY", 6, 0, 12);
-    public static final ForgeConfigSpec.BooleanValue STATION_PONDER_RESHOW_DRIVETRAIN = PROJECTOR_VISUALS
-        .comment("Debug: re-show shaft and motor one tick later in Seismic Station Ponder scene.")
-        .define("stationPonderReshowDrivetrain", true);
     static {
         STAGE1.pop();
         STAGE2.pop();
