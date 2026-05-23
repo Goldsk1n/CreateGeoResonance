@@ -68,7 +68,8 @@ public final class GeoResonancePonderScenes {
             .addStoryBoard("seismic_hammer/basics", GeoResonancePonderScenes::seismicHammerBasics, GeoResonancePonderTags.SEISMIC);
 
         itemHelper.forComponents(GeoResonanceBlocks.SEISMIC_STATION)
-            .addStoryBoard("seismic_station/operation", GeoResonancePonderScenes::seismicStationOperation, GeoResonancePonderTags.SEISMIC);
+            .addStoryBoard("seismic_station/operation", GeoResonancePonderScenes::seismicStationOperation, GeoResonancePonderTags.SEISMIC)
+            .addStoryBoard("seismic_station/modules", GeoResonancePonderScenes::seismicStationModules, GeoResonancePonderTags.SEISMIC);
 
         itemHelper.forComponents(GeoResonanceBlocks.SEISMIC_PROJECTOR)
             .addStoryBoard("seismic_projector/triangulation", GeoResonancePonderScenes::seismicProjectorTriangulation, GeoResonancePonderTags.SEISMIC);
@@ -354,12 +355,192 @@ public final class GeoResonancePonderScenes {
         setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
     }
 
+    private static void seismicStationModules(SceneBuilder builder, SceneBuildingUtil util) {
+        CreateSceneBuilder scene = new CreateSceneBuilder(builder);
+        scene.title("seismic_station/modules", "Configure Seismic Station Modules");
+        scene.configureBasePlate(0, 0, 5);
+        scene.scaleSceneView(0.85F);
+
+        BlockPos impact = util.grid().at(3, 3, 2);
+        Direction stationFacing = Direction.NORTH;
+        BlockPos stationLeft = SeismicStationBlock.getLeftPos(impact, stationFacing);
+        BlockPos stationUpperRight = SeismicStationBlock.getUpperRightPos(impact);
+        BlockPos stationUpperLeft = SeismicStationBlock.getUpperLeftPos(impact, stationFacing);
+        BlockPos upperLayerPlaceholderA = util.grid().at(5, 4, 5);
+        BlockPos upperLayerPlaceholderB = util.grid().at(5, 5, 5);
+        BlockPos legacyProjector = util.grid().at(3, 3, 2);
+        BlockPos legacyShaft = util.grid().at(2, 3, 2);
+        BlockPos legacyMotor = util.grid().at(1, 3, 2);
+        BlockPos shaft = util.grid().at(3, 4, 3);
+        BlockPos motor = util.grid().at(3, 4, 4);
+        BlockPos ioSide = stationLeft;
+
+        List<BlockPos> waterPatch = List.of(
+            util.grid().at(0, 2, 0), util.grid().at(1, 2, 0),
+            util.grid().at(0, 2, 1), util.grid().at(1, 2, 1)
+        );
+        List<BlockPos> redstonePatch = List.of(
+            util.grid().at(0, 1, 0), util.grid().at(1, 1, 0),
+            util.grid().at(0, 1, 1), util.grid().at(1, 1, 1)
+        );
+        List<BlockPos> diamondPatch = List.of(
+            util.grid().at(0, 0, 0), util.grid().at(1, 0, 0),
+            util.grid().at(0, 0, 1), util.grid().at(1, 0, 1)
+        );
+
+        applyStationModulePonderTerrain(scene, util, waterPatch, redstonePatch, diamondPatch);
+        scene.world().showSection(util.select().layer(2), Direction.UP);
+        scene.world().showSection(util.select().layer(1), Direction.UP);
+        scene.world().showSection(util.select().layer(0), Direction.UP);
+
+        BlockState stationController = GeoResonanceBlocks.SEISMIC_STATION.getDefaultState()
+            .setValue(HorizontalDirectionalBlock.FACING, stationFacing);
+        BlockState stationBounding = GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.getDefaultState()
+            .setValue(HorizontalDirectionalBlock.FACING, stationFacing);
+        BlockState shaftState = AllBlocks.SHAFT.getDefaultState()
+            .setValue(BlockStateProperties.AXIS, Direction.Axis.Z);
+        BlockState motorState = AllBlocks.CREATIVE_MOTOR.getDefaultState();
+        if (motorState.hasProperty(BlockStateProperties.FACING)) {
+            motorState = motorState.setValue(BlockStateProperties.FACING, Direction.NORTH);
+        }
+
+        scene.world().setBlocks(util.select().position(upperLayerPlaceholderA), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(upperLayerPlaceholderB), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(legacyProjector), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(legacyShaft), Blocks.AIR.defaultBlockState(), false);
+        scene.world().setBlocks(util.select().position(legacyMotor), Blocks.AIR.defaultBlockState(), false);
+
+        scene.world().setBlocks(util.select().position(impact), stationController, false);
+        scene.world().setBlocks(util.select().position(stationLeft),
+            stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.LOWER_LEFT), false);
+        scene.world().setBlocks(util.select().position(stationUpperRight),
+            stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.UPPER_RIGHT), false);
+        scene.world().setBlocks(util.select().position(stationUpperLeft),
+            stationBounding.setValue(SeismicStationBoundingBlock.PART, SeismicStationBoundingBlock.BoundingPart.UPPER_LEFT), false);
+        scene.world().setBlocks(util.select().position(shaft), shaftState, false);
+        scene.world().setBlocks(util.select().position(motor), motorState, false);
+        scene.world().showSection(util.select().position(impact), Direction.DOWN);
+        scene.world().showSection(util.select().position(stationLeft), Direction.DOWN);
+        scene.world().showSection(util.select().position(stationUpperRight), Direction.DOWN);
+        scene.world().showSection(util.select().position(stationUpperLeft), Direction.DOWN);
+        scene.world().showSection(util.select().position(shaft), Direction.DOWN);
+        scene.world().showSection(util.select().position(motor), Direction.DOWN);
+        scene.world().setKineticSpeed(util.select().position(motor), 64.0F);
+        scene.world().setKineticSpeed(util.select().position(shaft), 64.0F);
+        scene.effects().rotationSpeedIndicator(shaft);
+
+        setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
+        setStationPonderModules(scene, impact);
+        setStationPonderRunning(scene, util, impact, false, 0, 0);
+
+        scene.idle(24);
+        scene.overlay().showText(76)
+            .text("Modules define what the Seismic Station reports.")
+            .pointAt(util.vector().centerOf(impact))
+            .placeNearTarget();
+        scene.idle(90);
+
+        scene.addKeyframe();
+        scene.overlay().showText(80)
+            .text("Water here represents fluid noise. Deepslate below represents y < 0 ground level in this demo.")
+            .pointAt(util.vector().centerOf(waterPatch.get(0)))
+            .placeNearTarget();
+        scene.idle(92);
+
+        scene.addKeyframe();
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+            .rightClick()
+            .withItem(new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
+        scene.idle(20);
+        setStationPonderModules(scene, impact,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
+        scene.overlay().showText(78)
+            .text("Noise Cancellation removes cave, water, and lava signals.")
+            .pointAt(util.vector().centerOf(waterPatch.get(3)))
+            .placeNearTarget();
+        scene.idle(88);
+
+        scene.addKeyframe();
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+            .rightClick()
+            .withItem(new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()));
+        scene.idle(20);
+        setStationPonderModules(scene, impact,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
+            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()));
+        scene.overlay().showText(78)
+            .text("Below Zero enables detection for deep layers, y < 0.")
+            .pointAt(util.vector().centerOf(diamondPatch.get(0)))
+            .placeNearTarget();
+        scene.idle(88);
+
+        scene.addKeyframe();
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+            .rightClick()
+            .withItem(new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
+        scene.idle(18);
+        setStationPonderModules(scene, impact,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
+            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
+            new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
+        scene.overlay().showText(64)
+            .text("Target modules add specific signatures, like redstone.")
+            .pointAt(util.vector().centerOf(redstonePatch.get(1)).add(0.0D, -0.5D, 0.0D))
+            .placeNearTarget();
+        scene.idle(74);
+        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+            .rightClick()
+            .withItem(new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
+        scene.idle(18);
+        setStationPonderModules(scene, impact,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
+            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
+            new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()),
+            new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
+        scene.overlay().showText(64)
+            .text("Diamond module marks diamond targets, including deepslate variants.")
+            .pointAt(util.vector().centerOf(diamondPatch.get(2)).add(0.0D, -0.5D, 0.0D))
+            .placeNearTarget();
+        scene.idle(84);
+
+        scene.addKeyframe();
+        scene.overlay().showText(80)
+            .text("Hold Shift + Right-click the station upper-left segment to extract the last installed module.")
+            .pointAt(util.vector().centerOf(stationUpperLeft))
+            .placeNearTarget();
+        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 70)
+            .rightClick();
+        scene.idle(40);
+        setStationPonderModules(scene, impact,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
+            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
+            new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
+        scene.idle(50);
+        scene.overlay().showText(70)
+            .text("Up to 8 module slots are available, and duplicate module types are rejected.")
+            .pointAt(util.vector().centerOf(ioSide))
+            .placeNearTarget();
+        scene.idle(90);
+    }
+
     private static void setStationPonderInventory(CreateSceneBuilder scene, BlockPos stationPos,
                                                   ItemStack paper, ItemStack ink, ItemStack output) {
         scene.world().modifyBlockEntity(stationPos, SeismicStationBlockEntity.class, station -> {
             station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_PAPER_INPUT, paper.copy());
             station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_INK_INPUT, ink.copy());
             station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_SEISMOGRAM_OUTPUT, output.copy());
+        });
+    }
+
+    private static void setStationPonderModules(CreateSceneBuilder scene, BlockPos stationPos, ItemStack... modules) {
+        scene.world().modifyBlockEntity(stationPos, SeismicStationBlockEntity.class, station -> {
+            for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
+                station.getInventory().setStackInSlot(slot, ItemStack.EMPTY);
+            }
+            int moduleCount = Math.min(modules.length, SeismicStationBlockEntity.MODULE_SLOT_COUNT);
+            for (int i = 0; i < moduleCount; i++) {
+                station.getInventory().setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + i, modules[i].copy());
+            }
         });
     }
 
@@ -551,6 +732,27 @@ public final class GeoResonancePonderScenes {
                     scene.world().setBlocks(util.select().position(util.grid().at(x, y, z)), Blocks.STONE.defaultBlockState(), false);
                 }
             }
+        }
+    }
+
+    private static void applyStationModulePonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
+                                                        List<BlockPos> waterPatch, List<BlockPos> redstonePatch,
+                                                        List<BlockPos> diamondPatch) {
+        for (int x = 0; x <= 5; x++) {
+            for (int z = 0; z <= 5; z++) {
+                scene.world().setBlocks(util.select().position(util.grid().at(x, 2, z)), Blocks.STONE.defaultBlockState(), false);
+                scene.world().setBlocks(util.select().position(util.grid().at(x, 1, z)), Blocks.STONE.defaultBlockState(), false);
+                scene.world().setBlocks(util.select().position(util.grid().at(x, 0, z)), Blocks.DEEPSLATE.defaultBlockState(), false);
+            }
+        }
+        for (BlockPos waterPos : waterPatch) {
+            scene.world().setBlocks(util.select().position(waterPos), Blocks.WATER.defaultBlockState(), false);
+        }
+        for (BlockPos redstonePos : redstonePatch) {
+            scene.world().setBlocks(util.select().position(redstonePos), Blocks.REDSTONE_ORE.defaultBlockState(), false);
+        }
+        for (BlockPos diamondPos : diamondPatch) {
+            scene.world().setBlocks(util.select().position(diamondPos), Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState(), false);
         }
     }
 
