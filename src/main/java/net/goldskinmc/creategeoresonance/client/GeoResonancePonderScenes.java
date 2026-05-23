@@ -55,6 +55,7 @@ import java.util.UUID;
 public final class GeoResonancePonderScenes {
     private static final BindableTexture PONDER_SEISMIC_WAVE_TEXTURE =
         () -> ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "textures/block/seismic_wave_clear.png");
+    private static final String TAG_PONDER_PISTON_PROGRESS = "PonderPistonProgress";
     private static final int STATION_PONDER_WAVE_IMPACT_OFFSET_TICKS = 20;
     private static final float STATION_PONDER_IMPACT_WAVE_Y_OFFSET = -0.48F;
 
@@ -101,6 +102,8 @@ public final class GeoResonancePonderScenes {
         }
         BlockPos impact = util.grid().at(2, 2, 2);
         BlockPos actorPos = util.grid().at(3, 3, 4);
+        Vec3 hammerInHandPoint = util.vector().centerOf(actorPos).add(0.18D, 1.0D, -0.22D);
+        Vec3 hammerDescriptionPoint = hammerInHandPoint.add(0.45D, -0.55D, 0.0D);
         ElementLink<EntityElement> actor = scene.world().createEntity(level -> {
             ArmorStand stand = new ArmorStand(level, actorPos.getX() + 0.5D, actorPos.getY(), actorPos.getZ() + 0.5D);
             stand.setNoBasePlate(true);
@@ -108,7 +111,7 @@ public final class GeoResonancePonderScenes {
             stand.setYRot(180.0F);
             stand.setRightArmPose(new Rotations(-18.0F, 0.0F, 10.0F));
             stand.setLeftArmPose(new Rotations(-8.0F, 0.0F, -4.0F));
-            stand.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
+            stand.setItemInHand(InteractionHand.MAIN_HAND, createPonderHammerStack(0.0F));
             stand.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.PLAYER_HEAD));
             stand.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.LEATHER_CHESTPLATE));
             stand.setItemSlot(EquipmentSlot.LEGS, new ItemStack(Items.LEATHER_LEGGINGS));
@@ -121,35 +124,25 @@ public final class GeoResonancePonderScenes {
                 stand.setLeftArmPose(new Rotations(-10.0F, 0.0F, -5.0F));
             }
         });
-        scene.overlay().showText(75)
+        scene.overlay().showText(90)
             .text("Seismic Hammer reveals underground anomalies using surface impacts.")
-            .pointAt(util.vector().centerOf(impact))
+            .pointAt(hammerDescriptionPoint)
             .placeNearTarget();
-        scene.idle(90);
+        scene.idle(110);
 
         scene.addKeyframe();
-        scene.overlay().showText(78)
+        scene.overlay().showText(70)
             .text("Strike the surface to send a seismic pulse.")
             .pointAt(util.vector().topOf(impact))
             .placeNearTarget();
         scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 70)
             .rightClick()
             .withItem(new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get()));
-        scene.idle(32);
-        scene.world().modifyEntity(actor, entity -> {
-            if (entity instanceof ArmorStand stand) {
-                stand.setRightArmPose(new Rotations(30.0F, 0.0F, 6.0F));
-            }
-        });
-        scene.idle(6);
-        scene.world().modifyEntity(actor, entity -> {
-            if (entity instanceof ArmorStand stand) {
-                stand.setRightArmPose(new Rotations(-18.0F, 0.0F, 10.0F));
-            }
-        });
+        scene.idle(20);
+        setPonderHammerPistonProgress(scene, actor, 1.0F);
         emitWaveEcho(scene, util, impact, 0xC2C2C2, 1.0F, 0.2F, 16, 3.25F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(48);
+        scene.idle(70);
 
         scene.addKeyframe();
         scene.overlay().showText(40)
@@ -158,23 +151,23 @@ public final class GeoResonancePonderScenes {
             .placeNearTarget();
         emitWaveEcho(scene, util, waterEcho, 0x4AA8FF, 1.0F, 0.15F, 16, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(48);
+        scene.idle(60);
         scene.overlay().showText(40)
             .text("Orange return marks lava.")
             .pointAt(util.vector().topOf(lavaEcho))
             .placeNearTarget();
         emitWaveEcho(scene, util, lavaEcho, 0xFF9A3D, 1.0F, 0.15F, 16, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(48);
+        scene.idle(60);
 
         scene.addKeyframe();
-        scene.overlay().showText(80)
-            .text("Gray return suggests a cavity. Deeper objects echoes take longer to return.")
+        scene.overlay().showText(86)
+            .text("Gray return marks cave. Deeper objects echoes take longer to return.")
             .pointAt(util.vector().topOf(caveEcho))
             .placeNearTarget();
         emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
             0.52F, 0.0F, 1.0F);
-        scene.idle(90);
+        scene.idle(96);
     }
 
     private static void seismicStationOperation(SceneBuilder builder, SceneBuildingUtil util) {
@@ -250,20 +243,20 @@ public final class GeoResonancePonderScenes {
         setStationPonderRunning(scene, util, impact, false, 0, 0);
 
         scene.idle(16);
-        scene.overlay().showText(72)
-            .text("Place the Seismic Station on the surveyed terrain.")
-            .pointAt(util.vector().centerOf(impact))
-            .placeNearTarget();
-        scene.idle(82);
-
-        scene.addKeyframe();
         scene.world().showSection(util.select().position(impact), Direction.DOWN);
         scene.world().showSection(util.select().position(stationLeft), Direction.DOWN);
         scene.world().showSection(util.select().position(stationUpperRight), Direction.DOWN);
         scene.world().showSection(util.select().position(stationUpperLeft), Direction.DOWN);
-        scene.idle(34);
+        scene.idle(20);
+        scene.overlay().showText(70)
+            .text("Place the Seismic Station on the surveyed terrain.")
+            .pointAt(util.vector().centerOf(impact))
+            .placeNearTarget();
+        scene.idle(90);
+
+        scene.addKeyframe();
         scene.overlay().showText(72)
-            .text("Power the station by driving the shaft and motor above it.")
+            .text("Power the rear shaft input of station.")
             .pointAt(util.vector().centerOf(shaft))
             .placeNearTarget();
         scene.idle(36);
@@ -274,7 +267,7 @@ public final class GeoResonancePonderScenes {
         scene.world().setKineticSpeed(util.select().position(motor), 64.0F);
         scene.world().setKineticSpeed(util.select().position(shaft), 64.0F);
         scene.effects().rotationSpeedIndicator(shaft);
-        scene.idle(50);
+        scene.idle(20);
 
         scene.addKeyframe();
         scene.overlay().showText(78)
@@ -292,7 +285,9 @@ public final class GeoResonancePonderScenes {
             .withItem(new ItemStack(Items.INK_SAC));
         scene.idle(30);
         setStationPonderInventory(scene, impact, new ItemStack(Items.PAPER), new ItemStack(Items.INK_SAC), ItemStack.EMPTY);
-        scene.idle(40);
+        scene.idle(20);
+        scene.addKeyframe();
+        scene.idle(20);
         scene.overlay().showText(84)
             .text("Right-click the station to start scanning. Each strike returns one echo.")
             .pointAt(util.vector().topOf(impact))
@@ -303,8 +298,6 @@ public final class GeoResonancePonderScenes {
         setStationPonderRunning(scene, util, impact, true, ponderStrikeIntervalTicks, 0);
         setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
         scene.idle(22);
-
-        scene.addKeyframe();
         setStationPonderRunning(scene, util, impact, true, ponderStrikeIntervalTicks, 1);
         scene.world().modifyBlockEntity(impact, SeismicStationBlockEntity.class,
             station -> station.onClientStrikeCycleStart(ponderStrikeIntervalTicks));
@@ -436,19 +429,12 @@ public final class GeoResonancePonderScenes {
         scene.idle(24);
         scene.overlay().showText(76)
             .text("Modules define what the Seismic Station reports.")
-            .pointAt(util.vector().centerOf(impact))
+            .pointAt(util.vector().centerOf(stationUpperLeft))
             .placeNearTarget();
         scene.idle(90);
 
         scene.addKeyframe();
-        scene.overlay().showText(80)
-            .text("Water here represents fluid noise. Deepslate below represents y < 0 ground level in this demo.")
-            .pointAt(util.vector().centerOf(waterPatch.get(0)))
-            .placeNearTarget();
-        scene.idle(92);
-
-        scene.addKeyframe();
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 55)
             .rightClick()
             .withItem(new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
         scene.idle(20);
@@ -461,7 +447,7 @@ public final class GeoResonancePonderScenes {
         scene.idle(88);
 
         scene.addKeyframe();
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 55)
             .rightClick()
             .withItem(new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()));
         scene.idle(20);
@@ -475,7 +461,7 @@ public final class GeoResonancePonderScenes {
         scene.idle(88);
 
         scene.addKeyframe();
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 55)
             .rightClick()
             .withItem(new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(18);
@@ -488,7 +474,7 @@ public final class GeoResonancePonderScenes {
             .pointAt(util.vector().centerOf(redstonePatch.get(1)).add(0.0D, -0.5D, 0.0D))
             .placeNearTarget();
         scene.idle(74);
-        scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 55)
+        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 55)
             .rightClick()
             .withItem(new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
         scene.idle(18);
@@ -505,7 +491,7 @@ public final class GeoResonancePonderScenes {
 
         scene.addKeyframe();
         scene.overlay().showText(80)
-            .text("Hold Shift + Right-click the station upper-left segment to extract the last installed module.")
+            .text("Shift + Right-click the station upper-right block to extract the last module.")
             .pointAt(util.vector().centerOf(stationUpperLeft))
             .placeNearTarget();
         scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 70)
@@ -517,7 +503,7 @@ public final class GeoResonancePonderScenes {
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(50);
         scene.overlay().showText(70)
-            .text("Up to 8 module slots are available, and duplicate module types are rejected.")
+            .text("Up to 8 module slots are available.")
             .pointAt(util.vector().centerOf(ioSide))
             .placeNearTarget();
         scene.idle(90);
@@ -603,16 +589,16 @@ public final class GeoResonancePonderScenes {
         scene.world().showSection(util.select().position(projector), Direction.DOWN);
         scene.idle(20);
         scene.overlay().showText(55)
-            .text("Place the Seismic Projector first.")
+            .text("Place the Seismic Projector.")
             .pointAt(util.vector().topOf(projector))
             .placeNearTarget();
         scene.idle(75);
 
         scene.addKeyframe();
-        scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 40)
+        scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 50)
             .rightClick()
             .withItem(createPonderSeismogramStack());
-        scene.overlay().showText(55)
+        scene.overlay().showText(50)
             .text("Load the first seismogram.")
             .pointAt(seismogramPoint)
             .placeNearTarget();
@@ -624,14 +610,14 @@ public final class GeoResonancePonderScenes {
         scene.idle(65);
         scene.addKeyframe();
 
-        scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 45)
+        scene.overlay().showControls(seismogramHintPoint, Pointing.DOWN, 100)
             .rightClick()
             .withItem(createPonderSeismogramStack());
-        scene.overlay().showText(85)
-            .text("Load the second seismogram. Stations must be in the same dimension and at least 8 blocks apart.")
+        scene.overlay().showText(100)
+            .text("Load the second seismogram. Measurements must be taken in the same dimension and at least 8 blocks apart.")
             .pointAt(seismogramPoint)
             .placeNearTarget();
-        scene.idle(12);
+        scene.idle(16);
         setProjectorNodeData(scene, util, projector,
             diamondProjection, redstoneCluster,
             true, true, false);
@@ -658,12 +644,11 @@ public final class GeoResonancePonderScenes {
         scene.world().modifyBlock(projector, state -> state.setValue(SeismicProjectorBlock.ACTIVE, true), false);
         scene.idle(20);
         scene.idle(45);
-        scene.overlay().showText(75)
-            .colored(PonderPalette.GREEN)
-            .text("With two valid records, holograms appear at estimated depth.")
+        scene.overlay().showText(100)
+            .text("With two valid records, intersection holograms appear at estimated depth.")
             .pointAt(redstoneCenter)
             .placeNearTarget();
-        scene.idle(100);
+        scene.idle(120);
     }
 
     private static void applyHammerPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
@@ -800,6 +785,22 @@ public final class GeoResonancePonderScenes {
         tag.put("GeoSeismogram", new CompoundTag());
         stack.setTag(tag);
         return stack;
+    }
+
+    private static ItemStack createPonderHammerStack(float pistonProgress) {
+        ItemStack stack = new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get());
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.putFloat(TAG_PONDER_PISTON_PROGRESS, Mth.clamp(pistonProgress, 0.0F, 1.0F));
+        stack.setTag(tag);
+        return stack;
+    }
+
+    private static void setPonderHammerPistonProgress(CreateSceneBuilder scene, ElementLink<EntityElement> actor, float pistonProgress) {
+        scene.world().modifyEntity(actor, entity -> {
+            if (entity instanceof ArmorStand stand) {
+                stand.setItemInHand(InteractionHand.MAIN_HAND, createPonderHammerStack(pistonProgress));
+            }
+        });
     }
 
     private static Vec3 projectorFrontUpperLeftPoint(SceneBuildingUtil util, BlockPos projectorPos, Direction facing) {

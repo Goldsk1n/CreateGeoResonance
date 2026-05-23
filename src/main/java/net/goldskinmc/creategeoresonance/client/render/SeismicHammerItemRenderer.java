@@ -8,12 +8,14 @@ import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
 public class SeismicHammerItemRenderer extends CustomRenderedItemModelRenderer {
+    private static final String TAG_PONDER_PISTON_PROGRESS = "PonderPistonProgress";
     private static final float MAX_PISTON_TRAVEL = 3.0F / 16.0F;
     // Hand-space forward for this model setup: negative Y.
     private static final float PISTON_AXIS_X = 0.0F;
@@ -40,6 +42,10 @@ public class SeismicHammerItemRenderer extends CustomRenderedItemModelRenderer {
     private static float pistonTravel(ItemStack stack, ItemDisplayContext transformType) {
         if (!isHandContext(transformType)) {
             return 0.0F;
+        }
+        if (stack.hasTag() && stack.getTag() != null && stack.getTag().contains(TAG_PONDER_PISTON_PROGRESS, Tag.TAG_FLOAT)) {
+            float ponderProgress = Mth.clamp(stack.getTag().getFloat(TAG_PONDER_PISTON_PROGRESS), 0.0F, 1.0F);
+            return MAX_PISTON_TRAVEL * ponderProgress;
         }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
