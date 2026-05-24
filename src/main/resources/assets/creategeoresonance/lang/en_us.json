@@ -46,6 +46,8 @@
   "item.creategeoresonance.seismogram.tooltip.summary": "A printed _seismic chart_ with estimated anomaly positions and depth hints.",
   "item.creategeoresonance.seismogram.tooltip.condition1": "Usage",
   "item.creategeoresonance.seismogram.tooltip.behaviour1": "Use in hand or offhand to read nearby signal distance and depth estimates. Insert two into a _Seismic Projector_ for triangulation.",
+  "item.creategeoresonance.seismogram.tooltip.condition2": "Placement Guide For Projection",
+  "item.creategeoresonance.seismogram.tooltip.behaviour2": "When held, a red block-aligned boundary marks the station spacing limit. Place the next station outside that boundary.",
   "block.creategeoresonance.seismic_station.busy": "Station is already scanning",
   "block.creategeoresonance.seismic_station.cooldown": "Station is cooling down",
   "block.creategeoresonance.seismic_station.no_rotation": "Station needs at least %s RPM on the top-left shaft",

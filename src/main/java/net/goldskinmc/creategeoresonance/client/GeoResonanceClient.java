@@ -1,5 +1,12 @@
 package net.goldskinmc.creategeoresonance.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import com.simibubi.create.foundation.item.ItemDescription;
 import net.createmod.catnip.lang.FontHelper.Palette;
@@ -18,6 +25,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
@@ -35,6 +43,7 @@ import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -43,12 +52,15 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.createmod.ponder.foundation.PonderIndex;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 public final class GeoResonanceClient {
     private static final List<ScheduledEcho> PENDING_ECHOES = new ArrayList<>();
@@ -58,6 +70,8 @@ public final class GeoResonanceClient {
     private static final int SEISMOGRAM_SIDEBAR_MAX_SIGNALS = 5;
     private static final int SEISMOGRAM_SIDEBAR_ROW_HEIGHT = 10;
     private static final int SEISMOGRAM_SIDEBAR_WIDTH = 132;
+    private static final int SEISMOGRAM_GUIDE_MIN_STATION_DISTANCE = 8;
+    private static final double SEISMOGRAM_GUIDE_Y_OFFSET = 0.06D;
     private static ClientLevel PREWARMED_LEVEL;
     private static boolean WAVE_RENDERER_PREWARMED;
 
@@ -72,6 +86,7 @@ public final class GeoResonanceClient {
         GeoResonancePartialModels.init();
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
+        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderLevelStage);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderGuiOverlay);
         MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onItemTooltip);
     }
@@ -409,6 +424,63 @@ public final class GeoResonanceClient {
         renderSeismogramSidebar(event.getGuiGraphics(), minecraft, nearestSignals);
     }
 
+    private static void onRenderLevelStage(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        ClientLevel level = minecraft.level;
+        if (minecraft.player == null || level == null || minecraft.options.hideGui) {
+            return;
+        }
+
+        SeismogramMapService.MapSnapshot snapshot = findHeldSeismogramSnapshot(minecraft);
+        if (snapshot == null) {
+            return;
+        }
+
+        String dimensionId = level.dimension().location().toString();
+        if (!dimensionId.equals(snapshot.stationDimension())) {
+            return;
+        }
+
+        PoseStack poseStack = event.getPoseStack();
+        Vec3 camera = event.getCamera().getPosition();
+        poseStack.pushPose();
+        poseStack.translate(-camera.x, -camera.y, -camera.z);
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
+
+        try {
+            Tesselator tesselator = Tesselator.getInstance();
+            BufferBuilder builder = tesselator.getBuilder();
+            RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            builder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+            Matrix4f matrix = poseStack.last().pose();
+
+            double centerX = snapshot.stationPos().getX() + 0.5D;
+            double centerY = snapshot.stationPos().getY() + SEISMOGRAM_GUIDE_Y_OFFSET;
+            double centerZ = snapshot.stationPos().getZ() + 0.5D;
+
+            addBlockedAreaBoundary(builder, matrix, snapshot.stationPos().getX(), snapshot.stationPos().getZ(), centerY,
+                SEISMOGRAM_GUIDE_MIN_STATION_DISTANCE, 1.0F, 0.22F, 0.22F, 0.9F);
+            addGuideCross(builder, matrix, centerX, centerY, centerZ, 0.45D, 1.0F, 0.85F, 0.22F, 0.9F);
+
+            BufferUploader.drawWithShader(builder.end());
+        } finally {
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+            RenderSystem.enableCull();
+            RenderSystem.disableBlend();
+            poseStack.popPose();
+        }
+    }
+
     private static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
         if (!SeismogramMapService.isSeismogramStack(stack)) {
@@ -580,6 +652,69 @@ public final class GeoResonanceClient {
             case SPAWNER -> "item.creategeoresonance.seismogram.signal.spawner";
             case SOLID -> "item.creategeoresonance.seismogram.signal.solid";
         };
+    }
+
+    private static void addBlockedAreaBoundary(BufferBuilder builder, Matrix4f matrix,
+                                               int stationX, int stationZ, double centerY, int minDistance,
+                                               float r, float g, float b, float a) {
+        Set<Long> blockedCells = new HashSet<>();
+        int radius = Math.max(1, minDistance - 1);
+        int limitSq = minDistance * minDistance;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                if (dx * dx + dz * dz >= limitSq) {
+                    continue;
+                }
+                blockedCells.add(packCell(stationX + dx, stationZ + dz));
+            }
+        }
+
+        float y = (float) centerY;
+        for (long packed : blockedCells) {
+            int x = unpackX(packed);
+            int z = unpackZ(packed);
+            if (!blockedCells.contains(packCell(x - 1, z))) {
+                addLine(builder, matrix, x, y, z, x, y, z + 1, r, g, b, a);
+            }
+            if (!blockedCells.contains(packCell(x + 1, z))) {
+                addLine(builder, matrix, x + 1, y, z, x + 1, y, z + 1, r, g, b, a);
+            }
+            if (!blockedCells.contains(packCell(x, z - 1))) {
+                addLine(builder, matrix, x, y, z, x + 1, y, z, r, g, b, a);
+            }
+            if (!blockedCells.contains(packCell(x, z + 1))) {
+                addLine(builder, matrix, x, y, z + 1, x + 1, y, z + 1, r, g, b, a);
+            }
+        }
+    }
+
+    private static long packCell(int x, int z) {
+        return ((long) x << 32) ^ (z & 0xFFFFFFFFL);
+    }
+
+    private static int unpackX(long packed) {
+        return (int) (packed >> 32);
+    }
+
+    private static int unpackZ(long packed) {
+        return (int) packed;
+    }
+
+    private static void addLine(BufferBuilder builder, Matrix4f matrix,
+                                float x1, float y1, float z1, float x2, float y2, float z2,
+                                float r, float g, float b, float a) {
+        builder.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
+    }
+
+    private static void addGuideCross(BufferBuilder builder, Matrix4f matrix,
+                                      double centerX, double centerY, double centerZ, double halfSize,
+                                      float r, float g, float b, float a) {
+        float y = (float) centerY;
+        builder.vertex(matrix, (float) (centerX - halfSize), y, (float) centerZ).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, (float) (centerX + halfSize), y, (float) centerZ).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, (float) centerX, y, (float) (centerZ - halfSize)).color(r, g, b, a).endVertex();
+        builder.vertex(matrix, (float) centerX, y, (float) (centerZ + halfSize)).color(r, g, b, a).endVertex();
     }
 
     private record ScheduledEcho(BlockPos origin, int scannerEntityId, int maxDepth, boolean lowPressure, SeismicAnomaly anomaly,
