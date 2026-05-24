@@ -1,5 +1,6 @@
 package net.goldskinmc.creategeoresonance;
 
+import com.simibubi.create.api.contraption.ContraptionMovementSetting;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
@@ -16,6 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod(CreateGeoResonanceMod.MODID)
 public class CreateGeoResonanceMod {
@@ -31,6 +33,7 @@ public class CreateGeoResonanceMod {
         GeoResonanceItems.register();
         GeoResonanceSoundEvents.register();
         GeoResonancePackets.register();
+        registerContraptionMovementRestrictions();
 
         MinecraftForge.EVENT_BUS.addListener(SeismicScanQueue::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(SeismogramMapService::onPlayerTick);
@@ -63,5 +66,19 @@ public class CreateGeoResonanceMod {
             event.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
             event.accept(GeoResonanceBlocks.SEISMIC_PROJECTOR.get().asItem());
         }
+    }
+
+    private static void registerContraptionMovementRestrictions() {
+        ContraptionMovementSetting.REGISTRY.registerProvider(block -> {
+            var blockId = ForgeRegistries.BLOCKS.getKey(block);
+            if (blockId == null || !MODID.equals(blockId.getNamespace())) {
+                return null;
+            }
+            String path = blockId.getPath();
+            if ("seismic_station".equals(path) || "seismic_station_bounding".equals(path)) {
+                return () -> ContraptionMovementSetting.UNMOVABLE;
+            }
+            return null;
+        });
     }
 }
