@@ -12,7 +12,8 @@
 		"8": "creategeoresonance:block/seismic_station/railway_gearbox",
 		"9": "creategeoresonance:block/seismic_station/seismic_hammer_body_side",
 		"10": "creategeoresonance:block/seismic_station/seismic_hammer_body_inner",
-		"13": "creategeoresonance:block/seismic_station/brass_block"
+		"13": "creategeoresonance:block/seismic_station/brass_block",
+		"particle": "create:block/railway_casing"
 	},
 	"elements": [
 		{

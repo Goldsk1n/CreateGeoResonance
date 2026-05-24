@@ -2,14 +2,15 @@ package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.AllBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -82,6 +83,16 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
             return station.getComparatorOutput();
         }
         return 0;
+    }
+
+    @Override
+    public float getDestroyProgress(BlockState state, Player player, BlockGetter level, BlockPos pos) {
+        BlockPos controllerPos = getControllerPos(state, pos);
+        BlockState controllerState = level.getBlockState(controllerPos);
+        if (controllerState.getBlock() == GeoResonanceBlocks.SEISMIC_STATION.get()) {
+            return controllerState.getDestroyProgress(player, level, controllerPos);
+        }
+        return super.getDestroyProgress(state, player, level, pos);
     }
 
     @Override
@@ -182,10 +193,29 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
             BlockPos controllerPos = getControllerPos(state, pos);
             BlockState controllerState = level.getBlockState(controllerPos);
             if (controllerState.getBlock() == GeoResonanceBlocks.SEISMIC_STATION.get()) {
-                level.destroyBlock(controllerPos, true);
+                // Bounding parts are proxies. Non-player removals should tear down the controller without forcing drops.
+                level.destroyBlock(controllerPos, false);
             }
         }
         super.onRemove(state, level, pos, newState, isMoving);
+    }
+
+    @Override
+    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        if (!level.isClientSide) {
+            BlockPos controllerPos = getControllerPos(state, pos);
+            BlockState controllerState = level.getBlockState(controllerPos);
+            if (controllerState.getBlock() == GeoResonanceBlocks.SEISMIC_STATION.get()) {
+                // Match controller breaking semantics: one drop in survival, no drop in creative.
+                level.destroyBlock(controllerPos, !player.isCreative(), player);
+            }
+        }
+        super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    protected void spawnDestroyParticles(Level level, Player player, BlockPos pos, BlockState state) {
+        super.spawnDestroyParticles(level, player, pos, AllBlocks.RAILWAY_CASING.getDefaultState());
     }
 
     @Override

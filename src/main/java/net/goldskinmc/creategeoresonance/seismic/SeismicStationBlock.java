@@ -50,10 +50,7 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
 
     @Override
     public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
-        Direction facing = state.getValue(HORIZONTAL_FACING);
-        BlockPos leftLower = getLeftPos(pos, facing);
-        return level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
-            && level.getBlockState(leftLower.below()).isFaceSturdy(level, leftLower.below(), Direction.UP);
+        return true;
     }
 
     @Override
@@ -201,8 +198,6 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
         return level.getBlockState(controllerPos).canBeReplaced()
             && level.getBlockState(left).canBeReplaced()
             && level.getBlockState(upperRight).canBeReplaced()
-            && level.getBlockState(upperLeft).canBeReplaced()
-            && level.getBlockState(controllerPos.below()).isFaceSturdy(level, controllerPos.below(), Direction.UP)
-            && level.getBlockState(left.below()).isFaceSturdy(level, left.below(), Direction.UP);
+            && level.getBlockState(upperLeft).canBeReplaced();
     }
 }
