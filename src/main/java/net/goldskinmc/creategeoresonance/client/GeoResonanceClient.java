@@ -416,7 +416,11 @@ public final class GeoResonanceClient {
             return;
         }
 
-        List<SignalDistance> nearestSignals = buildNearestSignals(snapshot, minecraft.player.getX(), minecraft.player.getZ());
+        List<SignalDistance> nearestSignals = buildNearestSignals(
+            snapshot,
+            minecraft.player.getX(),
+            minecraft.player.getY(),
+            minecraft.player.getZ());
         if (nearestSignals.isEmpty()) {
             return;
         }
@@ -573,21 +577,23 @@ public final class GeoResonanceClient {
         return SeismogramMapService.readSnapshot(offhand);
     }
 
-    private static List<SignalDistance> buildNearestSignals(SeismogramMapService.MapSnapshot snapshot, double playerX, double playerZ) {
+    private static List<SignalDistance> buildNearestSignals(SeismogramMapService.MapSnapshot snapshot,
+                                                            double playerX, double playerY, double playerZ) {
         return snapshot.signals().stream()
-            .map(signal -> toSignalDistance(snapshot, signal, playerX, playerZ))
+            .map(signal -> toSignalDistance(signal, playerX, playerY, playerZ))
             .sorted(Comparator.comparingInt(SignalDistance::horizontalDistance))
             .limit(SEISMOGRAM_SIDEBAR_MAX_SIGNALS)
             .toList();
     }
 
-    private static SignalDistance toSignalDistance(SeismogramMapService.MapSnapshot snapshot, SeismogramMapService.MapSignal signal,
-                                                   double playerX, double playerZ) {
+    private static SignalDistance toSignalDistance(SeismogramMapService.MapSignal signal,
+                                                   double playerX, double playerY, double playerZ) {
         double dx = playerX - (signal.worldX() + 0.5D);
         double dz = playerZ - (signal.worldZ() + 0.5D);
         int horizontalDistance = Mth.floor(Math.sqrt(dx * dx + dz * dz));
-        int approxDepth = Math.max(0, snapshot.centerY() - signal.approxY());
-        return new SignalDistance(signal.type(), horizontalDistance, approxDepth);
+        int playerYBlock = Mth.floor(playerY);
+        int verticalDelta = signal.approxY() - playerYBlock;
+        return new SignalDistance(signal.type(), horizontalDistance, verticalDelta);
     }
 
     private static void renderSeismogramSidebar(GuiGraphics graphics, Minecraft minecraft, List<SignalDistance> nearestSignals) {
@@ -605,11 +611,21 @@ public final class GeoResonanceClient {
                 "item.creategeoresonance.seismogram.sidebar.line",
                 Component.translatable(signalTypeKey(signalDistance.type())),
                 signalDistance.horizontalDistance(),
-                signalDistance.approxDepth()
+                verticalDistanceText(signalDistance.verticalDelta())
             );
             graphics.drawString(minecraft.font, line, left + 4, y, signalTypeColor(signalDistance.type()), false);
             y += SEISMOGRAM_SIDEBAR_ROW_HEIGHT;
         }
+    }
+
+    private static Component verticalDistanceText(int verticalDelta) {
+        if (verticalDelta > 0) {
+            return Component.translatable("item.creategeoresonance.seismogram.sidebar.height.higher", verticalDelta);
+        }
+        if (verticalDelta < 0) {
+            return Component.translatable("item.creategeoresonance.seismogram.sidebar.height.lower", Math.abs(verticalDelta));
+        }
+        return Component.translatable("item.creategeoresonance.seismogram.sidebar.height.level");
     }
 
     private static int signalTypeColor(SeismicAnomalyType type) {
@@ -730,6 +746,6 @@ public final class GeoResonanceClient {
     private record ActiveShake(long startsAtTick, long endsAtTick, float intensity, float phaseSeed) {
     }
 
-    private record SignalDistance(SeismicAnomalyType type, int horizontalDistance, int approxDepth) {
+    private record SignalDistance(SeismicAnomalyType type, int horizontalDistance, int verticalDelta) {
     }
 }

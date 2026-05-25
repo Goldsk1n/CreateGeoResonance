@@ -254,7 +254,6 @@ public final class SeismogramMapService {
 
         int centerX = geoTag.getInt(TAG_CENTER_X);
         int centerZ = geoTag.getInt(TAG_CENTER_Z);
-        paintDotWorld(mapData, centerX, centerZ, centerX, centerZ, MapColor.COLOR_BLACK, 1);
 
         ListTag entries = geoTag.getList(TAG_ENTRIES, Tag.TAG_COMPOUND);
         for (Tag raw : entries) {
