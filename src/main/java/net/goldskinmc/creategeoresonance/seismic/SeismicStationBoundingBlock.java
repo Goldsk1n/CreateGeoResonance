@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
+import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.AllBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
@@ -27,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -211,6 +213,33 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
             }
         }
         super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    public InteractionResult onSneakWrenched(BlockState state, UseOnContext context) {
+        Level level = context.getLevel();
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
+
+        BlockPos controllerPos = getControllerPos(state, context.getClickedPos());
+        BlockState controllerState = level.getBlockState(controllerPos);
+        if (!(controllerState.getBlock() instanceof IWrenchable wrenchable)
+            || controllerState.getBlock() != GeoResonanceBlocks.SEISMIC_STATION.get()) {
+            return InteractionResult.PASS;
+        }
+
+        UseOnContext controllerContext = new UseOnContext(
+            context.getPlayer(),
+            context.getHand(),
+            new BlockHitResult(
+                context.getClickLocation(),
+                context.getClickedFace(),
+                controllerPos,
+                context.isInside()
+            )
+        );
+        return wrenchable.onSneakWrenched(controllerState, controllerContext);
     }
 
     @Override
