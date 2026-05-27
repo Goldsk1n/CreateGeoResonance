@@ -200,7 +200,8 @@ public final class SeismicScanQueue {
         );
 
         public SeismicScanRequest {
-            detectableTypes = detectableTypes == null || detectableTypes.isEmpty()
+            // `null` means "use default ambient detections". An explicit empty set means "detect nothing".
+            detectableTypes = detectableTypes == null
                 ? DEFAULT_DETECTABLE_TYPES
                 : Set.copyOf(detectableTypes);
         }
