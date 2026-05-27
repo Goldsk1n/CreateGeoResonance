@@ -49,10 +49,12 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
     private static final int PREVIEW_REQUIRED_NODES = 2;
     private static final int EXACT_REQUIRED_NODES = 2;
     private static final int MAX_PREVIEW_LINES = 5;
-    private static final int MATCH_RADIUS_BLOCKS = 12;
-    private static final int MIN_NODE_DISTANCE_BLOCKS = 8;
 
     private final List<NodeSnapshot> nodes = new ArrayList<>();
+    private boolean triangulationDirty = true;
+    private boolean exactVeinsDirty = true;
+    private List<TriangulatedCandidate> cachedTriangulatedCandidates = List.of();
+    private List<ExactVein> cachedExactVeins = List.of();
 
     public SeismicProjectorBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -100,7 +102,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         if (!isFarEnoughFromLoadedStations(snapshot.stationPos(), snapshot.stationDimension())) {
             player.displayClientMessage(Component.translatable(
                     "block.creategeoresonance.seismic_projector.node_too_close",
-                    MIN_NODE_DISTANCE_BLOCKS)
+                    Config.PROJECTOR_MIN_NODE_DISTANCE_BLOCKS.get())
                 .withStyle(ChatFormatting.RED), true);
             return true;
         }
@@ -111,6 +113,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         }
 
         nodes.add(NodeSnapshot.fromSnapshot(snapshot));
+        invalidateComputedCaches();
         if (!player.getAbilities().instabuild) {
             held.shrink(1);
         }
@@ -330,6 +333,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
             }
             nodes.add(new NodeSnapshot(center, stationPos, stationDimension, List.copyOf(signals), List.copyOf(exactClusters)));
         }
+        invalidateComputedCaches();
         if (!clientPacket) {
             updatePoweredState();
         }
@@ -345,7 +349,8 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
     }
 
     private boolean isFarEnoughFromLoadedStations(BlockPos stationPos, String stationDimension) {
-        int minDistanceSquared = MIN_NODE_DISTANCE_BLOCKS * MIN_NODE_DISTANCE_BLOCKS;
+        int minDistance = Config.PROJECTOR_MIN_NODE_DISTANCE_BLOCKS.get();
+        int minDistanceSquared = minDistance * minDistance;
         for (NodeSnapshot node : nodes) {
             if (!node.stationDimension().equals(stationDimension)) {
                 continue;
@@ -368,6 +373,15 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
     }
 
     private List<TriangulatedCandidate> triangulateCandidates() {
+        if (!triangulationDirty) {
+            return cachedTriangulatedCandidates;
+        }
+        cachedTriangulatedCandidates = List.copyOf(computeTriangulateCandidates());
+        triangulationDirty = false;
+        return cachedTriangulatedCandidates;
+    }
+
+    private List<TriangulatedCandidate> computeTriangulateCandidates() {
         if (nodes.size() < PREVIEW_REQUIRED_NODES) {
             return List.of();
         }
@@ -376,7 +390,8 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         NodeSnapshot second = nodes.get(1);
         List<TriangulatedCandidate> candidates = new ArrayList<>();
         Set<Integer> matchedSecondIndices = new HashSet<>();
-        int maxDistanceSq = MATCH_RADIUS_BLOCKS * MATCH_RADIUS_BLOCKS;
+        int matchRadius = Config.PROJECTOR_MATCH_RADIUS_BLOCKS.get();
+        int maxDistanceSq = matchRadius * matchRadius;
 
         for (SeismogramMapService.MapSignal left : first.signals()) {
             int bestIndex = -1;
@@ -420,6 +435,15 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
     }
 
     private List<ExactVein> confirmExactVeins() {
+        if (!exactVeinsDirty) {
+            return cachedExactVeins;
+        }
+        cachedExactVeins = List.copyOf(computeExactVeins());
+        exactVeinsDirty = false;
+        return cachedExactVeins;
+    }
+
+    private List<ExactVein> computeExactVeins() {
         if (nodes.size() < EXACT_REQUIRED_NODES) {
             return List.of();
         }
@@ -516,6 +540,13 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
         }
+    }
+
+    private void invalidateComputedCaches() {
+        triangulationDirty = true;
+        exactVeinsDirty = true;
+        cachedTriangulatedCandidates = List.of();
+        cachedExactVeins = List.of();
     }
 
     @Override

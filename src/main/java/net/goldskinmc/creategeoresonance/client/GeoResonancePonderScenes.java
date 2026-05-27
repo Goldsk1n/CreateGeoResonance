@@ -285,9 +285,9 @@ public final class GeoResonancePonderScenes {
             .withItem(new ItemStack(Items.INK_SAC));
         scene.idle(30);
         setStationPonderInventory(scene, impact, new ItemStack(Items.PAPER), new ItemStack(Items.INK_SAC), ItemStack.EMPTY);
-        scene.idle(20);
+        scene.idle(30);
         scene.addKeyframe();
-        scene.idle(20);
+        scene.idle(10);
         scene.overlay().showText(84)
             .text("Right-click the station to start scanning. Each strike returns one echo.")
             .pointAt(util.vector().topOf(impact))
@@ -335,7 +335,7 @@ public final class GeoResonancePonderScenes {
         setStationPonderRunning(scene, util, impact, false, 0, 3);
         setStationPonderInventory(scene, impact, ItemStack.EMPTY, ItemStack.EMPTY, createPonderSeismogramStack());
         scene.effects().indicateSuccess(ioSide);
-        scene.idle(20);
+        scene.idle(30);
 
         scene.addKeyframe();
         scene.overlay().showText(86)
@@ -504,7 +504,7 @@ public final class GeoResonancePonderScenes {
         scene.idle(50);
         scene.overlay().showText(70)
             .text("Up to 8 module slots are available.")
-            .pointAt(util.vector().centerOf(ioSide))
+            .pointAt(util.vector().centerOf(stationUpperLeft))
             .placeNearTarget();
         scene.idle(90);
     }
@@ -614,7 +614,7 @@ public final class GeoResonancePonderScenes {
             .rightClick()
             .withItem(createPonderSeismogramStack());
         scene.overlay().showText(100)
-            .text("Load the second seismogram. Measurements must be taken in the same dimension and at least 8 blocks apart.")
+            .text("Load the second seismogram. Measurements must be taken at least 8 blocks apart.")
             .pointAt(seismogramPoint)
             .placeNearTarget();
         scene.idle(16);
@@ -752,7 +752,7 @@ public final class GeoResonancePonderScenes {
 
     private static void applyProjectorPonderTerrain(CreateSceneBuilder scene, SceneBuildingUtil util,
                                                     BlockPos diamondProjection, List<BlockPos> redstoneCluster) {
-        boolean removeStoneFill = Config.PROJECTOR_PONDER_DEBUG_REMOVE_STONE_FILL.get();
+        boolean removeStoneFill = false;
         BlockState topState = Blocks.ANDESITE.defaultBlockState();
         BlockState midState = removeStoneFill ? Blocks.AIR.defaultBlockState() : Blocks.STONE.defaultBlockState();
         BlockState lowState = removeStoneFill ? Blocks.AIR.defaultBlockState() : Blocks.STONE.defaultBlockState();

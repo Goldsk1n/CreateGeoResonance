@@ -57,9 +57,11 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class GeoResonanceClient {
@@ -67,11 +69,10 @@ public final class GeoResonanceClient {
     private static final List<ScheduledSound> PENDING_SOUNDS = new ArrayList<>();
     private static final List<ActiveEffect> ACTIVE_EFFECTS = new ArrayList<>();
     private static final List<ActiveShake> ACTIVE_SHAKES = new ArrayList<>();
-    private static final int SEISMOGRAM_SIDEBAR_MAX_SIGNALS = 5;
     private static final int SEISMOGRAM_SIDEBAR_ROW_HEIGHT = 10;
     private static final int SEISMOGRAM_SIDEBAR_WIDTH = 132;
-    private static final int SEISMOGRAM_GUIDE_MIN_STATION_DISTANCE = 8;
     private static final double SEISMOGRAM_GUIDE_Y_OFFSET = 0.06D;
+    private static final Map<Integer, List<BoundarySegment>> BLOCKED_BOUNDARY_CACHE = new HashMap<>();
     private static ClientLevel PREWARMED_LEVEL;
     private static boolean WAVE_RENDERER_PREWARMED;
 
@@ -210,6 +211,10 @@ public final class GeoResonanceClient {
             iterator.remove();
         }
 
+        if (!Config.CAMERA_SHAKE_ENABLED.get()) {
+            ACTIVE_SHAKES.clear();
+            return;
+        }
         ACTIVE_SHAKES.removeIf(shake -> shake.endsAtTick() <= now);
     }
 
@@ -356,6 +361,9 @@ public final class GeoResonanceClient {
 
     private static void addShakeForLocalPlayer(int scannerEntityId, Vec3 center, float scannerStrength, float nearbyStrength, int durationTicks,
                                                 long now) {
+        if (!Config.CAMERA_SHAKE_ENABLED.get()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
             return;
@@ -369,11 +377,18 @@ public final class GeoResonanceClient {
         }
 
         if (strength > 0.0F) {
-            ACTIVE_SHAKES.add(new ActiveShake(now, now + durationTicks, strength, minecraft.level.random.nextFloat() * 9.0F));
+            float shakeScale = Mth.clamp(Config.CAMERA_SHAKE_SCALE.get().floatValue(), 0.0F, 2.0F);
+            if (shakeScale <= 0.0F) {
+                return;
+            }
+            ACTIVE_SHAKES.add(new ActiveShake(now, now + durationTicks, strength * shakeScale, minecraft.level.random.nextFloat() * 9.0F));
         }
     }
 
     private static void onCameraAngles(ViewportEvent.ComputeCameraAngles event) {
+        if (!Config.CAMERA_SHAKE_ENABLED.get()) {
+            return;
+        }
         if (ACTIVE_SHAKES.isEmpty()) {
             return;
         }
@@ -406,6 +421,9 @@ public final class GeoResonanceClient {
     }
 
     private static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
+        if (!Config.SEISMOGRAM_SIDEBAR_ENABLED.get()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.options.hideGui) {
             return;
@@ -448,6 +466,9 @@ public final class GeoResonanceClient {
         if (!dimensionId.equals(snapshot.stationDimension())) {
             return;
         }
+        if (!Config.SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED.get()) {
+            return;
+        }
 
         PoseStack poseStack = event.getPoseStack();
         Vec3 camera = event.getCamera().getPosition();
@@ -470,9 +491,10 @@ public final class GeoResonanceClient {
             double centerX = snapshot.stationPos().getX() + 0.5D;
             double centerY = snapshot.stationPos().getY() + SEISMOGRAM_GUIDE_Y_OFFSET;
             double centerZ = snapshot.stationPos().getZ() + 0.5D;
+            int minDistance = Config.PROJECTOR_MIN_NODE_DISTANCE_BLOCKS.get();
 
             addBlockedAreaBoundary(builder, matrix, snapshot.stationPos().getX(), snapshot.stationPos().getZ(), centerY,
-                SEISMOGRAM_GUIDE_MIN_STATION_DISTANCE, 1.0F, 0.22F, 0.22F, 0.9F);
+                minDistance, 1.0F, 0.22F, 0.22F, 0.9F);
             addGuideCross(builder, matrix, centerX, centerY, centerZ, 0.45D, 1.0F, 0.85F, 0.22F, 0.9F);
 
             BufferUploader.drawWithShader(builder.end());
@@ -579,10 +601,11 @@ public final class GeoResonanceClient {
 
     private static List<SignalDistance> buildNearestSignals(SeismogramMapService.MapSnapshot snapshot,
                                                             double playerX, double playerY, double playerZ) {
+        int maxSignals = Math.max(1, Config.SEISMOGRAM_SIDEBAR_MAX_SIGNALS.get());
         return snapshot.signals().stream()
             .map(signal -> toSignalDistance(signal, playerX, playerY, playerZ))
             .sorted(Comparator.comparingInt(SignalDistance::horizontalDistance))
-            .limit(SEISMOGRAM_SIDEBAR_MAX_SIGNALS)
+            .limit(maxSignals)
             .toList();
     }
 
@@ -673,6 +696,21 @@ public final class GeoResonanceClient {
     private static void addBlockedAreaBoundary(BufferBuilder builder, Matrix4f matrix,
                                                int stationX, int stationZ, double centerY, int minDistance,
                                                float r, float g, float b, float a) {
+        List<BoundarySegment> segments = blockedBoundarySegments(minDistance);
+        float y = (float) centerY;
+        for (BoundarySegment segment : segments) {
+            addLine(builder, matrix,
+                stationX + segment.x1(), y, stationZ + segment.z1(),
+                stationX + segment.x2(), y, stationZ + segment.z2(),
+                r, g, b, a);
+        }
+    }
+
+    private static List<BoundarySegment> blockedBoundarySegments(int minDistance) {
+        return BLOCKED_BOUNDARY_CACHE.computeIfAbsent(minDistance, GeoResonanceClient::computeBlockedBoundarySegments);
+    }
+
+    private static List<BoundarySegment> computeBlockedBoundarySegments(int minDistance) {
         Set<Long> blockedCells = new HashSet<>();
         int radius = Math.max(1, minDistance - 1);
         int limitSq = minDistance * minDistance;
@@ -681,27 +719,28 @@ public final class GeoResonanceClient {
                 if (dx * dx + dz * dz >= limitSq) {
                     continue;
                 }
-                blockedCells.add(packCell(stationX + dx, stationZ + dz));
+                blockedCells.add(packCell(dx, dz));
             }
         }
 
-        float y = (float) centerY;
+        List<BoundarySegment> segments = new ArrayList<>();
         for (long packed : blockedCells) {
             int x = unpackX(packed);
             int z = unpackZ(packed);
             if (!blockedCells.contains(packCell(x - 1, z))) {
-                addLine(builder, matrix, x, y, z, x, y, z + 1, r, g, b, a);
+                segments.add(new BoundarySegment(x, z, x, z + 1));
             }
             if (!blockedCells.contains(packCell(x + 1, z))) {
-                addLine(builder, matrix, x + 1, y, z, x + 1, y, z + 1, r, g, b, a);
+                segments.add(new BoundarySegment(x + 1, z, x + 1, z + 1));
             }
             if (!blockedCells.contains(packCell(x, z - 1))) {
-                addLine(builder, matrix, x, y, z, x + 1, y, z, r, g, b, a);
+                segments.add(new BoundarySegment(x, z, x + 1, z));
             }
             if (!blockedCells.contains(packCell(x, z + 1))) {
-                addLine(builder, matrix, x, y, z + 1, x + 1, y, z + 1, r, g, b, a);
+                segments.add(new BoundarySegment(x, z + 1, x + 1, z + 1));
             }
         }
+        return List.copyOf(segments);
     }
 
     private static long packCell(int x, int z) {
@@ -747,5 +786,8 @@ public final class GeoResonanceClient {
     }
 
     private record SignalDistance(SeismicAnomalyType type, int horizontalDistance, int verticalDelta) {
+    }
+
+    private record BoundarySegment(int x1, int z1, int x2, int z2) {
     }
 }

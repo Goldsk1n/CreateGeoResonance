@@ -41,8 +41,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,6 +72,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float MIN_EXACT_EDGE_ALPHA = 0.9F;
     private static final float EXACT_GUIDE_ALPHA_SCALE = 0.82F;
     private static final int MAX_PONDER_OUTLINES = 48;
+    private static final int MAX_GEOMETRY_CACHE_ENTRIES = 256;
+    private static final Map<SeismicProjectorBlockEntity, GeometryCacheEntry> GEOMETRY_CACHE =
+        Collections.synchronizedMap(new IdentityHashMap<>());
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
         ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
 
@@ -154,6 +159,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float exactBlockInset = projectorBlockInset();
 
         BlockPos origin = blockEntity.getBlockPos();
+        RenderGeometryData geometry = resolveRenderGeometry(blockEntity, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
 
@@ -168,10 +174,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
-                    for (RenderableVein vein : visibleVeins) {
+                    for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
-                        List<FaceQuad> surfaceFaces = buildSurfaceFaces(vein.blocks(), origin, exactBlockInset);
-                        for (FaceQuad face : surfaceFaces) {
+                        for (FaceQuad face : vein.faces()) {
                             addQuad(bufferBuilder, poseStack.last().pose(),
                                 face.x1(), face.y1(), face.z1(),
                                 face.x2(), face.y2(), face.z2(),
@@ -181,9 +186,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                         }
                     }
                 } else {
-                    for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                    for (CandidateGeometry candidate : geometry.candidates()) {
                         float[] color = colorFor(candidate.type());
-                        AABB box = toLocalCandidateBox(origin, candidate);
+                        AABB box = candidate.box();
                         drawBoxFaces(bufferBuilder, poseStack, box, color[0], color[1], color[2], fillAlpha);
                     }
                 }
@@ -194,20 +199,18 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
-                    for (RenderableVein vein : visibleVeins) {
+                    for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
-                        List<FaceQuad> surfaceFaces = buildSurfaceFaces(vein.blocks(), origin, exactBlockInset);
-                        List<LineSegment> joinedEdges = buildJoinedEdges(surfaceFaces);
-                        for (LineSegment edge : joinedEdges) {
+                        for (LineSegment edge : vein.edges()) {
                             addEdge(bufferBuilder, poseStack.last().pose(),
                                 edge.x1(), edge.y1(), edge.z1(), edge.x2(), edge.y2(), edge.z2(),
                                 color[0], color[1], color[2], edgeAlpha);
                         }
                     }
                 } else {
-                    for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                    for (CandidateGeometry candidate : geometry.candidates()) {
                         float[] color = colorFor(candidate.type());
-                        AABB box = toLocalCandidateBox(origin, candidate);
+                        AABB box = candidate.box();
                         drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], edgeAlpha);
                     }
                 }
@@ -224,22 +227,17 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 float startZ = guideStart[2];
                 if (renderExact) {
                     float exactGuideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
-                    for (RenderableVein vein : visibleVeins) {
-                        float[] centroid = veinCentroid(origin, vein.blocks());
+                    for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
                         drawDashedLineThick(bufferBuilder, poseStack.last().pose(),
-                            startX, startY, startZ, centroid[0], centroid[1], centroid[2],
+                            startX, startY, startZ, vein.centroidX(), vein.centroidY(), vein.centroidZ(),
                             color[0], color[1], color[2], exactGuideAlpha, guideHalfWidth);
                     }
                 } else {
-                    for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                    for (CandidateGeometry candidate : geometry.candidates()) {
                         float[] color = colorFor(candidate.type());
-                        AABB box = toLocalCandidateBox(origin, candidate);
-                        float targetX = (float) ((box.minX + box.maxX) * 0.5D);
-                        float targetY = (float) ((box.minY + box.maxY) * 0.5D);
-                        float targetZ = (float) ((box.minZ + box.maxZ) * 0.5D);
                         drawDashedLineThick(bufferBuilder, poseStack.last().pose(),
-                            startX, startY, startZ, targetX, targetY, targetZ,
+                            startX, startY, startZ, candidate.centerX(), candidate.centerY(), candidate.centerZ(),
                             color[0], color[1], color[2], edgeAlpha, guideHalfWidth);
                     }
                 }
@@ -674,6 +672,77 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return configuredWidth * 0.0125F;
     }
 
+    private static RenderGeometryData resolveRenderGeometry(SeismicProjectorBlockEntity blockEntity,
+                                                            List<RenderableVein> visibleVeins,
+                                                            List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates,
+                                                            boolean renderExact, float exactBlockInset) {
+        if (GEOMETRY_CACHE.size() > MAX_GEOMETRY_CACHE_ENTRIES) {
+            GEOMETRY_CACHE.clear();
+        }
+        long signature = geometrySignature(renderExact, exactBlockInset, visibleVeins, candidates);
+        GeometryCacheEntry cached = GEOMETRY_CACHE.get(blockEntity);
+        if (cached != null && cached.signature() == signature) {
+            return cached.data();
+        }
+
+        BlockPos origin = blockEntity.getBlockPos();
+        List<ExactVeinGeometry> exactGeometries = List.of();
+        List<CandidateGeometry> candidateGeometries = List.of();
+        if (renderExact) {
+            List<ExactVeinGeometry> built = new ArrayList<>(visibleVeins.size());
+            for (RenderableVein vein : visibleVeins) {
+                List<FaceQuad> faces = buildSurfaceFaces(vein.blocks(), origin, exactBlockInset);
+                List<LineSegment> edges = buildJoinedEdges(faces);
+                float[] centroid = veinCentroid(origin, vein.blocks());
+                built.add(new ExactVeinGeometry(vein.type(), List.copyOf(faces), List.copyOf(edges),
+                    centroid[0], centroid[1], centroid[2]));
+            }
+            exactGeometries = List.copyOf(built);
+        } else {
+            List<CandidateGeometry> built = new ArrayList<>(candidates.size());
+            for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+                AABB box = toLocalCandidateBox(origin, candidate);
+                built.add(new CandidateGeometry(
+                    candidate.type(),
+                    box,
+                    (float) ((box.minX + box.maxX) * 0.5D),
+                    (float) ((box.minY + box.maxY) * 0.5D),
+                    (float) ((box.minZ + box.maxZ) * 0.5D)
+                ));
+            }
+            candidateGeometries = List.copyOf(built);
+        }
+
+        RenderGeometryData data = new RenderGeometryData(exactGeometries, candidateGeometries);
+        GEOMETRY_CACHE.put(blockEntity, new GeometryCacheEntry(signature, data));
+        return data;
+    }
+
+    private static long geometrySignature(boolean renderExact, float exactBlockInset,
+                                          List<RenderableVein> visibleVeins,
+                                          List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates) {
+        long hash = 17L;
+        hash = 31L * hash + (renderExact ? 1L : 0L);
+        hash = 31L * hash + Float.floatToIntBits(exactBlockInset);
+        hash = 31L * hash + visibleVeins.size();
+        for (RenderableVein vein : visibleVeins) {
+            hash = 31L * hash + vein.type().ordinal();
+            hash = 31L * hash + vein.blocks().size();
+            for (BlockPos blockPos : vein.blocks()) {
+                hash = 31L * hash + blockPos.asLong();
+            }
+        }
+        hash = 31L * hash + candidates.size();
+        for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+            hash = 31L * hash + candidate.type().ordinal();
+            hash = 31L * hash + candidate.worldX();
+            hash = 31L * hash + candidate.worldZ();
+            hash = 31L * hash + candidate.approxY();
+            hash = 31L * hash + candidate.error();
+        }
+        return hash;
+    }
+
     private static float ponderBlockInset() {
         return Mth.clamp(Config.PROJECTOR_PONDER_BLOCK_EDGE_INSET.get().floatValue(), -0.45F, 0.45F);
     }
@@ -850,6 +919,19 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private record RenderableVeinDistance(RenderableVein vein, float distanceSq) {
+    }
+
+    private record ExactVeinGeometry(SeismicAnomalyType type, List<FaceQuad> faces, List<LineSegment> edges,
+                                     float centroidX, float centroidY, float centroidZ) {
+    }
+
+    private record CandidateGeometry(SeismicAnomalyType type, AABB box, float centerX, float centerY, float centerZ) {
+    }
+
+    private record RenderGeometryData(List<ExactVeinGeometry> exactVeins, List<CandidateGeometry> candidates) {
+    }
+
+    private record GeometryCacheEntry(long signature, RenderGeometryData data) {
     }
 
     private static float shaftAngle(SeismicProjectorBlockEntity blockEntity, Direction facing) {

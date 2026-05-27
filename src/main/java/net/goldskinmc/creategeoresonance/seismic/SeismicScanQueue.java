@@ -68,15 +68,19 @@ public final class SeismicScanQueue {
 
         int budget = Config.SCAN_BLOCK_BUDGET_PER_TICK.get();
         int maxPerJob = Config.SCAN_SLICE_PER_JOB.get();
+        int timeBudgetMicros = Config.SCAN_TIME_BUDGET_MICROS.get();
+        long deadlineNanos = timeBudgetMicros <= 0
+            ? Long.MAX_VALUE
+            : System.nanoTime() + (long) timeBudgetMicros * 1_000L;
         int rotations = JOBS.size();
 
-        while (budget > 0 && rotations-- > 0 && !JOBS.isEmpty()) {
+        while (budget > 0 && rotations-- > 0 && !JOBS.isEmpty() && System.nanoTime() < deadlineNanos) {
             SeismicScanJob job = JOBS.pollFirst();
             int sliceCap = maxPerJob;
             if (job.isPriorityJob()) {
                 sliceCap = Math.min(budget, Math.max(maxPerJob, maxPerJob * 6));
             }
-            int consumed = job.process(Math.min(sliceCap, budget));
+            int consumed = job.process(Math.min(sliceCap, budget), deadlineNanos);
             budget -= consumed;
 
             if (job.isComplete()) {
@@ -312,9 +316,13 @@ public final class SeismicScanQueue {
             this.index = 0;
         }
 
-        private int process(int budget) {
+        private int process(int budget, long deadlineNanos) {
             int consumed = 0;
             while (consumed < budget && index < totalCells) {
+                if ((consumed & 63) == 0 && System.nanoTime() >= deadlineNanos) {
+                    break;
+                }
+
                 int depthIndex = index / (width * width);
                 int horizontalIndex = index % (width * width);
                 int dx = horizontalIndex % width - request.radius();
