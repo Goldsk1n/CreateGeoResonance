@@ -55,9 +55,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float DASH_LENGTH = 0.65F;
     private static final float DASH_GAP = 0.4F;
     private static final float GUIDE_CENTER_X = 0.5F;
-    private static final float GUIDE_CENTER_Y = 0.73F;
+    private static final float GUIDE_CENTER_Y = 0.05F;
     private static final float GUIDE_CENTER_Z = 0.5F;
-    private static final float GUIDE_FORWARD_OFFSET = 0.34F;
+    private static final float GUIDE_FORWARD_OFFSET = 0.0F;
     private static final Direction LOCAL_SHAFT_AXIS = Direction.SOUTH;
     private static final float SHAFT_PIVOT_X = 8.0F;
     private static final float SHAFT_PIVOT_Y = 8.0F;
