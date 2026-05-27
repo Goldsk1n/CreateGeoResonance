@@ -74,20 +74,6 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
     }
 
     @Override
-    public boolean hasAnalogOutputSignal(BlockState state) {
-        return true;
-    }
-
-    @Override
-    public int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
-        BlockPos controllerPos = getControllerPos(state, pos);
-        if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
-            return station.getComparatorOutput();
-        }
-        return 0;
-    }
-
-    @Override
     public float getDestroyProgress(BlockState state, Player player, BlockGetter level, BlockPos pos) {
         BlockPos controllerPos = getControllerPos(state, pos);
         BlockState controllerState = level.getBlockState(controllerPos);
