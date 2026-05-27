@@ -19,6 +19,7 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -112,7 +113,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             rightSeismogram.translate(SEISMOGRAM_RIGHT_OFFSET_X, SEISMOGRAM_RIGHT_OFFSET_Y, SEISMOGRAM_RIGHT_OFFSET_Z);
             rightSeismogram.light(seismogramLight).renderInto(poseStack, vertexConsumer);
         }
-        if (!blockEntity.hasRequiredSpeed()) {
+        if (!blockEntity.getBlockState().hasProperty(SeismicProjectorBlock.ACTIVE)
+            || !blockEntity.getBlockState().getValue(SeismicProjectorBlock.ACTIVE)) {
             if (ponderLevel) {
                 clearPonderOutlines((PonderLevel) blockEntity.getLevel(), blockEntity.getBlockPos());
             }
