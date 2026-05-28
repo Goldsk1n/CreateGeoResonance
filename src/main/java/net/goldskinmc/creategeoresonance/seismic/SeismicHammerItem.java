@@ -28,6 +28,10 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -48,6 +52,26 @@ public class SeismicHammerItem extends Item {
 
     public SeismicHammerItem(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public ItemStack getDefaultInstance() {
+        ItemStack stack = super.getDefaultInstance();
+        SeismicPressureStorage.setStoredPressure(stack, SeismicPressureStorage.maxPressure());
+        return stack;
+    }
+
+    @Override
+    public void onCraftedBy(ItemStack stack, Level level, Player player) {
+        super.onCraftedBy(stack, level, player);
+        if (level.isClientSide || SeismicPressureStorage.getStoredPressure(stack) > 0.0F) {
+            return;
+        }
+
+        float copiedPressure = pressureFromCraftingInputs(player.containerMenu);
+        if (copiedPressure > 0.0F) {
+            SeismicPressureStorage.setStoredPressure(stack, copiedPressure);
+        }
     }
 
     @Override
@@ -254,6 +278,31 @@ public class SeismicHammerItem extends Item {
         }
         player.push(0.0D, 0.11D, 0.0D);
         player.hurtMarked = true;
+    }
+
+    private static float pressureFromCraftingInputs(AbstractContainerMenu menu) {
+        int firstCraftSlot;
+        int lastCraftSlotExclusive;
+        if (menu instanceof CraftingMenu) {
+            firstCraftSlot = 1;
+            lastCraftSlotExclusive = 10;
+        } else if (menu instanceof InventoryMenu) {
+            firstCraftSlot = 1;
+            lastCraftSlotExclusive = 5;
+        } else {
+            return 0.0F;
+        }
+
+        float maxPressure = SeismicPressureStorage.maxPressure();
+        for (int slotIndex = firstCraftSlot; slotIndex < lastCraftSlotExclusive; slotIndex++) {
+            Slot slot = menu.getSlot(slotIndex);
+            ItemStack ingredient = slot.getItem();
+            if (ingredient.isEmpty() || !AllTags.AllItemTags.PRESSURIZED_AIR_SOURCES.matches(ingredient)) {
+                continue;
+            }
+            return Mth.clamp(BacktankUtil.getAir(ingredient), 0.0F, maxPressure);
+        }
+        return 0.0F;
     }
 
     @Override
