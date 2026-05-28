@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -561,6 +562,14 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
 
     public int getLoadedNodeCount() {
         return nodes.size();
+    }
+
+    @Nullable
+    public BlockPos getSingleLoadedStationPos() {
+        if (nodes.size() != 1) {
+            return null;
+        }
+        return nodes.get(0).stationPos().immutable();
     }
 
     private boolean isProjecting() {

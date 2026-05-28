@@ -16,9 +16,11 @@ import net.goldskinmc.creategeoresonance.client.effect.SeismicWaveEffect;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.client.Minecraft;
@@ -26,6 +28,7 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
@@ -41,6 +44,8 @@ import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -72,6 +77,7 @@ public final class GeoResonanceClient {
     private static final int SEISMOGRAM_SIDEBAR_ROW_HEIGHT = 10;
     private static final int SEISMOGRAM_SIDEBAR_WIDTH = 132;
     private static final double SEISMOGRAM_GUIDE_Y_OFFSET = 0.06D;
+    private static final int PROJECTOR_GUIDE_SEARCH_CHUNKS_CAP = 6;
     private static final Map<Integer, List<BoundarySegment>> BLOCKED_BOUNDARY_CACHE = new HashMap<>();
     private static ClientLevel PREWARMED_LEVEL;
     private static boolean WAVE_RENDERER_PREWARMED;
@@ -457,16 +463,12 @@ public final class GeoResonanceClient {
             return;
         }
 
-        SeismogramMapService.MapSnapshot snapshot = findHeldSeismogramSnapshot(minecraft);
-        if (snapshot == null) {
+        if (!Config.SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED.get()) {
             return;
         }
 
-        String dimensionId = level.dimension().location().toString();
-        if (!dimensionId.equals(snapshot.stationDimension())) {
-            return;
-        }
-        if (!Config.SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED.get()) {
+        BlockPos stationPos = findSingleNodeProjectorStation(minecraft, level);
+        if (stationPos == null) {
             return;
         }
 
@@ -488,12 +490,12 @@ public final class GeoResonanceClient {
             builder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
             Matrix4f matrix = poseStack.last().pose();
 
-            double centerX = snapshot.stationPos().getX() + 0.5D;
-            double centerY = snapshot.stationPos().getY() + SEISMOGRAM_GUIDE_Y_OFFSET;
-            double centerZ = snapshot.stationPos().getZ() + 0.5D;
+            double centerX = stationPos.getX() + 0.5D;
+            double centerY = stationPos.getY() + SEISMOGRAM_GUIDE_Y_OFFSET;
+            double centerZ = stationPos.getZ() + 0.5D;
             int minDistance = Config.PROJECTOR_MIN_NODE_DISTANCE_BLOCKS.get();
 
-            addBlockedAreaBoundary(builder, matrix, snapshot.stationPos().getX(), snapshot.stationPos().getZ(), centerY,
+            addBlockedAreaBoundary(builder, matrix, stationPos.getX(), stationPos.getZ(), centerY,
                 minDistance, 1.0F, 0.22F, 0.22F, 0.9F);
             addGuideCross(builder, matrix, centerX, centerY, centerZ, 0.45D, 1.0F, 0.85F, 0.22F, 0.9F);
 
@@ -509,15 +511,21 @@ public final class GeoResonanceClient {
 
     private static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
-        if (!SeismogramMapService.isSeismogramStack(stack)) {
+        if (SeismogramMapService.isSeismogramStack(stack)) {
+            event.getToolTip().removeIf(GeoResonanceClient::isLockedMapTooltipLine);
+
+            ItemDescription description = ItemDescription.create("item.creategeoresonance.seismogram.tooltip", Palette.STANDARD_CREATE);
+            if (description != null) {
+                event.getToolTip().addAll(description.getCurrentLines());
+            }
             return;
         }
 
-        event.getToolTip().removeIf(GeoResonanceClient::isLockedMapTooltipLine);
-
-        ItemDescription description = ItemDescription.create("item.creategeoresonance.seismogram.tooltip", Palette.STANDARD_CREATE);
-        if (description != null) {
-            event.getToolTip().addAll(description.getCurrentLines());
+        if (stack.is(GeoResonanceBlocks.SEISMIC_PROJECTOR.get().asItem())) {
+            ItemDescription description = ItemDescription.create("item.creategeoresonance.seismic_projector.tooltip", Palette.STANDARD_CREATE);
+            if (description != null) {
+                event.getToolTip().addAll(description.getCurrentLines());
+            }
         }
     }
 
@@ -597,6 +605,52 @@ public final class GeoResonanceClient {
         }
         ItemStack offhand = minecraft.player.getOffhandItem();
         return SeismogramMapService.readSnapshot(offhand);
+    }
+
+    @Nullable
+    private static BlockPos findSingleNodeProjectorStation(Minecraft minecraft, ClientLevel level) {
+        if (minecraft.player == null) {
+            return null;
+        }
+
+        BlockPos playerPos = minecraft.player.blockPosition();
+        int centerChunkX = SectionPos.blockToSectionCoord(playerPos.getX());
+        int centerChunkZ = SectionPos.blockToSectionCoord(playerPos.getZ());
+        int searchChunks = Math.max(1, Math.min(
+            PROJECTOR_GUIDE_SEARCH_CHUNKS_CAP,
+            Config.PROJECTOR_STATION_RANGE_CHUNKS.get() + 1));
+
+        BlockPos bestStationPos = null;
+        double bestDistanceSq = Double.MAX_VALUE;
+        for (int chunkX = centerChunkX - searchChunks; chunkX <= centerChunkX + searchChunks; chunkX++) {
+            for (int chunkZ = centerChunkZ - searchChunks; chunkZ <= centerChunkZ + searchChunks; chunkZ++) {
+                if (!level.hasChunk(chunkX, chunkZ)) {
+                    continue;
+                }
+
+                LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+                for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+                    if (!(blockEntity instanceof SeismicProjectorBlockEntity projector)) {
+                        continue;
+                    }
+                    if (projector.getLoadedNodeCount() != 1) {
+                        continue;
+                    }
+
+                    BlockPos stationPos = projector.getSingleLoadedStationPos();
+                    if (stationPos == null) {
+                        continue;
+                    }
+
+                    double distanceSq = blockEntity.getBlockPos().distSqr(playerPos);
+                    if (distanceSq < bestDistanceSq) {
+                        bestDistanceSq = distanceSq;
+                        bestStationPos = stationPos;
+                    }
+                }
+            }
+        }
+        return bestStationPos;
     }
 
     private static List<SignalDistance> buildNearestSignals(SeismogramMapService.MapSnapshot snapshot,

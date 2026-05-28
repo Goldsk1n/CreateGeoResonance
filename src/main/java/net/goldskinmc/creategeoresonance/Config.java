@@ -177,7 +177,7 @@ public class Config {
             .defineInRange("ponderGuideLineWidth", 0.5D, 0.2D, 1.0D);
         CLIENT_BUILDER.pop();
 
-        CLIENT_BUILDER.comment("Client-side seismogram UI and placement guides.").push("seismogramUi");
+        CLIENT_BUILDER.comment("Client-side seismogram UI and projector placement guides.").push("seismogramUi");
         SEISMOGRAM_SIDEBAR_ENABLED = CLIENT_BUILDER
             .comment("Show nearest signal sidebar while holding a seismogram.")
             .define("sidebarEnabled", true);
@@ -185,7 +185,7 @@ public class Config {
             .comment("Maximum number of nearest signals shown in the seismogram sidebar.")
             .defineInRange("sidebarMaxSignals", 5, 1, 16);
         SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED = CLIENT_BUILDER
-            .comment("Show triangulation invalid-distance boundary while holding a seismogram.")
+            .comment("Show triangulation invalid-distance boundary when a nearby projector has exactly one loaded node.")
             .define("boundaryOverlayEnabled", true);
         CLIENT_BUILDER.pop();
 
