@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
+import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.outliner.Outline;
@@ -940,14 +941,24 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         if (blockEntity.getLevel() == null) {
             return 0.0F;
         }
-        Direction.Axis axis = KineticBlockEntityRenderer.getRotationAxisOf(blockEntity);
-        float time = AnimationTickHolder.getRenderTime(blockEntity.getLevel());
-        float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(blockEntity, blockEntity.getBlockPos(), axis);
-        float rawDegrees = time * blockEntity.getSpeed() * 3f / 10 + offset;
-        float rawAngle = (rawDegrees % 360f) / 180f * (float) Math.PI;
+        float sourceAngle = sourceShaftAngle(blockEntity, facing);
         Direction shaftSide = facing.getOpposite();
         float sideSign = shaftSide.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0F : -1.0F;
-        return rawAngle * sideSign;
+        return sourceAngle * sideSign;
+    }
+
+    private static float sourceShaftAngle(SeismicProjectorBlockEntity blockEntity, Direction facing) {
+        Direction.Axis projectorAxis = KineticBlockEntityRenderer.getRotationAxisOf(blockEntity);
+        BlockPos sourcePos = blockEntity.getBlockPos().relative(facing.getOpposite());
+        if (blockEntity.getLevel() != null && blockEntity.getLevel().getBlockEntity(sourcePos) instanceof KineticBlockEntity source) {
+            Direction.Axis sourceAxis = KineticBlockEntityRenderer.getRotationAxisOf(source);
+            if (sourceAxis == projectorAxis) {
+                return KineticBlockEntityRenderer.getAngleForBe(source, sourcePos, sourceAxis);
+            }
+        }
+
+        // Fallback when no kinetic source BE is present (e.g. some ponder/runtime states).
+        return KineticBlockEntityRenderer.getAngleForBe(blockEntity, blockEntity.getBlockPos(), projectorAxis);
     }
 
     private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {
