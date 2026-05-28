@@ -148,8 +148,9 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(input, input.getBlockPos(), inputAxis);
         float rawDegrees = time * input.getSpeed() * 3f / 10 + offset;
         float rawAngle = (rawDegrees * speedMultiplier % 360f) / 180f * (float) Math.PI;
-        float facingSign = facing.getAxis() == Direction.Axis.X ? -1.0F : 1.0F;
-        return rawAngle * facingSign;
+        Direction shaftSide = facing.getOpposite();
+        float sideSign = shaftSide.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0F : -1.0F;
+        return rawAngle * sideSign;
     }
 
     private static float pistonTravelFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
