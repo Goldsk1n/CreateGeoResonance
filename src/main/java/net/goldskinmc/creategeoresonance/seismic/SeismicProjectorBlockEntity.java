@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 public class SeismicProjectorBlockEntity extends KineticBlockEntity {
+    private static final float TARGET_REQUIRED_SU = 512.0F;
     private static final String TAG_NODES = "Nodes";
     private static final String TAG_CENTER_X = "CenterX";
     private static final String TAG_CENTER_Y = "CenterY";
@@ -73,13 +74,6 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         }
         if (level == null) {
             return false;
-        }
-        if (!hasRequiredSpeed()) {
-            player.displayClientMessage(Component.translatable(
-                    "block.creategeoresonance.seismic_projector.no_rotation",
-                    Config.PROJECTOR_MIN_SPEED.get())
-                .withStyle(ChatFormatting.RED), true);
-            return true;
         }
         String projectorDimension = level.dimension().location().toString();
         if (!projectorDimension.equals(snapshot.stationDimension())) {
@@ -594,7 +588,9 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
 
     @Override
     public float calculateStressApplied() {
-        lastStressApplied = Config.PROJECTOR_STRESS_IMPACT.get().floatValue();
+        float minOperationalSpeed = Math.max(1.0F, Config.PROJECTOR_MIN_SPEED.get());
+        float absSpeed = Math.max(minOperationalSpeed, Math.abs(getSpeed()));
+        lastStressApplied = TARGET_REQUIRED_SU / absSpeed;
         return lastStressApplied;
     }
 
