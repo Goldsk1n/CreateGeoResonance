@@ -65,6 +65,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     public static final int MODULE_SLOT_COUNT = 8;
     public static final int SLOT_MODULE_END = SLOT_MODULE_START + MODULE_SLOT_COUNT - 1;
     private static final float MODULE_STRESS_IMPACT = 2.0F;
+    private static final float STRESS_STEP_RPM = 16.0F;
+    private static final float STRESS_STEP_SU = 32.0F;
 
     private final ItemStackHandler inventory = new ItemStackHandler(SLOT_MODULE_START + MODULE_SLOT_COUNT) {
         @Override
@@ -764,9 +766,23 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     @Override
     public float calculateStressApplied() {
-        float impact = Config.STATION_STRESS_IMPACT.get().floatValue() + (getInstalledModuleCount() * MODULE_STRESS_IMPACT);
+        float impact = baseStationStressImpactForSpeed() + (getInstalledModuleCount() * MODULE_STRESS_IMPACT);
         lastStressApplied = impact;
         return impact;
+    }
+
+    private float baseStationStressImpactForSpeed() {
+        float baseImpactAtMinSpeed = Config.STATION_STRESS_IMPACT.get().floatValue();
+        float minSpeed = Math.max(1.0F, Config.STATION_MIN_SPEED.get());
+        float absSpeed = Math.max(1.0F, Math.abs(getOperationalSpeed()));
+        if (absSpeed <= minSpeed) {
+            return baseImpactAtMinSpeed;
+        }
+
+        float baseRequiredSu = baseImpactAtMinSpeed * minSpeed;
+        float extraSteps = Mth.floor((absSpeed - minSpeed) / STRESS_STEP_RPM);
+        float requiredSu = baseRequiredSu + (extraSteps * STRESS_STEP_SU);
+        return requiredSu / absSpeed;
     }
 
     private int calculateStrikeIntervalTicks() {

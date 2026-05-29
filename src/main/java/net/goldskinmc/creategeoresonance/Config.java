@@ -117,12 +117,12 @@ public class Config {
             .defineInRange("strikeIntervalMultiplier", 5, 1, 20);
         STATION_MIN_SPEED = BUILDER
             .comment("Minimum absolute RPM required on the station input shaft to start scanning.")
-            .defineInRange("minSpeed", 24, 1, 512);
+            .defineInRange("minSpeed", 32, 1, 512);
         STATION_MAX_SPEED_BONUS = BUILDER
             .comment("Maximum strike speed multiplier from RPM scaling.")
             .defineInRange("maxSpeedBonus", 2.5D, 1.0D, 10.0D);
         STATION_STRESS_IMPACT = BUILDER
-            .comment("Base stress impact applied by the seismic station block.")
+            .comment("Base stress impact at minimum station speed.")
             .defineInRange("stressImpact", 12.0D, 0.0D, 1024.0D);
         STATION_NOISE = BUILDER
             .comment("Confidence jitter used for station anomaly evaluation.")
