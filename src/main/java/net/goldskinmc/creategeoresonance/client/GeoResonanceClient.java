@@ -526,6 +526,14 @@ public final class GeoResonanceClient {
             if (description != null) {
                 event.getToolTip().addAll(description.getCurrentLines());
             }
+            return;
+        }
+
+        if (stack.is(GeoResonanceBlocks.SEISMIC_STATION.get().asItem())) {
+            ItemDescription description = ItemDescription.create("item.creategeoresonance.seismic_station.tooltip", Palette.STANDARD_CREATE);
+            if (description != null) {
+                event.getToolTip().addAll(description.getCurrentLines());
+            }
         }
     }
 
