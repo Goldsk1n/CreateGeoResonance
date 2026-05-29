@@ -24,7 +24,7 @@
   "item.creategeoresonance.seismic_hammer.tooltip.condition1": "Charging",
   "item.creategeoresonance.seismic_hammer.tooltip.behaviour1": "Use Shift+Right-click to place. Then you can charge it using _rotation_, similar to backtank. Also can pull air from a worn _Backtank_.",
   "item.creategeoresonance.seismic_hammer.tooltip.condition2": "Restrictions",
-  "item.creategeoresonance.seismic_hammer.tooltip.behaviour2": "When pressure is low, scans are _weaker_: depth is reduced and echo identity becomes ambiguous. Striking _dirt_, _sand_, or _gravel_ dampens scan depth.",
+  "item.creategeoresonance.seismic_hammer.tooltip.behaviour2": "When pressure is low, scans are _weaker_: depth is reduced and echo identity becomes ambiguous. Striking _dirt_, _sand_, or _gravel_ dampens scan depth. Can also strike _mobs_.",
   "item.creategeoresonance.seismogram.sidebar.title": "Nearest Signals (~Y)",
   "item.creategeoresonance.seismogram.sidebar.line": "%s %sm | %s",
   "item.creategeoresonance.seismogram.sidebar.height.higher": "~%s higher",
