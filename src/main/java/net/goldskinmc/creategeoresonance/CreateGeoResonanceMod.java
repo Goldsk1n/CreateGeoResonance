@@ -16,6 +16,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -30,7 +31,8 @@ public class CreateGeoResonanceMod {
     public static final String MODID = "creategeoresonance";
 
     public CreateGeoResonanceMod(FMLJavaModLoadingContext context) {
-        context.getModEventBus().addListener(this::onBuildCreativeTab);
+        IEventBus modEventBus = context.getModEventBus();
+        modEventBus.addListener(this::onBuildCreativeTab);
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         context.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
         GeoResonanceRegistrate.init();
@@ -49,7 +51,7 @@ public class CreateGeoResonanceMod {
         });
 
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-            () -> () -> net.goldskinmc.creategeoresonance.client.GeoResonanceClient.register());
+            () -> () -> net.goldskinmc.creategeoresonance.client.GeoResonanceClient.register(modEventBus));
     }
 
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {

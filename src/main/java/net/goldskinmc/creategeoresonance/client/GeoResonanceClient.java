@@ -53,8 +53,8 @@ import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.createmod.ponder.foundation.PonderIndex;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -85,8 +85,8 @@ public final class GeoResonanceClient {
     private GeoResonanceClient() {
     }
 
-    public static void register() {
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(GeoResonanceClient::onClientSetup);
+    public static void register(IEventBus modEventBus) {
+        modEventBus.addListener(GeoResonanceClient::onClientSetup);
         ItemProperties.register(Items.FILLED_MAP,
             ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "seismogram"),
             (stack, level, entity, seed) -> SeismogramMapService.isSeismogramStack(stack) ? 1.0F : 0.0F);
