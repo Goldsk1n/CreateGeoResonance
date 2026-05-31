@@ -3,6 +3,7 @@ package net.goldskinmc.creategeoresonance.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
@@ -58,8 +59,8 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         BlockState state = blockEntity.getBlockState();
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         SeismicStationBoundingBlockEntity input = blockEntity.getInputNode();
-        float angle = angleFor(input, facing, 1.0F);
-        float drumAngle = angleFor(input, facing, 0.125F);
+        float angle = shaftAngleFor(input, facing);
+        float drumAngle = drumAngleFor(input, facing, 0.125F);
         RenderType renderType = getRenderType(blockEntity, state);
         VertexConsumer vertexConsumer = buffer.getBuffer(renderType);
 
@@ -139,18 +140,72 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         ms.popPose();
     }
 
-    private static float angleFor(SeismicStationBoundingBlockEntity input, Direction facing, float speedMultiplier) {
+    private static float shaftAngleFor(SeismicStationBoundingBlockEntity input, Direction facing) {
         if (input == null || input.getLevel() == null) {
             return 0.0F;
         }
         Direction.Axis inputAxis = KineticBlockEntityRenderer.getRotationAxisOf(input);
-        float time = AnimationTickHolder.getRenderTime(input.getLevel());
-        float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(input, input.getBlockPos(), inputAxis);
-        float rawDegrees = time * input.getSpeed() * 3f / 10 + offset;
-        float rawAngle = (rawDegrees * speedMultiplier % 360f) / 180f * (float) Math.PI;
+        float rawAngle = sourceShaftAngle(input, facing, inputAxis);
         Direction shaftSide = facing.getOpposite();
         float sideSign = shaftSide.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0F : -1.0F;
         return rawAngle * sideSign;
+    }
+
+    private static float drumAngleFor(SeismicStationBoundingBlockEntity input, Direction facing, float speedMultiplier) {
+        if (input == null || input.getLevel() == null) {
+            return 0.0F;
+        }
+
+        Direction.Axis inputAxis = KineticBlockEntityRenderer.getRotationAxisOf(input);
+        float rawAngle = continuousSourceAngle(input, facing, inputAxis, speedMultiplier);
+        Direction shaftSide = facing.getOpposite();
+        float sideSign = shaftSide.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0F : -1.0F;
+        return rawAngle * sideSign;
+    }
+
+    private static float sourceShaftAngle(SeismicStationBoundingBlockEntity input, Direction facing, Direction.Axis inputAxis) {
+        var level = input.getLevel();
+        if (level == null) {
+            return 0.0F;
+        }
+
+        var sourcePos = input.getBlockPos().relative(facing.getOpposite());
+        if (level.getBlockEntity(sourcePos) instanceof KineticBlockEntity source) {
+            Direction.Axis sourceAxis = KineticBlockEntityRenderer.getRotationAxisOf(source);
+            if (sourceAxis == inputAxis) {
+                return KineticBlockEntityRenderer.getAngleForBe(source, sourcePos, sourceAxis);
+            }
+        }
+
+        return KineticBlockEntityRenderer.getAngleForBe(input, input.getBlockPos(), inputAxis);
+    }
+
+    private static float continuousSourceAngle(SeismicStationBoundingBlockEntity input, Direction facing, Direction.Axis inputAxis,
+                                               float speedMultiplier) {
+        var level = input.getLevel();
+        if (level == null) {
+            return 0.0F;
+        }
+
+        KineticBlockEntity angleEntity = input;
+        var anglePos = input.getBlockPos();
+        float speed = input.getSpeed();
+
+        var sourcePos = input.getBlockPos().relative(facing.getOpposite());
+        if (level.getBlockEntity(sourcePos) instanceof KineticBlockEntity source) {
+            Direction.Axis sourceAxis = KineticBlockEntityRenderer.getRotationAxisOf(source);
+            if (sourceAxis == inputAxis) {
+                angleEntity = source;
+                anglePos = sourcePos;
+                speed = source.getSpeed();
+            }
+        }
+
+        float time = AnimationTickHolder.getRenderTime(level);
+        float offset = KineticBlockEntityRenderer.getRotationOffsetForPosition(angleEntity, anglePos, inputAxis);
+        float rawDegrees = time * speed * 3f / 10 + offset;
+        float scaledDegrees = rawDegrees * speedMultiplier;
+        return (scaledDegrees % 360f) / 180f * (float) Math.PI;
     }
 
     private static float pistonTravelFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
