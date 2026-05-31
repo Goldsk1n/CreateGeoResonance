@@ -4,13 +4,13 @@ import com.simibubi.create.api.contraption.ContraptionMovementSetting;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceCreativeTabs;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
 import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -39,6 +39,7 @@ public class CreateGeoResonanceMod {
         GeoResonanceBlocks.register();
         GeoResonanceBlockEntityTypes.register();
         GeoResonanceItems.register();
+        GeoResonanceCreativeTabs.register(modEventBus);
         GeoResonanceSoundEvents.register();
         GeoResonancePackets.register();
         registerContraptionMovementRestrictions();
@@ -55,26 +56,6 @@ public class CreateGeoResonanceMod {
     }
 
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(createFilledHammerStack());
-            event.accept(GeoResonanceItems.BELOW_ZERO_MODULE.get());
-            event.accept(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get());
-            event.accept(GeoResonanceItems.AMETHYST_MODULE.get());
-            event.accept(GeoResonanceItems.CHEST_MODULE.get());
-            event.accept(GeoResonanceItems.SPAWNER_MODULE.get());
-            event.accept(GeoResonanceItems.COAL_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.IRON_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.COPPER_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.GOLD_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.LAPIS_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.EMERALD_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceItems.ZINC_RESONANCE_MODULE.get());
-            event.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
-            event.accept(GeoResonanceBlocks.SEISMIC_PROJECTOR.get().asItem());
-        }
-
         replaceEmptyHammerEntries(event);
     }
 
@@ -93,9 +74,7 @@ public class CreateGeoResonanceMod {
     }
 
     private static ItemStack createFilledHammerStack() {
-        ItemStack stack = new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get());
-        SeismicPressureStorage.setStoredPressure(stack, SeismicPressureStorage.maxPressure());
-        return stack;
+        return GeoResonanceCreativeTabs.createFilledHammerStack();
     }
 
     private static void replaceEmptyHammerEntries(BuildCreativeModeTabContentsEvent event) {

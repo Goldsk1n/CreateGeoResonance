@@ -64,9 +64,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     public static final int SLOT_MODULE_START = 3;
     public static final int MODULE_SLOT_COUNT = 8;
     public static final int SLOT_MODULE_END = SLOT_MODULE_START + MODULE_SLOT_COUNT - 1;
-    private static final float MODULE_STRESS_IMPACT = 2.0F;
-    private static final float STRESS_STEP_RPM = 16.0F;
-    private static final float STRESS_STEP_SU = 32.0F;
+    private static final float BASE_REQUIRED_SU = 256.0F;
+    private static final float MODULE_REQUIRED_SU = 64.0F;
 
     private final ItemStackHandler inventory = new ItemStackHandler(SLOT_MODULE_START + MODULE_SLOT_COUNT) {
         @Override
@@ -574,7 +573,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             exactClusters.add(new SeismogramMapService.ExactCluster(cluster.type(), List.copyOf(cluster.blocks())));
         }
         revealIndex = 0;
-        strikeTimer = calculateStrikeIntervalTicks();
+        strikeTimer = queuedAnomalies.isEmpty() ? 0 : calculateStrikeIntervalTicks();
         awaitingScanResult = false;
         setChanged();
         sendData();
@@ -662,27 +661,41 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return;
         }
 
+        if (revealIndex >= queuedAnomalies.size()) {
+            finishReplayScan(serverLevel);
+            return;
+        }
+
         GeoResonancePackets.sendSeismicImpact(serverLevel, worldPosition, -1, false);
-        if (revealIndex < queuedAnomalies.size()) {
-            SeismicAnomaly anomaly = queuedAnomalies.get(revealIndex++);
-            GeoResonancePackets.sendSeismicResult(
-                serverLevel,
-                worldPosition,
-                -1,
-                false,
-                currentScanDepth,
-                List.of(anomaly)
-            );
-        } else {
-            generateMapEntries(serverLevel);
-            scanRunning = false;
-            awaitingScanResult = false;
-            cooldownTicks = 0;
-            playFeedbackSound(SoundEvents.LEVER_CLICK, 0.6F, 0.5F);
-            queuedAnomalies.clear();
+        SeismicAnomaly anomaly = queuedAnomalies.get(revealIndex++);
+        GeoResonancePackets.sendSeismicResult(
+            serverLevel,
+            worldPosition,
+            -1,
+            false,
+            currentScanDepth,
+            List.of(anomaly)
+        );
+
+        if (revealIndex >= queuedAnomalies.size()) {
+            finishReplayScan(serverLevel);
+            return;
         }
 
         strikeTimer = calculateStrikeIntervalTicks();
+        setChanged();
+        sendData();
+        updateComparatorOutputIfNeeded();
+    }
+
+    private void finishReplayScan(ServerLevel serverLevel) {
+        generateMapEntries(serverLevel);
+        scanRunning = false;
+        awaitingScanResult = false;
+        cooldownTicks = 0;
+        strikeTimer = 0;
+        playFeedbackSound(SoundEvents.LEVER_CLICK, 0.6F, 0.5F);
+        queuedAnomalies.clear();
         setChanged();
         sendData();
         updateComparatorOutputIfNeeded();
@@ -766,36 +779,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     @Override
     public float calculateStressApplied() {
-        float impact = baseStationStressImpactForSpeed() + (getInstalledModuleCount() * MODULE_STRESS_IMPACT);
+        float requiredSu = BASE_REQUIRED_SU + (getInstalledModuleCount() * MODULE_REQUIRED_SU);
+        float absSpeed = Math.max(1.0F, Math.abs(getOperationalSpeed()));
+        float impact = requiredSu / absSpeed;
         lastStressApplied = impact;
         return impact;
-    }
-
-    private float baseStationStressImpactForSpeed() {
-        float baseImpactAtMinSpeed = Config.STATION_STRESS_IMPACT.get().floatValue();
-        float minSpeed = Math.max(1.0F, Config.STATION_MIN_SPEED.get());
-        float absSpeed = Math.max(1.0F, Math.abs(getOperationalSpeed()));
-        if (absSpeed <= minSpeed) {
-            return baseImpactAtMinSpeed;
-        }
-
-        float baseRequiredSu = baseImpactAtMinSpeed * minSpeed;
-        float extraSteps = Mth.floor((absSpeed - minSpeed) / STRESS_STEP_RPM);
-        float requiredSu = baseRequiredSu + (extraSteps * STRESS_STEP_SU);
-        return requiredSu / absSpeed;
     }
 
     private int calculateStrikeIntervalTicks() {
         int intervalMultiplier = Math.max(1, Config.STATION_STRIKE_INTERVAL_MULTIPLIER.get());
         int baseInterval = Config.STATION_STRIKE_INTERVAL_TICKS.get() * intervalMultiplier;
         int minInterval = Math.min(baseInterval, Config.STATION_MIN_STRIKE_INTERVAL_TICKS.get() * intervalMultiplier);
-        float minSpeed = Math.max(1.0F, Config.STATION_MIN_SPEED.get());
-        float absSpeed = Math.abs(getOperationalSpeed());
-        float speedBonus = absSpeed / minSpeed;
-        float maxBonus = (float) Config.STATION_MAX_SPEED_BONUS.get().doubleValue();
-        float clampedBonus = Mth.clamp(speedBonus, 1.0F, maxBonus);
-        int scaledInterval = Mth.ceil(baseInterval / clampedBonus);
-        return Mth.clamp(scaledInterval, minInterval, baseInterval);
+        return Math.max(1, minInterval);
     }
 
     private void tickClientStrikeAnimation() {

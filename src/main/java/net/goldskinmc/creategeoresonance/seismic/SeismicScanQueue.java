@@ -277,6 +277,13 @@ public final class SeismicScanQueue {
         private final boolean detectZinc;
         private final boolean detectAnyOre;
         private final boolean detectAnySolidTarget;
+        private final int[] horizontalDxByIndex;
+        private final int[] horizontalDzByIndex;
+        private final int[] cellXByHorizontalIndex;
+        private final int[] cellZByHorizontalIndex;
+        private final float[] horizontalWeightBaseByIndex;
+        private final boolean[] inRadiusByIndex;
+        private final float[] depthFactorByIndex;
         private int index;
 
         private SeismicScanJob(SeismicScanRequest request) {
@@ -314,33 +321,91 @@ public final class SeismicScanQueue {
                 || detectSpawner
                 || detectChest
                 || detectAnyOre;
+            this.horizontalDxByIndex = new int[width * width];
+            this.horizontalDzByIndex = new int[width * width];
+            this.cellXByHorizontalIndex = new int[width * width];
+            this.cellZByHorizontalIndex = new int[width * width];
+            this.horizontalWeightBaseByIndex = new float[width * width];
+            this.inRadiusByIndex = new boolean[width * width];
+            this.depthFactorByIndex = new float[Math.max(1, request.depth())];
+            precomputeScanCaches();
             this.index = 0;
         }
 
+        private void precomputeScanCaches() {
+            int radius = request.radius();
+            int radiusSquared = radius * radius;
+            float radiusInv = radius > 0 ? 1.0F / radius : 1.0F;
+            int cellSize = 4;
+
+            for (int horizontalIndex = 0; horizontalIndex < width * width; horizontalIndex++) {
+                int dx = horizontalIndex % width - radius;
+                int dz = horizontalIndex / width - radius;
+                horizontalDxByIndex[horizontalIndex] = dx;
+                horizontalDzByIndex[horizontalIndex] = dz;
+                cellXByHorizontalIndex[horizontalIndex] = Math.floorDiv(dx + radius, cellSize);
+                cellZByHorizontalIndex[horizontalIndex] = Math.floorDiv(dz + radius, cellSize);
+
+                int distanceSq = dx * dx + dz * dz;
+                boolean inRadius = distanceSq <= radiusSquared;
+                inRadiusByIndex[horizontalIndex] = inRadius;
+                if (!inRadius) {
+                    horizontalWeightBaseByIndex[horizontalIndex] = 0.4F;
+                    continue;
+                }
+
+                float distanceRatio = Mth.sqrt(distanceSq) * radiusInv;
+                float distanceFactor = Mth.clamp(
+                    1.0F - (float) Math.pow(distanceRatio, 1.9F),
+                    0.0F,
+                    1.0F
+                );
+                horizontalWeightBaseByIndex[horizontalIndex] = 0.4F + distanceFactor * 0.6F;
+            }
+
+            int depth = Math.max(1, request.depth());
+            for (int depthIndex = 0; depthIndex < depthFactorByIndex.length; depthIndex++) {
+                float depthRatio = (depthIndex + 1) / (float) depth;
+                depthFactorByIndex[depthIndex] = 1.0F - depthRatio;
+            }
+        }
+
         private int process(int budget, long deadlineNanos) {
+            ServerLevel level = request.level();
+            BlockPos origin = request.origin();
+            int originX = origin.getX();
+            int originY = origin.getY();
+            int originZ = origin.getZ();
+            int radius = request.radius();
+            int radiusSquared = radius * radius;
+            int depth = request.depth();
+            int widthSquared = width * width;
+            boolean allowBelowZeroOres = request.allowBelowZeroOres();
+            float noiseStrength = request.noise();
+            BlockPos.MutableBlockPos scanPos = new BlockPos.MutableBlockPos();
             int consumed = 0;
             while (consumed < budget && index < totalCells) {
                 if ((consumed & 63) == 0 && System.nanoTime() >= deadlineNanos) {
                     break;
                 }
 
-                int depthIndex = index / (width * width);
-                int horizontalIndex = index % (width * width);
-                int dx = horizontalIndex % width - request.radius();
-                int dz = horizontalIndex / width - request.radius();
+                int depthIndex = index / widthSquared;
+                int horizontalIndex = index % widthSquared;
+                int dx = horizontalDxByIndex[horizontalIndex];
+                int dz = horizontalDzByIndex[horizontalIndex];
                 index++;
                 consumed++;
 
-                if (dx * dx + dz * dz > request.radius() * request.radius()) {
+                if (!inRadiusByIndex[horizontalIndex]) {
                     continue;
                 }
 
-                BlockPos scanPos = request.origin().offset(dx, -(depthIndex + 1), dz);
-                if (!request.level().isLoaded(scanPos)) {
+                scanPos.set(originX + dx, originY - (depthIndex + 1), originZ + dz);
+                if (!level.isLoaded(scanPos)) {
                     continue;
                 }
 
-                BlockState state = request.level().getBlockState(scanPos);
+                BlockState state = level.getBlockState(scanPos);
                 FluidState fluid = state.getFluidState();
                 SeismicAnomalyType type;
                 if (!fluid.isEmpty()) {
@@ -375,7 +440,7 @@ public final class SeismicScanQueue {
                     } else if (detectChest && (state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST))) {
                         type = SeismicAnomalyType.CHEST;
                     } else {
-                        boolean oreDepthAllowed = scanPos.getY() >= 0 || request.allowBelowZeroOres();
+                        boolean oreDepthAllowed = scanPos.getY() >= 0 || allowBelowZeroOres;
                         if (!detectAnyOre || !oreDepthAllowed) {
                             continue;
                         }
@@ -404,21 +469,15 @@ public final class SeismicScanQueue {
                 }
                 trackExactHit(type, scanPos);
 
-                float depthRatio = (depthIndex + 1) / (float) request.depth();
-                float distance = Mth.sqrt(dx * dx + dz * dz);
-                float distanceRatio = distance / request.radius();
-                float attenuationExponent = 1.9F;
-                float distanceFactor = Mth.clamp(1.0F - (float) Math.pow(distanceRatio, attenuationExponent), 0.0F, 1.0F);
-                float depthFactor = 1.0F - depthRatio;
-                float noise = (random.nextFloat() - 0.5F) * request.noise();
-                float weight = Mth.clamp(depthFactor * (0.4F + distanceFactor * 0.6F) + noise, 0.0F, 1.0F);
+                float depthFactor = depthFactorByIndex[depthIndex];
+                float noise = (random.nextFloat() - 0.5F) * noiseStrength;
+                float weight = Mth.clamp(depthFactor * horizontalWeightBaseByIndex[horizontalIndex] + noise, 0.0F, 1.0F);
                 if (weight <= 0.02F) {
                     continue;
                 }
 
-                int cellSize = 4;
-                int cellX = Math.floorDiv(dx + request.radius(), cellSize);
-                int cellZ = Math.floorDiv(dz + request.radius(), cellSize);
+                int cellX = cellXByHorizontalIndex[horizontalIndex];
+                int cellZ = cellZByHorizontalIndex[horizontalIndex];
                 int key = (type.ordinal() << 28) | (cellX << 14) | cellZ;
                 aggregates.computeIfAbsent(key, ignored -> new Aggregate(type))
                     .add(dx, dz, depthIndex + 1, weight);

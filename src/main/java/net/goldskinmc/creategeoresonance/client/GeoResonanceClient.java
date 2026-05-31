@@ -138,8 +138,11 @@ public final class GeoResonanceClient {
         }
 
         long now = level.getGameTime();
+        int maxDepth = Math.max(1, packet.maxDepth());
         for (SeismicAnomaly anomaly : packet.anomalies()) {
-            int delay = Math.max(1, Math.round((anomaly.depth() / (float) packet.maxDepth()) * Config.MAX_ECHO_DELAY_TICKS.get()));
+            int scaledDelay = Math.max(1, Math.round((anomaly.depth() / (float) maxDepth) * Config.MAX_ECHO_DELAY_TICKS.get()));
+            int minimumDelay = packet.scannerEntityId() == -1 ? 6 : 3;
+            int delay = Math.max(minimumDelay, scaledDelay);
             PENDING_ECHOES.add(new ScheduledEcho(packet.origin(), packet.scannerEntityId(), packet.maxDepth(), packet.lowPressure(), anomaly, now + delay));
         }
     }

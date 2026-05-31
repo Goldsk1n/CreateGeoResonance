@@ -93,13 +93,13 @@ public class Config {
         BUILDER.comment("Global seismic scan queue budgeting and pacing.").push("scanQueue");
         SCAN_BLOCK_BUDGET_PER_TICK = BUILDER
             .comment("Total scan block checks processed globally per server tick.")
-            .defineInRange("blockBudgetPerTick", 2400, 64, 250000);
+            .defineInRange("blockBudgetPerTick", 4800, 64, 250000);
         SCAN_SLICE_PER_JOB = BUILDER
             .comment("Maximum block checks per job before rotating to the next queued scan.")
-            .defineInRange("slicePerJob", 400, 16, 50000);
+            .defineInRange("slicePerJob", 800, 16, 50000);
         SCAN_TIME_BUDGET_MICROS = BUILDER
             .comment("Soft time cap for seismic scan queue work per server tick in microseconds. Set 0 to disable.")
-            .defineInRange("timeBudgetMicros", 1500, 0, 20000);
+            .defineInRange("timeBudgetMicros", 3000, 0, 20000);
         BUILDER.pop();
 
         BUILDER.comment("Stage 2 seismic station tuning").push("station");
