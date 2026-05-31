@@ -8,7 +8,7 @@
     "S": { "item": "create:sturdy_sheet" },
     "A": { "item": "create:andesite_alloy" },
     "G": { "item": "minecraft:raw_gold" },
-    "N": { "item": "minecraft:gold_nugget" }
+    "N": { "item": "minecraft:gold_ingot" }
   },
   "result": { "item": "creategeoresonance:gold_resonance_module" }
 }

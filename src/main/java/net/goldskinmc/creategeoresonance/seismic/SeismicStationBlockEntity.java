@@ -573,7 +573,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             exactClusters.add(new SeismogramMapService.ExactCluster(cluster.type(), List.copyOf(cluster.blocks())));
         }
         revealIndex = 0;
-        strikeTimer = queuedAnomalies.isEmpty() ? 0 : calculateStrikeIntervalTicks();
+        strikeTimer = calculateStrikeIntervalTicks();
         awaitingScanResult = false;
         setChanged();
         sendData();
@@ -658,6 +658,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     private void replayStrike() {
         if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        if (queuedAnomalies.isEmpty()) {
+            if (revealIndex == 0) {
+                GeoResonancePackets.sendSeismicImpact(serverLevel, worldPosition, -1, false);
+            }
+            finishReplayScan(serverLevel);
             return;
         }
 

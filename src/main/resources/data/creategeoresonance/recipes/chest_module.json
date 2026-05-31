@@ -7,8 +7,8 @@
   "key": {
     "S": { "item": "create:sturdy_sheet" },
     "A": { "item": "create:andesite_alloy" },
-    "B": { "item": "minecraft:beacon" },
-    "C": { "item": "minecraft:chest" }
+    "B": { "item": "minecraft:ender_chest" },
+    "C": { "item": "minecraft:chest_minecart" }
   },
   "result": { "item": "creategeoresonance:chest_module" }
 }

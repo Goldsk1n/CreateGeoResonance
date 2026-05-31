@@ -18,11 +18,15 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public class PlacedSeismicHammerBlock extends HorizontalKineticBlock implements IBE<PlacedSeismicHammerBlockEntity> {
-    private static final VoxelShape SHAPE = Block.box(2.0D, 0.0D, 2.0D, 14.0D, 9.0D, 14.0D);
+    private static final VoxelShape SHAPE = Shapes.or(
+        Block.box(3.0D, 0.0D, 3.0D, 13.0D, 10.0D, 13.0D),
+        Block.box(6.0D, 10.0D, 6.0D, 10.0D, 16.0D, 10.0D)
+    );
 
     public PlacedSeismicHammerBlock(Properties properties) {
         super(properties);
@@ -91,6 +95,11 @@ public class PlacedSeismicHammerBlock extends HorizontalKineticBlock implements 
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 

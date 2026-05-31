@@ -502,11 +502,11 @@ public final class GeoResonancePonderScenes {
             new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(50);
-        scene.overlay().showText(70)
-            .text("Up to 8 module slots are available.")
+        scene.overlay().showText(120)
+            .text("Up to 8 module slots are available. Last modules signals are prioritized.")
             .pointAt(util.vector().centerOf(stationUpperLeft))
             .placeNearTarget();
-        scene.idle(90);
+        scene.idle(140);
     }
 
     private static void setStationPonderInventory(CreateSceneBuilder scene, BlockPos stationPos,

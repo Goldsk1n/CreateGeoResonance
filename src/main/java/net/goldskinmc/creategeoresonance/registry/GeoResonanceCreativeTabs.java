@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance.registry;
 
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
+import net.goldskinmc.creategeoresonance.seismic.SeismicHammerItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -15,7 +16,7 @@ public final class GeoResonanceCreativeTabs {
 
     public static final RegistryObject<CreativeModeTab> MAIN = TABS.register("main", () -> CreativeModeTab.builder()
         .title(Component.translatable("itemGroup.creategeoresonance"))
-        .icon(GeoResonanceCreativeTabs::createFilledHammerStack)
+        .icon(GeoResonanceCreativeTabs::createCreativeTabIconStack)
         .displayItems((parameters, output) -> {
             output.accept(createFilledHammerStack());
             output.accept(GeoResonanceItems.BELOW_ZERO_MODULE.get());
@@ -47,6 +48,12 @@ public final class GeoResonanceCreativeTabs {
     public static ItemStack createFilledHammerStack() {
         ItemStack stack = new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get());
         SeismicPressureStorage.setStoredPressure(stack, SeismicPressureStorage.maxPressure());
+        return stack;
+    }
+
+    private static ItemStack createCreativeTabIconStack() {
+        ItemStack stack = createFilledHammerStack();
+        stack.getOrCreateTag().putBoolean(SeismicHammerItem.HIDE_PRESSURE_BAR_TAG, true);
         return stack;
     }
 }

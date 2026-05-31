@@ -11,6 +11,7 @@ import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -56,6 +57,10 @@ public class CreateGeoResonanceMod {
     }
 
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.SEARCH) {
+            normalizeSearchHammerEntries(event);
+            return;
+        }
         replaceEmptyHammerEntries(event);
     }
 
@@ -101,6 +106,23 @@ public class CreateGeoResonanceMod {
 
         if (removedEmpty && !hasFilled) {
             event.accept(createFilledHammerStack(), visibility);
+        }
+    }
+
+    private static void normalizeSearchHammerEntries(BuildCreativeModeTabContentsEvent event) {
+        boolean foundAnyHammer = false;
+        Iterator<Map.Entry<ItemStack, CreativeModeTab.TabVisibility>> iterator = event.getEntries().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<ItemStack, CreativeModeTab.TabVisibility> entry = iterator.next();
+            if (!entry.getKey().is(GeoResonanceItems.SEISMIC_HAMMER.get())) {
+                continue;
+            }
+            foundAnyHammer = true;
+            iterator.remove();
+        }
+
+        if (foundAnyHammer) {
+            event.accept(createFilledHammerStack(), CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY);
         }
     }
 }

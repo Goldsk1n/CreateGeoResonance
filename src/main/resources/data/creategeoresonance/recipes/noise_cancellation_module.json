@@ -8,7 +8,7 @@
     "S": { "item": "create:sturdy_sheet" },
     "A": { "item": "create:andesite_alloy" },
     "W": { "item": "minecraft:white_wool" },
-    "C": { "item": "minecraft:comparator" }
+    "C": { "item": "minecraft:repeater" }
   },
   "result": { "item": "creategeoresonance:noise_cancellation_module" }
 }

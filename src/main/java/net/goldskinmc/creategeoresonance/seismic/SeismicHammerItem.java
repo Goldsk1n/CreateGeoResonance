@@ -49,6 +49,7 @@ import java.util.function.Consumer;
 public class SeismicHammerItem extends Item {
     private static final float PUNCH_DAMAGE = 10.0F;
     private static final double PUNCH_KNOCKBACK = 2.25D;
+    public static final String HIDE_PRESSURE_BAR_TAG = "HidePressureBar";
 
     public SeismicHammerItem(Properties properties) {
         super(properties);
@@ -198,7 +199,8 @@ public class SeismicHammerItem extends Item {
 
     @Override
     public boolean isBarVisible(ItemStack stack) {
-        return true;
+        CompoundTag tag = stack.getTag();
+        return tag == null || !tag.getBoolean(HIDE_PRESSURE_BAR_TAG);
     }
 
     @Override
