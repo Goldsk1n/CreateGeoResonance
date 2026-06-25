@@ -1,5 +1,7 @@
 package net.goldskinmc.creategeoresonance;
 
+import com.simibubi.create.api.behaviour.interaction.MovingInteractionBehaviour;
+import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
 import com.simibubi.create.api.contraption.ContraptionMovementSetting;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
@@ -9,6 +11,8 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovingInteraction;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovementBehaviour;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -20,6 +24,7 @@ import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -34,6 +39,7 @@ public class CreateGeoResonanceMod {
     public CreateGeoResonanceMod(FMLJavaModLoadingContext context) {
         IEventBus modEventBus = context.getModEventBus();
         modEventBus.addListener(this::onBuildCreativeTab);
+        modEventBus.addListener(this::onCommonSetup);
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         context.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
         GeoResonanceRegistrate.init();
@@ -56,6 +62,10 @@ public class CreateGeoResonanceMod {
             () -> () -> net.goldskinmc.creategeoresonance.client.GeoResonanceClient.register(modEventBus));
     }
 
+    private void onCommonSetup(FMLCommonSetupEvent event) {
+        event.enqueueWork(CreateGeoResonanceMod::registerContraptionBehaviours);
+    }
+
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.SEARCH) {
             normalizeSearchHammerEntries(event);
@@ -76,6 +86,11 @@ public class CreateGeoResonanceMod {
             }
             return null;
         });
+    }
+
+    private static void registerContraptionBehaviours() {
+        MovementBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_PROJECTOR.get(), new SeismicProjectorMovementBehaviour());
+        MovingInteractionBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_PROJECTOR.get(), new SeismicProjectorMovingInteraction());
     }
 
     private static ItemStack createFilledHammerStack() {

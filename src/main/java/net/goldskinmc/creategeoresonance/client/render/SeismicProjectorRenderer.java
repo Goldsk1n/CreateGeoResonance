@@ -7,8 +7,12 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.simibubi.create.content.contraptions.behaviour.MovementContext;
+import com.simibubi.create.content.contraptions.render.ContraptionMatrices;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.content.kinetics.base.KineticBlockEntityVisual;
+import com.simibubi.create.foundation.virtualWorld.VirtualRenderWorld;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.outliner.Outline;
@@ -21,13 +25,16 @@ import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorData;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
@@ -37,9 +44,12 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraftforge.client.ChunkRenderTypeSet;
+import net.minecraftforge.client.model.data.ModelData;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -75,7 +85,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float EXACT_GUIDE_ALPHA_SCALE = 0.82F;
     private static final int MAX_PONDER_OUTLINES = 48;
     private static final int MAX_GEOMETRY_CACHE_ENTRIES = 256;
-    private static final Map<SeismicProjectorBlockEntity, GeometryCacheEntry> GEOMETRY_CACHE =
+    private static final Map<Object, GeometryCacheEntry> GEOMETRY_CACHE =
         Collections.synchronizedMap(new IdentityHashMap<>());
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
         ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
@@ -122,11 +132,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             return;
         }
 
-        List<SeismicProjectorBlockEntity.ExactVein> exactVeins = blockEntity.getConfirmedVeins();
+        List<SeismicProjectorData.ExactVein> exactVeins = blockEntity.getConfirmedVeins();
         List<RenderableVein> renderableVeins = ponderLevel
             ? toRenderableVeins(exactVeins)
-            : filterRenderableVeins(blockEntity, exactVeins);
-        List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates = blockEntity.getTriangulatedCandidates();
+            : filterRenderableVeins(blockEntity.getLevel(), exactVeins);
+        List<SeismicProjectorData.TriangulatedCandidate> candidates =
+            filterRenderableCandidates(blockEntity.getLevel(), blockEntity.getTriangulatedCandidates());
         int visibleVeinsMax = Math.max(0, Config.PROJECTOR_VISIBLE_VEINS_MAX.get());
         List<RenderableVein> visibleVeins = limitVisibleVeins(blockEntity.getBlockPos(), renderableVeins, visibleVeinsMax);
         boolean hasExactData = !exactVeins.isEmpty();
@@ -162,7 +173,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float exactBlockInset = projectorBlockInset();
 
         BlockPos origin = blockEntity.getBlockPos();
-        RenderGeometryData geometry = resolveRenderGeometry(blockEntity, visibleVeins, candidates, renderExact, exactBlockInset);
+        RenderGeometryData geometry = resolveRenderGeometry(blockEntity, origin, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
 
@@ -254,6 +265,177 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
     }
 
+    public static void renderInContraption(MovementContext context, VirtualRenderWorld renderWorld,
+                                           ContraptionMatrices matrices, MultiBufferSource buffer) {
+        if (context.world == null || context.contraption == null || context.contraption.entity == null) {
+            return;
+        }
+
+        Vec3 projectorCenter = context.position != null
+            ? context.position
+            : context.contraption.entity.toGlobalVector(Vec3.atCenterOf(context.localPos), AnimationTickHolder.getPartialTicks());
+        BlockPos projectorPos = BlockPos.containing(projectorCenter);
+        BlockState state = context.state;
+        Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
+        VertexConsumer vertexConsumer = buffer.getBuffer(resolveRenderType(state));
+
+        int shaftLight = LevelRenderer.getLightColor(renderWorld, context.localPos.relative(facing.getOpposite()));
+        SuperByteBuffer shaft = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_PROJECTOR_SHAFT, state);
+        shaft.transform(matrices.getModel());
+        orientToFacing(shaft, facing);
+        rotateAroundLocalPivot(shaft, mountedShaftAngle(context, facing), LOCAL_SHAFT_AXIS, SHAFT_PIVOT_X, SHAFT_PIVOT_Y, SHAFT_PIVOT_Z);
+        shaft.light(shaftLight)
+            .useLevelLight(context.world, matrices.getWorld())
+            .renderInto(matrices.getViewProjection(), vertexConsumer);
+
+        if (context.blockEntityData == null) {
+            context.blockEntityData = new CompoundTag();
+        }
+        SeismicProjectorData projectorData = new SeismicProjectorData();
+        projectorData.readFromTag(context.blockEntityData);
+
+        int loadedNodes = projectorData.getLoadedNodeCount();
+        int seismogramLight = LevelRenderer.getLightColor(renderWorld, context.localPos.above());
+        if (loadedNodes >= 1) {
+            SuperByteBuffer leftSeismogram = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_OUTPUT_SEISMOGRAM, state);
+            leftSeismogram.transform(matrices.getModel());
+            orientToFacing(leftSeismogram, facing);
+            leftSeismogram.translate(SEISMOGRAM_LEFT_OFFSET_X, SEISMOGRAM_LEFT_OFFSET_Y, SEISMOGRAM_LEFT_OFFSET_Z);
+            leftSeismogram.light(seismogramLight)
+                .useLevelLight(context.world, matrices.getWorld())
+                .renderInto(matrices.getViewProjection(), vertexConsumer);
+        }
+        if (loadedNodes >= 2) {
+            SuperByteBuffer rightSeismogram = CachedBuffers.partial(GeoResonancePartialModels.SEISMIC_STATION_OUTPUT_SEISMOGRAM, state);
+            rightSeismogram.transform(matrices.getModel());
+            orientToFacing(rightSeismogram, facing);
+            rightSeismogram.translate(SEISMOGRAM_RIGHT_OFFSET_X, SEISMOGRAM_RIGHT_OFFSET_Y, SEISMOGRAM_RIGHT_OFFSET_Z);
+            rightSeismogram.light(seismogramLight)
+                .useLevelLight(context.world, matrices.getWorld())
+                .renderInto(matrices.getViewProjection(), vertexConsumer);
+        }
+
+        if (!projectorData.canProjectFrom(projectorPos, true)) {
+            return;
+        }
+
+        List<SeismicProjectorData.ExactVein> exactVeins = projectorData.getConfirmedVeins();
+        List<RenderableVein> renderableVeins = filterRenderableVeins(context.world, exactVeins);
+        List<SeismicProjectorData.TriangulatedCandidate> candidates =
+            filterRenderableCandidates(context.world, projectorData.getTriangulatedCandidates());
+        int visibleVeinsMax = Math.max(0, Config.PROJECTOR_VISIBLE_VEINS_MAX.get());
+        List<RenderableVein> visibleVeins = limitVisibleVeins(projectorPos, renderableVeins, visibleVeinsMax);
+        boolean hasExactData = !exactVeins.isEmpty();
+        boolean renderExact = !visibleVeins.isEmpty();
+        if ((!hasExactData && candidates.isEmpty()) || (hasExactData && !renderExact)) {
+            return;
+        }
+
+        boolean fillEnabled = Config.PROJECTOR_FILL_ENABLED.get();
+        boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
+        float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
+        float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
+        if (renderExact) {
+            fillAlpha = Math.max(fillAlpha, MIN_EXACT_FILL_ALPHA);
+            edgeAlpha = Math.max(edgeAlpha, MIN_EXACT_EDGE_ALPHA);
+        }
+        if (edgeAlpha <= 0.0F && (!fillEnabled || fillAlpha <= 0.0F)) {
+            return;
+        }
+
+        float exactBlockInset = projectorBlockInset();
+        RenderGeometryData geometry = resolveRenderGeometry(context, projectorPos, visibleVeins, candidates, renderExact, exactBlockInset);
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder bufferBuilder = tesselator.getBuilder();
+        PoseStack projectedStack = new PoseStack();
+        ContraptionMatrices.transform(projectedStack, matrices.getViewProjection());
+        ContraptionMatrices.transform(projectedStack, matrices.getModel());
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
+
+        try {
+            if (fillEnabled && fillAlpha > 0.0F) {
+                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                if (renderExact) {
+                    for (ExactVeinGeometry vein : geometry.exactVeins()) {
+                        float[] color = colorFor(vein.type());
+                        for (FaceQuad face : vein.faces()) {
+                            addQuad(bufferBuilder, projectedStack.last().pose(),
+                                face.x1(), face.y1(), face.z1(),
+                                face.x2(), face.y2(), face.z2(),
+                                face.x3(), face.y3(), face.z3(),
+                                face.x4(), face.y4(), face.z4(),
+                                color[0], color[1], color[2], fillAlpha);
+                        }
+                    }
+                } else {
+                    for (CandidateGeometry candidate : geometry.candidates()) {
+                        float[] color = colorFor(candidate.type());
+                        drawBoxFaces(bufferBuilder, projectedStack, candidate.box(), color[0], color[1], color[2], fillAlpha);
+                    }
+                }
+                BufferUploader.drawWithShader(bufferBuilder.end());
+            }
+
+            if (edgeAlpha > 0.0F) {
+                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                if (renderExact) {
+                    for (ExactVeinGeometry vein : geometry.exactVeins()) {
+                        float[] color = colorFor(vein.type());
+                        for (LineSegment edge : vein.edges()) {
+                            addEdge(bufferBuilder, projectedStack.last().pose(),
+                                edge.x1(), edge.y1(), edge.z1(), edge.x2(), edge.y2(), edge.z2(),
+                                color[0], color[1], color[2], edgeAlpha);
+                        }
+                    }
+                } else {
+                    for (CandidateGeometry candidate : geometry.candidates()) {
+                        float[] color = colorFor(candidate.type());
+                        drawBoxEdges(bufferBuilder, projectedStack, candidate.box(), color[0], color[1], color[2], edgeAlpha);
+                    }
+                }
+                BufferUploader.drawWithShader(bufferBuilder.end());
+            }
+
+            if (guideLinesEnabled && edgeAlpha > 0.0F) {
+                float guideHalfWidth = guideLineHalfWidth(projectorGuideLineWidth());
+                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                float[] guideStart = guideStartForFacing(facing);
+                if (renderExact) {
+                    float exactGuideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
+                    for (ExactVeinGeometry vein : geometry.exactVeins()) {
+                        float[] color = colorFor(vein.type());
+                        drawDashedLineThick(bufferBuilder, projectedStack.last().pose(),
+                            guideStart[0], guideStart[1], guideStart[2],
+                            vein.centroidX(), vein.centroidY(), vein.centroidZ(),
+                            color[0], color[1], color[2], exactGuideAlpha, guideHalfWidth);
+                    }
+                } else {
+                    for (CandidateGeometry candidate : geometry.candidates()) {
+                        float[] color = colorFor(candidate.type());
+                        drawDashedLineThick(bufferBuilder, projectedStack.last().pose(),
+                            guideStart[0], guideStart[1], guideStart[2],
+                            candidate.centerX(), candidate.centerY(), candidate.centerZ(),
+                            color[0], color[1], color[2], edgeAlpha, guideHalfWidth);
+                    }
+                }
+                BufferUploader.drawWithShader(bufferBuilder.end());
+            }
+        } finally {
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+            RenderSystem.enableCull();
+            RenderSystem.disableBlend();
+        }
+    }
+
     @Override
     public boolean shouldRenderOffScreen(SeismicProjectorBlockEntity blockEntity) {
         return true;
@@ -264,16 +446,19 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return 128;
     }
 
-    private static List<RenderableVein> filterRenderableVeins(SeismicProjectorBlockEntity blockEntity,
-                                                              List<SeismicProjectorBlockEntity.ExactVein> exactVeins) {
+    private static List<RenderableVein> filterRenderableVeins(net.minecraft.world.level.Level level,
+                                                              List<SeismicProjectorData.ExactVein> exactVeins) {
         List<RenderableVein> filtered = new ArrayList<>();
-        if (blockEntity.getLevel() == null) {
+        if (level == null) {
             return filtered;
         }
-        for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+        for (SeismicProjectorData.ExactVein vein : exactVeins) {
             List<BlockPos> liveBlocks = new ArrayList<>();
             for (BlockPos blockPos : vein.blocks()) {
-                BlockState state = blockEntity.getLevel().getBlockState(blockPos);
+                if (!level.hasChunkAt(blockPos)) {
+                    continue;
+                }
+                BlockState state = level.getBlockState(blockPos);
                 if (matchesType(state, vein.type())) {
                     liveBlocks.add(blockPos.immutable());
                 }
@@ -285,15 +470,30 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return filtered;
     }
 
-    private static List<RenderableVein> toRenderableVeins(List<SeismicProjectorBlockEntity.ExactVein> exactVeins) {
+    private static List<RenderableVein> toRenderableVeins(List<SeismicProjectorData.ExactVein> exactVeins) {
         List<RenderableVein> renderable = new ArrayList<>();
-        for (SeismicProjectorBlockEntity.ExactVein vein : exactVeins) {
+        for (SeismicProjectorData.ExactVein vein : exactVeins) {
             if (vein.blocks().isEmpty()) {
                 continue;
             }
             renderable.add(new RenderableVein(vein.type(), List.copyOf(vein.blocks())));
         }
         return renderable;
+    }
+
+    private static List<SeismicProjectorData.TriangulatedCandidate> filterRenderableCandidates(
+        net.minecraft.world.level.Level level, List<SeismicProjectorData.TriangulatedCandidate> candidates) {
+        if (level == null || candidates.isEmpty()) {
+            return List.of();
+        }
+        List<SeismicProjectorData.TriangulatedCandidate> filtered = new ArrayList<>(candidates.size());
+        for (SeismicProjectorData.TriangulatedCandidate candidate : candidates) {
+            BlockPos targetPos = new BlockPos(candidate.worldX(), candidate.approxY(), candidate.worldZ());
+            if (level.hasChunkAt(targetPos)) {
+                filtered.add(candidate);
+            }
+        }
+        return filtered;
     }
 
     private static void renderPonderOutlines(PonderLevel level, BlockPos projectorPos, List<RenderableVein> visibleVeins) {
@@ -460,7 +660,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
     }
 
-    private static AABB toLocalCandidateBox(BlockPos origin, SeismicProjectorBlockEntity.TriangulatedCandidate candidate) {
+    private static AABB toLocalCandidateBox(BlockPos origin, SeismicProjectorData.TriangulatedCandidate candidate) {
         double centerX = candidate.worldX() + 0.5D - origin.getX();
         double centerY = candidate.approxY() + 0.5D - origin.getY();
         double centerZ = candidate.worldZ() + 0.5D - origin.getZ();
@@ -675,20 +875,19 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return configuredWidth * 0.0125F;
     }
 
-    private static RenderGeometryData resolveRenderGeometry(SeismicProjectorBlockEntity blockEntity,
+    private static RenderGeometryData resolveRenderGeometry(Object cacheKey, BlockPos origin,
                                                             List<RenderableVein> visibleVeins,
-                                                            List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates,
+                                                            List<SeismicProjectorData.TriangulatedCandidate> candidates,
                                                             boolean renderExact, float exactBlockInset) {
         if (GEOMETRY_CACHE.size() > MAX_GEOMETRY_CACHE_ENTRIES) {
             GEOMETRY_CACHE.clear();
         }
         long signature = geometrySignature(renderExact, exactBlockInset, visibleVeins, candidates);
-        GeometryCacheEntry cached = GEOMETRY_CACHE.get(blockEntity);
+        GeometryCacheEntry cached = GEOMETRY_CACHE.get(cacheKey);
         if (cached != null && cached.signature() == signature) {
             return cached.data();
         }
 
-        BlockPos origin = blockEntity.getBlockPos();
         List<ExactVeinGeometry> exactGeometries = List.of();
         List<CandidateGeometry> candidateGeometries = List.of();
         if (renderExact) {
@@ -703,7 +902,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             exactGeometries = List.copyOf(built);
         } else {
             List<CandidateGeometry> built = new ArrayList<>(candidates.size());
-            for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+            for (SeismicProjectorData.TriangulatedCandidate candidate : candidates) {
                 AABB box = toLocalCandidateBox(origin, candidate);
                 built.add(new CandidateGeometry(
                     candidate.type(),
@@ -717,13 +916,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
 
         RenderGeometryData data = new RenderGeometryData(exactGeometries, candidateGeometries);
-        GEOMETRY_CACHE.put(blockEntity, new GeometryCacheEntry(signature, data));
+        GEOMETRY_CACHE.put(cacheKey, new GeometryCacheEntry(signature, data));
         return data;
     }
 
     private static long geometrySignature(boolean renderExact, float exactBlockInset,
                                           List<RenderableVein> visibleVeins,
-                                          List<SeismicProjectorBlockEntity.TriangulatedCandidate> candidates) {
+                                          List<SeismicProjectorData.TriangulatedCandidate> candidates) {
         long hash = 17L;
         hash = 31L * hash + (renderExact ? 1L : 0L);
         hash = 31L * hash + Float.floatToIntBits(exactBlockInset);
@@ -736,7 +935,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             }
         }
         hash = 31L * hash + candidates.size();
-        for (SeismicProjectorBlockEntity.TriangulatedCandidate candidate : candidates) {
+        for (SeismicProjectorData.TriangulatedCandidate candidate : candidates) {
             hash = 31L * hash + candidate.type().ordinal();
             hash = 31L * hash + candidate.worldX();
             hash = 31L * hash + candidate.worldZ();
@@ -878,6 +1077,19 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return new float[] {r / 255.0F, g / 255.0F, b / 255.0F};
     }
 
+    private static RenderType resolveRenderType(BlockState state) {
+        BakedModel model = net.minecraft.client.Minecraft.getInstance()
+            .getBlockRenderer()
+            .getBlockModel(state);
+        ChunkRenderTypeSet typeSet = model.getRenderTypes(state, net.minecraft.util.RandomSource.create(42L), ModelData.EMPTY);
+        for (RenderType type : KineticBlockEntityRenderer.REVERSED_CHUNK_BUFFER_LAYERS) {
+            if (typeSet.contains(type)) {
+                return type;
+            }
+        }
+        return RenderType.cutoutMipped();
+    }
+
     private record FloatPoint(float x, float y, float z) {
     }
 
@@ -961,6 +1173,45 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return KineticBlockEntityRenderer.getAngleForBe(blockEntity, blockEntity.getBlockPos(), projectorAxis);
     }
 
+    private static float mountedShaftAngle(MovementContext context, Direction facing) {
+        Direction.Axis projectorAxis = KineticBlockEntityVisual.rotationAxis(context.state);
+        BlockPos anglePos = context.localPos;
+        BlockState angleState = context.state;
+        float speed = readMountedSpeed(context.blockEntityData);
+
+        if (context.contraption != null) {
+            BlockPos sourcePos = context.localPos.relative(facing.getOpposite());
+            StructureTemplate.StructureBlockInfo sourceInfo = context.contraption.getBlocks().get(sourcePos);
+            if (sourceInfo != null) {
+                Direction.Axis sourceAxis = KineticBlockEntityVisual.rotationAxis(sourceInfo.state());
+                if (sourceAxis == projectorAxis) {
+                    anglePos = sourcePos;
+                    angleState = sourceInfo.state();
+                    speed = readMountedSpeed(sourceInfo.nbt(), speed);
+                }
+            }
+        }
+
+        float time = AnimationTickHolder.getRenderTime(context.world);
+        float offset = KineticBlockEntityVisual.rotationOffset(angleState, projectorAxis, anglePos);
+        float degrees = time * speed * 3.0F / 10.0F + offset;
+        float angle = (degrees % 360.0F) / 180.0F * Mth.PI;
+        Direction shaftSide = facing.getOpposite();
+        float sideSign = shaftSide.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0F : -1.0F;
+        return angle * sideSign;
+    }
+
+    private static float readMountedSpeed(CompoundTag tag) {
+        return readMountedSpeed(tag, 0.0F);
+    }
+
+    private static float readMountedSpeed(CompoundTag tag, float fallback) {
+        if (tag == null || !tag.contains("Speed")) {
+            return fallback;
+        }
+        return tag.getFloat("Speed");
+    }
+
     private static void orientToFacing(SuperByteBuffer buffer, Direction facing) {
         buffer.center()
             .rotateYDegrees(180 + AngleHelper.horizontalAngle(facing))
@@ -977,3 +1228,4 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             .translate(-px, -py, -pz);
     }
 }
+

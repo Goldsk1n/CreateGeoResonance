@@ -2,10 +2,12 @@ package net.goldskinmc.creategeoresonance.network;
 
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
+import net.goldskinmc.creategeoresonance.network.packet.S2CMountedProjectorStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -49,6 +51,12 @@ public final class GeoResonancePackets {
             .decoder(S2CSeismogramMarkerPacket::decode)
             .consumerMainThread(S2CSeismogramMarkerPacket::handle)
             .add();
+
+        CHANNEL.messageBuilder(S2CMountedProjectorStatePacket.class, packetIndex++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(S2CMountedProjectorStatePacket::encode)
+            .decoder(S2CMountedProjectorStatePacket::decode)
+            .consumerMainThread(S2CMountedProjectorStatePacket::handle)
+            .add();
     }
 
     public static void sendSeismicImpact(ServerLevel level, BlockPos origin, int scannerEntityId, boolean lowPressure) {
@@ -65,6 +73,12 @@ public final class GeoResonancePackets {
     public static void sendSeismogramMarker(ServerPlayer player, int mapId, byte markerX, byte markerZ, byte markerRot) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
             new S2CSeismogramMarkerPacket(mapId, markerX, markerZ, markerRot));
+    }
+
+    public static void sendMountedProjectorState(net.minecraft.world.entity.Entity contraptionEntity,
+                                                 BlockPos localPos, CompoundTag blockEntityData) {
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> contraptionEntity),
+            new S2CMountedProjectorStatePacket(contraptionEntity.getId(), localPos, blockEntityData.copy()));
     }
 
     private static void sendToNearby(ServerLevel level, BlockPos origin, Object packet) {
