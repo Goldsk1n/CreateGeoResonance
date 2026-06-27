@@ -26,6 +26,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.Containers;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -238,14 +239,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     public List<ItemStack> getInstalledModuleStacks() {
-        List<ItemStack> modules = new ArrayList<>();
-        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-            ItemStack stack = inventory.getStackInSlot(slot);
-            if (!stack.isEmpty()) {
-                modules.add(stack.copy());
-            }
-        }
-        return modules;
+        return SeismicStationControllerLogic.getInstalledModuleStacks(inventory);
     }
 
     public boolean hasBelowZeroModule() {
@@ -257,139 +251,23 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     public boolean tryInsertModule(Player player, InteractionHand hand) {
-        ItemStack held = player.getItemInHand(hand);
-        SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
-        if (moduleType == null) {
-            return false;
-        }
-        if (hasModuleInstalled(moduleType)) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_duplicate")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-        int targetSlot = findEmptyModuleSlot();
-        if (targetSlot < 0) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_full")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-
-        ItemStack inserted = held.copyWithCount(1);
-        inventory.setStackInSlot(targetSlot, inserted);
-        if (!player.getAbilities().instabuild) {
-            held.shrink(1);
-        }
-        setChanged();
-        sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_loaded", inserted.getHoverName())
-            .withStyle(ChatFormatting.GREEN), true);
-        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.6F, 1.05F);
-        spawnFeedbackParticles(ParticleTypes.WAX_ON, 5, 0.18D, 0.01D);
-        updateComparatorOutputIfNeeded();
-        return true;
+        return SeismicStationControllerLogic.tryInsertModule(createControllerHost(), player, hand);
     }
 
     public boolean tryExtractModule(Player player, InteractionHand hand) {
-        if (!player.isShiftKeyDown()) {
-            return false;
-        }
-        int slot = findLastFilledModuleSlot();
-        if (slot < 0) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_module")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-
-        ItemStack extracted = inventory.getStackInSlot(slot).copy();
-        inventory.setStackInSlot(slot, ItemStack.EMPTY);
-        ItemStack held = player.getItemInHand(hand);
-        if (held.isEmpty()) {
-            player.setItemInHand(hand, extracted);
-        } else if (!player.addItem(extracted.copy())) {
-            Containers.dropItemStack(level, player.getX(), player.getY() + 0.5D, player.getZ(), extracted.copy());
-        }
-        setChanged();
-        sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_unloaded", extracted.getHoverName())
-            .withStyle(ChatFormatting.AQUA), true);
-        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 0.72F);
-        spawnFeedbackParticles(ParticleTypes.WAX_OFF, 5, 0.18D, 0.01D);
-        updateComparatorOutputIfNeeded();
-        return true;
+        return SeismicStationControllerLogic.tryExtractModule(createControllerHost(), player, hand);
     }
 
     public boolean tryInsertPaper(Player player, InteractionHand hand) {
-        ItemStack held = player.getItemInHand(hand);
-        if (!held.is(Items.PAPER)) {
-            return false;
-        }
-        if (!inventory.getStackInSlot(SLOT_PAPER_INPUT).isEmpty()) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.paper_full")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-
-        inventory.setStackInSlot(SLOT_PAPER_INPUT, held.copyWithCount(1));
-        if (!player.getAbilities().instabuild) {
-            held.shrink(1);
-        }
-        setChanged();
-        sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.paper_loaded")
-            .withStyle(ChatFormatting.GREEN), true);
-        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 1.35F);
-        spawnFeedbackParticles(ParticleTypes.CLOUD, 6, 0.22D, 0.01D);
-        updateComparatorOutputIfNeeded();
-        return true;
+        return SeismicStationControllerLogic.tryInsertPaper(createControllerHost(), player, hand);
     }
 
     public boolean tryInsertInk(Player player, InteractionHand hand) {
-        ItemStack held = player.getItemInHand(hand);
-        if (!held.is(Items.INK_SAC)) {
-            return false;
-        }
-        if (!inventory.getStackInSlot(SLOT_INK_INPUT).isEmpty()) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.ink_full")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-
-        inventory.setStackInSlot(SLOT_INK_INPUT, held.copyWithCount(1));
-        if (!player.getAbilities().instabuild) {
-            held.shrink(1);
-        }
-        setChanged();
-        sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.ink_loaded")
-            .withStyle(ChatFormatting.GREEN), true);
-        playFeedbackSound(SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 0.8F);
-        spawnFeedbackParticles(ParticleTypes.SQUID_INK, 4, 0.18D, 0.0D);
-        updateComparatorOutputIfNeeded();
-        return true;
+        return SeismicStationControllerLogic.tryInsertInk(createControllerHost(), player, hand);
     }
 
     public boolean tryTakeOutputWithBareHand(Player player, InteractionHand hand) {
-        if (!player.getItemInHand(hand).isEmpty()) {
-            return false;
-        }
-
-        ItemStack output = inventory.getStackInSlot(SLOT_SEISMOGRAM_OUTPUT);
-        if (output.isEmpty()) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_output_ready")
-                .withStyle(ChatFormatting.RED), true);
-            return false;
-        }
-
-        player.setItemInHand(hand, output.copy());
-        inventory.setStackInSlot(SLOT_SEISMOGRAM_OUTPUT, ItemStack.EMPTY);
-        setChanged();
-        sendData();
-        player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.output_taken")
-            .withStyle(ChatFormatting.AQUA), true);
-        playFeedbackSound(SoundEvents.NOTE_BLOCK_BASS.value(), 0.65F, 1.3F);
-        spawnFeedbackParticles(ParticleTypes.GLOW, 8, 0.2D, 0.01D);
-        updateComparatorOutputIfNeeded();
-        return true;
+        return SeismicStationControllerLogic.tryTakeOutputWithBareHand(createControllerHost(), player, hand);
     }
 
     public int getCooldownTicks() {
@@ -1014,45 +892,23 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private boolean hasModuleInstalled(SeismicModuleType moduleType) {
-        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-            SeismicModuleType installed = SeismicModuleItem.getModuleType(inventory.getStackInSlot(slot));
-            if (installed == moduleType) {
-                return true;
-            }
-        }
-        return false;
+        return SeismicStationControllerLogic.hasModuleInstalled(inventory, moduleType);
     }
 
     private int getInstalledModuleCount() {
-        int count = 0;
-        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-            if (!inventory.getStackInSlot(slot).isEmpty()) {
-                count++;
-            }
-        }
-        return count;
+        return SeismicStationControllerLogic.getInstalledModuleCount(inventory);
     }
 
     private int findEmptyModuleSlot() {
-        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-            if (inventory.getStackInSlot(slot).isEmpty()) {
-                return slot;
-            }
-        }
-        return -1;
+        return SeismicStationControllerLogic.findEmptyModuleSlot(inventory);
     }
 
     private int findLastFilledModuleSlot() {
-        for (int slot = SLOT_MODULE_END; slot >= SLOT_MODULE_START; slot--) {
-            if (!inventory.getStackInSlot(slot).isEmpty()) {
-                return slot;
-            }
-        }
-        return -1;
+        return SeismicStationControllerLogic.findLastFilledModuleSlot(inventory);
     }
 
     private static boolean isModuleSlot(int slot) {
-        return slot >= SLOT_MODULE_START && slot <= SLOT_MODULE_END;
+        return SeismicStationControllerLogic.isModuleSlot(slot);
     }
 
     private void updateComparatorOutputIfNeeded() {
@@ -1086,6 +942,30 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
         BlockState partState = level.getBlockState(partPos);
         level.updateNeighbourForOutputSignal(partPos, partState.getBlock());
+    }
+
+    private SeismicStationControllerLogic.Host createControllerHost() {
+        return new SeismicStationControllerLogic.Host() {
+            @Override
+            public @Nullable Level level() {
+                return SeismicStationBlockEntity.this.level;
+            }
+
+            @Override
+            public BlockPos feedbackPos() {
+                return worldPosition;
+            }
+
+            @Override
+            public ItemStackHandler inventory() {
+                return inventory;
+            }
+
+            @Override
+            public void onDataChanged() {
+                updateComparatorOutputIfNeeded();
+            }
+        };
     }
 
     public record MapEntry(SeismicAnomalyType type, int offsetX, int offsetZ, int approxY) {

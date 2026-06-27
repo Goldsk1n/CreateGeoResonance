@@ -81,6 +81,8 @@
   "block.creategeoresonance.seismic_station.output_taken": "Сейсмограму отримано",
   "block.creategeoresonance.seismic_station.starting": "Запуск...",
   "block.creategeoresonance.seismic_station.scan_started": "Сейсмосканування розпочато",
+  "block.creategeoresonance.seismic_station.mounted_requires_parked_train": "Сканування станції на транспорті працює лише поки поїзд припаркований на станції",
+  "block.creategeoresonance.seismic_station.mounted_scan_unavailable": "Сканування станції на транспорті поки не увімкнено",
   "block.creategeoresonance.seismic_station.output_ready": "Сейсмограма готова",
   "block.creategeoresonance.seismic_station.output_full": "Спочатку заберіть попередню сейсмограму з виходу",
   "block.creategeoresonance.seismic_projector.nodes": "Вузли проектора: %s/%s",

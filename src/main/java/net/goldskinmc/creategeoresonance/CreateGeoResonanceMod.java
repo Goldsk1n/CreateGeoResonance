@@ -14,6 +14,8 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovingInteraction;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovementBehaviour;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationMovingInteraction;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationMovementBehaviour;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
@@ -80,10 +82,6 @@ public class CreateGeoResonanceMod {
             if (blockId == null || !MODID.equals(blockId.getNamespace())) {
                 return null;
             }
-            String path = blockId.getPath();
-            if ("seismic_station".equals(path) || "seismic_station_bounding".equals(path)) {
-                return () -> ContraptionMovementSetting.UNMOVABLE;
-            }
             return null;
         });
     }
@@ -91,6 +89,9 @@ public class CreateGeoResonanceMod {
     private static void registerContraptionBehaviours() {
         MovementBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_PROJECTOR.get(), new SeismicProjectorMovementBehaviour());
         MovingInteractionBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_PROJECTOR.get(), new SeismicProjectorMovingInteraction());
+        MovementBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_STATION.get(), new SeismicStationMovementBehaviour());
+        MovingInteractionBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_STATION.get(), new SeismicStationMovingInteraction());
+        MovingInteractionBehaviour.REGISTRY.register(GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.get(), new SeismicStationMovingInteraction());
     }
 
     private static ItemStack createFilledHammerStack() {

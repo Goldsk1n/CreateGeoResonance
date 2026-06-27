@@ -56,9 +56,6 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
     @Override
     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor level,
                                   BlockPos currentPos, BlockPos neighborPos) {
-        if (!state.canSurvive(level, currentPos) || !hasAllBoundingParts(level, currentPos, state.getValue(HORIZONTAL_FACING))) {
-            return Blocks.AIR.defaultBlockState();
-        }
         return super.updateShape(state, direction, neighborState, level, currentPos, neighborPos);
     }
 
@@ -109,7 +106,7 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
         if (state.is(newState.getBlock())) {
             return;
         }
-        if (!level.isClientSide) {
+        if (!level.isClientSide && !isMoving) {
             withBlockEntityDo(level, pos, SeismicStationBlockEntity::dropInventory);
             removeBoundingParts(level, pos, state.getValue(HORIZONTAL_FACING));
         }
@@ -153,6 +150,21 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
         return getLeftPos(controllerPos, facing).above();
     }
 
+    public static boolean isStationPart(BlockState state) {
+        return state.getBlock() == GeoResonanceBlocks.SEISMIC_STATION.get()
+            || state.getBlock() == GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.get();
+    }
+
+    public static BlockPos getControllerPos(BlockState state, BlockPos pos) {
+        if (state.getBlock() == GeoResonanceBlocks.SEISMIC_STATION.get()) {
+            return pos;
+        }
+        if (state.getBlock() == GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.get()) {
+            return SeismicStationBoundingBlock.getControllerPos(state, pos);
+        }
+        return pos;
+    }
+
     private static void removeBoundingParts(Level level, BlockPos controllerPos, Direction facing) {
         removeBoundingPart(level, getLeftPos(controllerPos, facing));
         removeBoundingPart(level, getUpperRightPos(controllerPos));
@@ -164,21 +176,6 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
         if (state.getBlock() == GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.get()) {
             level.setBlock(partPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL | Block.UPDATE_SUPPRESS_DROPS);
         }
-    }
-
-    private static boolean isExpectedBounding(LevelReader level, BlockPos pos, Direction facing, SeismicStationBoundingBlock.BoundingPart part) {
-        BlockState state = level.getBlockState(pos);
-        if (state.getBlock() != GeoResonanceBlocks.SEISMIC_STATION_BOUNDING.get()) {
-            return false;
-        }
-        return state.getValue(HorizontalDirectionalBlock.FACING) == facing
-            && state.getValue(SeismicStationBoundingBlock.PART) == part;
-    }
-
-    private static boolean hasAllBoundingParts(LevelReader level, BlockPos controllerPos, Direction facing) {
-        return isExpectedBounding(level, getLeftPos(controllerPos, facing), facing, SeismicStationBoundingBlock.BoundingPart.LOWER_LEFT)
-            && isExpectedBounding(level, getUpperRightPos(controllerPos), facing, SeismicStationBoundingBlock.BoundingPart.UPPER_RIGHT)
-            && isExpectedBounding(level, getUpperLeftPos(controllerPos, facing), facing, SeismicStationBoundingBlock.BoundingPart.UPPER_LEFT);
     }
 
     private static boolean canAssembleAt(LevelReader level, BlockPos controllerPos, Direction facing) {

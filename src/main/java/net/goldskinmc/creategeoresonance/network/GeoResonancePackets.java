@@ -2,6 +2,7 @@ package net.goldskinmc.creategeoresonance.network;
 
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
+import net.goldskinmc.creategeoresonance.network.packet.S2CMountedStationStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CMountedProjectorStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
@@ -57,6 +58,12 @@ public final class GeoResonancePackets {
             .decoder(S2CMountedProjectorStatePacket::decode)
             .consumerMainThread(S2CMountedProjectorStatePacket::handle)
             .add();
+
+        CHANNEL.messageBuilder(S2CMountedStationStatePacket.class, packetIndex++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(S2CMountedStationStatePacket::encode)
+            .decoder(S2CMountedStationStatePacket::decode)
+            .consumerMainThread(S2CMountedStationStatePacket::handle)
+            .add();
     }
 
     public static void sendSeismicImpact(ServerLevel level, BlockPos origin, int scannerEntityId, boolean lowPressure) {
@@ -79,6 +86,12 @@ public final class GeoResonancePackets {
                                                  BlockPos localPos, CompoundTag blockEntityData) {
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> contraptionEntity),
             new S2CMountedProjectorStatePacket(contraptionEntity.getId(), localPos, blockEntityData.copy()));
+    }
+
+    public static void sendMountedStationState(net.minecraft.world.entity.Entity contraptionEntity,
+                                               BlockPos localPos, CompoundTag blockEntityData) {
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> contraptionEntity),
+            new S2CMountedStationStatePacket(contraptionEntity.getId(), localPos, blockEntityData.copy()));
     }
 
     private static void sendToNearby(ServerLevel level, BlockPos origin, Object packet) {

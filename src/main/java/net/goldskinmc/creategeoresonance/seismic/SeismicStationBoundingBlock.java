@@ -85,20 +85,12 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
 
     @Override
     public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
-        BlockPos controllerPos = getControllerPos(state, pos);
-        BlockState controllerState = level.getBlockState(controllerPos);
-        if (controllerState.getBlock() != GeoResonanceBlocks.SEISMIC_STATION.get()) {
-            return false;
-        }
-        return controllerState.getValue(HorizontalDirectionalBlock.FACING) == state.getValue(FACING);
+        return true;
     }
 
     @Override
     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor level,
                                   BlockPos currentPos, BlockPos neighborPos) {
-        if (!state.canSurvive(level, currentPos)) {
-            return net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
-        }
         return super.updateShape(state, direction, neighborState, level, currentPos, neighborPos);
     }
 
@@ -177,7 +169,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
         if (state.is(newState.getBlock())) {
             return;
         }
-        if (!level.isClientSide) {
+        if (!level.isClientSide && !isMoving) {
             BlockPos controllerPos = getControllerPos(state, pos);
             BlockState controllerState = level.getBlockState(controllerPos);
             if (controllerState.getBlock() == GeoResonanceBlocks.SEISMIC_STATION.get()) {

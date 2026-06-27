@@ -82,6 +82,8 @@
   "block.creategeoresonance.seismic_station.output_taken": "Seismogram collected",
   "block.creategeoresonance.seismic_station.starting": "Starting...",
   "block.creategeoresonance.seismic_station.scan_started": "Seismic scan started",
+  "block.creategeoresonance.seismic_station.mounted_requires_parked_train": "Mounted station scans only work while the train is parked at a station",
+  "block.creategeoresonance.seismic_station.mounted_scan_unavailable": "Mounted station scans are not enabled yet",
   "block.creategeoresonance.seismic_station.output_ready": "Seismogram ready",
   "block.creategeoresonance.seismic_station.output_full": "Take the previous seismogram from output first",
   "block.creategeoresonance.seismic_projector.nodes": "Projector nodes: %s/%s",

@@ -8,6 +8,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.foundation.item.ItemDescription;
 import net.createmod.catnip.lang.FontHelper.Palette;
 import net.goldskinmc.creategeoresonance.Config;
@@ -21,7 +23,10 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationData;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationMountedVisualState;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.item.ItemProperties;
@@ -56,6 +61,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.createmod.ponder.foundation.PonderIndex;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -125,6 +131,9 @@ public final class GeoResonanceClient {
 
         if (packet.scannerEntityId() == -1 && level.getBlockEntity(packet.origin()) instanceof SeismicStationBlockEntity station) {
             station.onClientStrikeImpact();
+        } else if (packet.scannerEntityId() != -1) {
+            findMountedStationVisualState(level, packet.scannerEntityId(), packet.origin())
+                .ifPresent(state -> state.onStrikeImpact(level.getGameTime()));
         }
 
         addShakeForLocalPlayer(packet.scannerEntityId(), center, 1.0F, 0.2F, 8, level.getGameTime());
@@ -315,6 +324,9 @@ public final class GeoResonanceClient {
 
         if (scheduled.scannerEntityId() == -1 && level.getBlockEntity(scheduled.origin()) instanceof SeismicStationBlockEntity station) {
             station.onClientEchoArrival();
+        } else if (scheduled.scannerEntityId() != -1) {
+            findMountedStationVisualState(level, scheduled.scannerEntityId(), scheduled.origin())
+                .ifPresent(state -> state.onEchoArrival(level.getGameTime()));
         }
 
         addShakeForLocalPlayer(scheduled.scannerEntityId(), center, 0.18F * confidence, 0.05F * confidence, 6, level.getGameTime());
@@ -559,6 +571,34 @@ public final class GeoResonanceClient {
         }
         Vec3 scannerAnchor = new Vec3(scanner.getX(), scanner.getY() + 0.05D, scanner.getZ());
         return findNearestOpen(level, scannerAnchor, 2, 2).orElse(scannerAnchor);
+    }
+
+    private static java.util.Optional<SeismicStationMountedVisualState> findMountedStationVisualState(ClientLevel level,
+                                                                                                      int scannerEntityId,
+                                                                                                      BlockPos scanOrigin) {
+        if (!(level.getEntity(scannerEntityId) instanceof AbstractContraptionEntity contraptionEntity)) {
+            return java.util.Optional.empty();
+        }
+
+        for (MutablePair<net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo, MovementContext> actor
+            : contraptionEntity.getContraption().getActors()) {
+            if (!SeismicStationBlock.isStationPart(actor.getLeft().state())) {
+                continue;
+            }
+
+            MovementContext context = actor.getRight();
+            if (context.blockEntityData == null) {
+                continue;
+            }
+
+            SeismicStationData stationData = new SeismicStationData();
+            stationData.readFromTag(context.blockEntityData);
+            if (scanOrigin.equals(stationData.scanOrigin())) {
+                return java.util.Optional.of(SeismicStationMountedVisualState.getOrCreate(context));
+            }
+        }
+
+        return java.util.Optional.empty();
     }
 
     private static Vec3 resolveWaveCenter(ClientLevel level, BlockPos targetPos, Vec3 sourceAnchor) {
