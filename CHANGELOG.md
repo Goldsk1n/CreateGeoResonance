@@ -6,20 +6,11 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 
 ## [Unreleased]
 
+## [1.20.1-1.1.0] - 2026-06-27
+
 ### Added
-- Placeholder for upcoming features.
-
-### Changed
-- Placeholder for upcoming changes.
-
-### Fixed
-- Placeholder for upcoming fixes.
-
-### Performance
-- Placeholder for performance improvements.
-
-### Localization
-- Placeholder for localization updates.
+- Limited Create train support for seismic stations and projectors while parked at a train station.
+- Mounted interaction, rendering, and client synchronization for assembled stations and projectors on trains.
 
 ## [1.20.1-1.0.0] - 2026-05-30
 
