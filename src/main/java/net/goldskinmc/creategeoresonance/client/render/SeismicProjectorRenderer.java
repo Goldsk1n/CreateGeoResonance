@@ -270,8 +270,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             return;
         }
 
-        Vec3 projectorCenter = mountedProjectorCenter(context);
-        BlockPos projectorPos = BlockPos.containing(projectorCenter);
         BlockState state = context.state;
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         VertexConsumer vertexConsumer = buffer.getBuffer(resolveRenderType(state));
@@ -311,6 +309,22 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 .useLevelLight(context.world, matrices.getWorld())
                 .renderInto(matrices.getViewProjection(), vertexConsumer);
         }
+    }
+
+    public static void renderMountedProjectionOverlay(MovementContext context, PoseStack poseStack, Vec3 camera) {
+        if (context.world == null || context.contraption == null || context.contraption.entity == null) {
+            return;
+        }
+        if (context.blockEntityData == null) {
+            return;
+        }
+
+        Vec3 projectorCenter = mountedProjectorCenter(context);
+        BlockPos projectorPos = BlockPos.containing(projectorCenter);
+        BlockState state = context.state;
+        Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
+        SeismicProjectorData projectorData = new SeismicProjectorData();
+        projectorData.readFromTag(context.blockEntityData);
 
         if (!projectorData.canProjectFrom(projectorPos, true)) {
             return;
@@ -344,8 +358,16 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         RenderGeometryData geometry = resolveWorldRenderGeometry(context, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
         PoseStack localRenderStack = new PoseStack();
-        ContraptionMatrices.transform(localRenderStack, matrices.getViewProjection());
-        ContraptionMatrices.transform(localRenderStack, matrices.getModel());
+        ContraptionMatrices.transform(localRenderStack, poseStack);
+
+        float partialTicks = AnimationTickHolder.getPartialTicks();
+        Vec3 prevPosition = context.contraption.entity.getPrevPositionVec();
+        double entityX = Mth.lerp(partialTicks, prevPosition.x, context.contraption.entity.getX());
+        double entityY = Mth.lerp(partialTicks, prevPosition.y, context.contraption.entity.getY());
+        double entityZ = Mth.lerp(partialTicks, prevPosition.z, context.contraption.entity.getZ());
+        localRenderStack.translate(entityX - camera.x, entityY - camera.y, entityZ - camera.z);
+        context.contraption.entity.applyLocalTransforms(localRenderStack, partialTicks);
+        localRenderStack.translate(context.localPos.getX(), context.localPos.getY(), context.localPos.getZ());
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();

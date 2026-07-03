@@ -15,6 +15,7 @@ import net.createmod.catnip.lang.FontHelper.Palette;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.client.effect.SeismicWaveEffect;
+import net.goldskinmc.creategeoresonance.client.render.SeismicProjectorRenderer;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismogramMarkerPacket;
@@ -27,6 +28,7 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationData;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationMountedVisualState;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.item.ItemProperties;
@@ -472,7 +474,13 @@ public final class GeoResonanceClient {
 
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
-        if (minecraft.player == null || level == null || minecraft.options.hideGui) {
+        if (level == null) {
+            return;
+        }
+
+        renderMountedProjectorOverlays(level, event.getPoseStack(), event.getCamera().getPosition());
+
+        if (minecraft.player == null || minecraft.options.hideGui) {
             return;
         }
 
@@ -518,6 +526,32 @@ public final class GeoResonanceClient {
             RenderSystem.enableCull();
             RenderSystem.disableBlend();
             poseStack.popPose();
+        }
+    }
+
+    private static void renderMountedProjectorOverlays(ClientLevel level, PoseStack poseStack, Vec3 camera) {
+        for (Entity entity : level.entitiesForRendering()) {
+            if (!(entity instanceof AbstractContraptionEntity contraptionEntity)) {
+                continue;
+            }
+            if (contraptionEntity.getContraption() == null) {
+                continue;
+            }
+
+            for (MutablePair<net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo, MovementContext> actor
+                : contraptionEntity.getContraption().getActors()) {
+                if (!(actor.getLeft().state().getBlock() instanceof SeismicProjectorBlock)) {
+                    continue;
+                }
+                MovementContext context = actor.getRight();
+                if (context == null) {
+                    continue;
+                }
+                if (context.world == null) {
+                    context.world = level;
+                }
+                SeismicProjectorRenderer.renderMountedProjectionOverlay(context, poseStack, camera);
+            }
         }
     }
 
