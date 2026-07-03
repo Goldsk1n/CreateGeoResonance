@@ -7,7 +7,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -59,25 +61,34 @@ public class SeismicProjectorBlock extends HorizontalKineticBlock implements IBE
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
+        if (WrenchInteractionHelper.isWrench(stack) && player.isShiftKeyDown()) {
+            return WrenchInteractionHelper.pickupBlock(level, pos, state, player, stack).consumesAction()
+                ? ItemInteractionResult.CONSUME
+                : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
         if (level.isClientSide) {
-            return InteractionResult.SUCCESS;
+            return stack.isEmpty() || SeismogramMapService.isSeismogramStack(stack)
+                ? ItemInteractionResult.SUCCESS
+                : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
         if (level.getBlockEntity(pos) instanceof SeismicProjectorBlockEntity projector) {
             if (projector.tryLoadSeismogram(player, hand)) {
-                return InteractionResult.CONSUME;
+                return ItemInteractionResult.CONSUME;
             }
-            if (player.getItemInHand(hand).isEmpty()) {
+            if (stack.isEmpty()) {
                 projector.sendStatus(player);
-                return InteractionResult.CONSUME;
+                return ItemInteractionResult.CONSUME;
             }
         }
-        return InteractionResult.PASS;
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
-    public boolean isPathfindable(BlockState state, BlockGetter level, BlockPos pos, PathComputationType type) {
+    protected boolean isPathfindable(BlockState state, PathComputationType type) {
         return false;
     }
 

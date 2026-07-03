@@ -9,6 +9,7 @@ import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -33,10 +34,8 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.NonNullList;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -95,14 +94,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
 
         @Override
-        public void deserializeNBT(CompoundTag nbt) {
+        public void deserializeNBT(HolderLookup.Provider registries, CompoundTag nbt) {
             stacks = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
             ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
             List<ItemStack> overflowModules = new ArrayList<>();
             for (Tag tag : tagList) {
                 CompoundTag itemTag = (CompoundTag) tag;
                 int slot = itemTag.getInt("Slot");
-                ItemStack stack = ItemStack.of(itemTag);
+                ItemStack stack = ItemStack.parseOptional(registries, itemTag);
                 if (slot >= 0 && slot < getSlots()) {
                     stacks.set(slot, stack);
                 } else if (slot > SLOT_MODULE_END && slot < SLOT_MODULE_START + 16 && SeismicModuleItem.getModuleType(stack) != null) {
@@ -123,7 +122,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             onLoad();
         }
     };
-    private LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> inventory);
     private final List<SeismicAnomaly> queuedAnomalies = new ArrayList<>();
     private final List<MapEntry> mapEntries = new ArrayList<>();
     private final List<SeismogramMapService.ExactCluster> exactClusters = new ArrayList<>();
@@ -753,30 +751,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         updateComparatorOutputIfNeeded();
     }
 
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
-        if (cap == net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER) {
-            return itemCapability.cast();
-        }
-        return super.getCapability(cap, side);
+    public IItemHandler getItemHandler(@Nullable Direction side) {
+        return inventory;
     }
 
     @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemCapability.invalidate();
-    }
-
-    @Override
-    public void reviveCaps() {
-        super.reviveCaps();
-        itemCapability = LazyOptional.of(() -> inventory);
-    }
-
-    @Override
-    protected void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
-        compound.put(INVENTORY_TAG, inventory.serializeNBT());
+    protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
+        compound.put(INVENTORY_TAG, inventory.serializeNBT(registries));
         compound.putBoolean(SCAN_RUNNING_TAG, scanRunning);
         compound.putBoolean(AWAITING_RESULT_TAG, awaitingScanResult);
         compound.putBoolean(MAP_READY_TAG, mapReady);
@@ -815,14 +797,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         boolean previousScanRunning = scanRunning;
         boolean previousAwaitingResult = awaitingScanResult;
         int previousRevealIndex = revealIndex;
         int previousStrikeTimer = strikeTimer;
 
-        inventory.deserializeNBT(compound.getCompound(INVENTORY_TAG));
+        inventory.deserializeNBT(registries, compound.getCompound(INVENTORY_TAG));
         scanRunning = compound.getBoolean(SCAN_RUNNING_TAG);
         awaitingScanResult = compound.getBoolean(AWAITING_RESULT_TAG);
         mapReady = compound.getBoolean(MAP_READY_TAG);

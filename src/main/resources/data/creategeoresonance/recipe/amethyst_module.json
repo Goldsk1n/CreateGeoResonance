@@ -1,0 +1,24 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "SN",
+                    "AB"
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:sturdy_sheet"
+                      },
+                "N":  {
+                          "item":  "create:andesite_alloy"
+                      },
+                "A":  {
+                          "item":  "minecraft:amethyst_shard"
+                      },
+                "B":  {
+                          "item":  "minecraft:amethyst_block"
+                      }
+            },
+    "result":  {
+                   "id":  "creategeoresonance:amethyst_module"
+               }
+}

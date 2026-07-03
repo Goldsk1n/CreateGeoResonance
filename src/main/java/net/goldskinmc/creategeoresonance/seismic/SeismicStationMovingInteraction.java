@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,7 +42,7 @@ public class SeismicStationMovingInteraction extends MovingInteractionBehaviour 
             ? actor.getRight().blockEntityData
             : controllerInfo.nbt() == null ? new CompoundTag() : controllerInfo.nbt();
         SeismicStationData stationData = new SeismicStationData();
-        stationData.readFromTag(controllerTag);
+        stationData.readFromTag(contraptionEntity.level().registryAccess(), controllerTag);
         MountedHost host = new MountedHost(contraptionEntity, controllerLocalPos, stationData);
         BlockState clickedState = clickedInfo.state();
         ItemStack held = player.getItemInHand(hand);

@@ -1,0 +1,24 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "SA",
+                    "ZR"
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:sturdy_sheet"
+                      },
+                "A":  {
+                          "item":  "create:andesite_alloy"
+                      },
+                "Z":  {
+                          "item":  "create:raw_zinc"
+                      },
+                "R":  {
+                          "tag":  "forge:ingots/zinc"
+                      }
+            },
+    "result":  {
+                   "id":  "creategeoresonance:zinc_resonance_module"
+               }
+}

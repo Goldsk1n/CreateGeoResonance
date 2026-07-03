@@ -1,0 +1,24 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "SA",
+                    "RC"
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:sturdy_sheet"
+                      },
+                "A":  {
+                          "item":  "create:andesite_alloy"
+                      },
+                "R":  {
+                          "item":  "minecraft:raw_copper"
+                      },
+                "C":  {
+                          "tag":  "forge:ingots/copper"
+                      }
+            },
+    "result":  {
+                   "id":  "creategeoresonance:copper_resonance_module"
+               }
+}

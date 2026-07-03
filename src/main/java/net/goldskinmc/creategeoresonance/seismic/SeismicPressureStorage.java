@@ -1,7 +1,7 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.equipment.armor.BacktankUtil;
-import net.minecraft.nbt.CompoundTag;
+import net.goldskinmc.creategeoresonance.ItemStackComponentData;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
@@ -16,14 +16,10 @@ public final class SeismicPressureStorage {
     }
 
     public static float getStoredPressure(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        if (tag == null || !tag.contains(STORED_PRESSURE_TAG)) {
-            return 0.0F;
-        }
-        return Mth.clamp(tag.getFloat(STORED_PRESSURE_TAG), 0.0F, maxPressure());
+        return Mth.clamp(ItemStackComponentData.getFloat(stack, STORED_PRESSURE_TAG, 0.0F), 0.0F, maxPressure());
     }
 
     public static void setStoredPressure(ItemStack stack, float pressure) {
-        stack.getOrCreateTag().putFloat(STORED_PRESSURE_TAG, Mth.clamp(pressure, 0.0F, maxPressure()));
+        ItemStackComponentData.putFloat(stack, STORED_PRESSURE_TAG, Mth.clamp(pressure, 0.0F, maxPressure()));
     }
 }

@@ -14,36 +14,39 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovingInteraction;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovementBehaviour;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationMovingInteraction;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationMovementBehaviour;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.Iterator;
-import java.util.Map;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
+import java.util.ArrayList;
+import java.util.List;
 
 @Mod(CreateGeoResonanceMod.MODID)
 public class CreateGeoResonanceMod {
     public static final String MODID = "creategeoresonance";
 
-    public CreateGeoResonanceMod(FMLJavaModLoadingContext context) {
-        IEventBus modEventBus = context.getModEventBus();
-        modEventBus.addListener(this::onBuildCreativeTab);
+    public CreateGeoResonanceMod(IEventBus modEventBus, ModContainer modContainer) {
+        modEventBus.addListener(EventPriority.LOWEST, BuildCreativeModeTabContentsEvent.class, this::onBuildCreativeTab);
         modEventBus.addListener(this::onCommonSetup);
-        context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
-        context.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
+        modEventBus.addListener(this::onRegisterCapabilities);
+        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
         GeoResonanceRegistrate.init();
         GeoResonanceBlocks.register();
         GeoResonanceBlockEntityTypes.register();
@@ -53,15 +56,16 @@ public class CreateGeoResonanceMod {
         GeoResonancePackets.register();
         registerContraptionMovementRestrictions();
 
-        MinecraftForge.EVENT_BUS.addListener(SeismicScanQueue::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(SeismogramMapService::onPlayerTick);
-        MinecraftForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
+        NeoForge.EVENT_BUS.addListener(SeismicScanQueue::onServerTick);
+        NeoForge.EVENT_BUS.addListener(SeismogramMapService::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
             SeismicScanQueue.clear();
             SeismogramMapService.clear();
         });
 
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-            () -> () -> net.goldskinmc.creategeoresonance.client.GeoResonanceClient.register(modEventBus));
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            net.goldskinmc.creategeoresonance.client.GeoResonanceClient.register(modEventBus);
+        }
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event) {
@@ -76,9 +80,13 @@ public class CreateGeoResonanceMod {
         replaceEmptyHammerEntries(event);
     }
 
+    private void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, GeoResonanceBlockEntityTypes.SEISMIC_STATION.get(), SeismicStationBlockEntity::getItemHandler);
+    }
+
     private static void registerContraptionMovementRestrictions() {
         ContraptionMovementSetting.REGISTRY.registerProvider(block -> {
-            var blockId = ForgeRegistries.BLOCKS.getKey(block);
+            var blockId = BuiltInRegistries.BLOCK.getKey(block);
             if (blockId == null || !MODID.equals(blockId.getNamespace())) {
                 return null;
             }
@@ -101,40 +109,31 @@ public class CreateGeoResonanceMod {
     private static void replaceEmptyHammerEntries(BuildCreativeModeTabContentsEvent event) {
         boolean removedEmpty = false;
         boolean hasFilled = false;
-        CreativeModeTab.TabVisibility visibility = CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS;
-        Iterator<Map.Entry<ItemStack, CreativeModeTab.TabVisibility>> iterator = event.getEntries().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<ItemStack, CreativeModeTab.TabVisibility> entry = iterator.next();
-            ItemStack stack = entry.getKey();
+        for (ItemStack stack : new ArrayList<>(event.getParentEntries())) {
             if (!stack.is(GeoResonanceItems.SEISMIC_HAMMER.get())) {
                 continue;
             }
-
-            visibility = entry.getValue();
             if (SeismicPressureStorage.getStoredPressure(stack) > 0.0F) {
                 hasFilled = true;
                 continue;
             }
-
-            iterator.remove();
+            event.remove(stack, CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
             removedEmpty = true;
         }
 
         if (removedEmpty && !hasFilled) {
-            event.accept(createFilledHammerStack(), visibility);
+            event.accept(createFilledHammerStack(), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
         }
     }
 
     private static void normalizeSearchHammerEntries(BuildCreativeModeTabContentsEvent event) {
         boolean foundAnyHammer = false;
-        Iterator<Map.Entry<ItemStack, CreativeModeTab.TabVisibility>> iterator = event.getEntries().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<ItemStack, CreativeModeTab.TabVisibility> entry = iterator.next();
-            if (!entry.getKey().is(GeoResonanceItems.SEISMIC_HAMMER.get())) {
+        for (ItemStack stack : List.copyOf(event.getSearchEntries())) {
+            if (!stack.is(GeoResonanceItems.SEISMIC_HAMMER.get())) {
                 continue;
             }
             foundAnyHammer = true;
-            iterator.remove();
+            event.remove(stack, CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY);
         }
 
         if (foundAnyHammer) {

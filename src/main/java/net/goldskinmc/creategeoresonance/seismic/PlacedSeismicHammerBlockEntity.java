@@ -10,6 +10,7 @@ import net.createmod.catnip.math.VecHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -108,15 +109,15 @@ public class PlacedSeismicHammerBlockEntity extends KineticBlockEntity {
     }
 
     @Override
-    protected void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         compound.putFloat(SeismicPressureStorage.STORED_PRESSURE_TAG, storedPressure);
         compound.putInt("ChargeTimer", chargeTimer);
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         float previousPressure = storedPressure;
         storedPressure = Mth.clamp(compound.getFloat(SeismicPressureStorage.STORED_PRESSURE_TAG), 0.0F, SeismicPressureStorage.maxPressure());
         chargeTimer = compound.getInt("ChargeTimer");

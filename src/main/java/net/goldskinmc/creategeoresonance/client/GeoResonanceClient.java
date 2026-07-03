@@ -48,18 +48,20 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
+import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.client.event.ViewportEvent;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.ViewportEvent;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.createmod.ponder.foundation.PonderIndex;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.jetbrains.annotations.Nullable;
@@ -97,11 +99,11 @@ public final class GeoResonanceClient {
             ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "seismogram"),
             (stack, level, entity, seed) -> SeismogramMapService.isSeismogramStack(stack) ? 1.0F : 0.0F);
         GeoResonancePartialModels.init();
-        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
-        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
-        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderLevelStage);
-        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderGuiOverlay);
-        MinecraftForge.EVENT_BUS.addListener(GeoResonanceClient::onItemTooltip);
+        NeoForge.EVENT_BUS.addListener(GeoResonanceClient::onClientTick);
+        NeoForge.EVENT_BUS.addListener(GeoResonanceClient::onCameraAngles);
+        NeoForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderLevelStage);
+        NeoForge.EVENT_BUS.addListener(GeoResonanceClient::onRenderGuiOverlay);
+        NeoForge.EVENT_BUS.addListener(GeoResonanceClient::onItemTooltip);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
@@ -163,20 +165,16 @@ public final class GeoResonanceClient {
             return;
         }
 
-        MapItemSavedData mapData = MapItem.getSavedData(packet.mapId(), level);
+        MapItemSavedData mapData = MapItem.getSavedData(new MapId(packet.mapId()), level);
         if (mapData == null) {
             return;
         }
         mapData.addClientSideDecorations(List.of(
-            new MapDecoration(MapDecoration.Type.PLAYER, packet.markerX(), packet.markerZ(), packet.markerRot(), null)
+            new MapDecoration(MapDecorationTypes.PLAYER, packet.markerX(), packet.markerZ(), packet.markerRot(), java.util.Optional.empty())
         ));
     }
 
-    private static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
-            return;
-        }
-
+    private static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         if (level == null) {
@@ -441,7 +439,7 @@ public final class GeoResonanceClient {
         event.setPitch(event.getPitch() + pitchOffset);
     }
 
-    private static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
+    private static void onRenderGuiOverlay(RenderGuiEvent.Post event) {
         if (!Config.SEISMOGRAM_SIDEBAR_ENABLED.get()) {
             return;
         }
@@ -500,9 +498,8 @@ public final class GeoResonanceClient {
 
         try {
             Tesselator tesselator = Tesselator.getInstance();
-            BufferBuilder builder = tesselator.getBuilder();
+            BufferBuilder builder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            builder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
             Matrix4f matrix = poseStack.last().pose();
 
             double centerX = stationPos.getX() + 0.5D;
@@ -514,7 +511,7 @@ public final class GeoResonanceClient {
                 minDistance, 1.0F, 0.22F, 0.22F, 0.9F);
             addGuideCross(builder, matrix, centerX, centerY, centerZ, 0.45D, 1.0F, 0.85F, 0.22F, 0.9F);
 
-            BufferUploader.drawWithShader(builder.end());
+            BufferUploader.drawWithShader(builder.buildOrThrow());
         } finally {
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();
@@ -592,7 +589,7 @@ public final class GeoResonanceClient {
             }
 
             SeismicStationData stationData = new SeismicStationData();
-            stationData.readFromTag(context.blockEntityData);
+            stationData.readFromTag(level.registryAccess(), context.blockEntityData);
             if (scanOrigin.equals(stationData.scanOrigin())) {
                 return java.util.Optional.of(SeismicStationMountedVisualState.getOrCreate(context));
             }
@@ -863,18 +860,18 @@ public final class GeoResonanceClient {
     private static void addLine(BufferBuilder builder, Matrix4f matrix,
                                 float x1, float y1, float z1, float x2, float y2, float z2,
                                 float r, float g, float b, float a) {
-        builder.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
+        builder.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
+        builder.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
     }
 
     private static void addGuideCross(BufferBuilder builder, Matrix4f matrix,
                                       double centerX, double centerY, double centerZ, double halfSize,
                                       float r, float g, float b, float a) {
         float y = (float) centerY;
-        builder.vertex(matrix, (float) (centerX - halfSize), y, (float) centerZ).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, (float) (centerX + halfSize), y, (float) centerZ).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, (float) centerX, y, (float) (centerZ - halfSize)).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, (float) centerX, y, (float) (centerZ + halfSize)).color(r, g, b, a).endVertex();
+        builder.addVertex(matrix, (float) (centerX - halfSize), y, (float) centerZ).setColor(r, g, b, a);
+        builder.addVertex(matrix, (float) (centerX + halfSize), y, (float) centerZ).setColor(r, g, b, a);
+        builder.addVertex(matrix, (float) centerX, y, (float) (centerZ - halfSize)).setColor(r, g, b, a);
+        builder.addVertex(matrix, (float) centerX, y, (float) (centerZ + halfSize)).setColor(r, g, b, a);
     }
 
     private record ScheduledEcho(BlockPos origin, int scannerEntityId, int maxDepth, boolean lowPressure, SeismicAnomaly anomaly,

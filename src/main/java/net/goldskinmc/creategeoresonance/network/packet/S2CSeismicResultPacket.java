@@ -1,20 +1,25 @@
 package net.goldskinmc.creategeoresonance.network.packet;
 
+import net.createmod.catnip.net.base.BasePacketPayload.PacketTypeProvider;
+import net.createmod.catnip.net.base.ClientboundPacketPayload;
+import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomaly;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boolean lowPressure, int maxDepth,
-                                     List<SeismicAnomaly> anomalies) {
-    public static void encode(S2CSeismicResultPacket packet, FriendlyByteBuf buffer) {
+                                     List<SeismicAnomaly> anomalies) implements ClientboundPacketPayload {
+    public static final StreamCodec<RegistryFriendlyByteBuf, S2CSeismicResultPacket> STREAM_CODEC =
+        StreamCodec.of(S2CSeismicResultPacket::encode, S2CSeismicResultPacket::decode);
+
+    private static void encode(RegistryFriendlyByteBuf buffer, S2CSeismicResultPacket packet) {
         buffer.writeBlockPos(packet.origin);
         buffer.writeVarInt(packet.scannerEntityId);
         buffer.writeBoolean(packet.lowPressure);
@@ -30,7 +35,7 @@ public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boole
         }
     }
 
-    public static S2CSeismicResultPacket decode(FriendlyByteBuf buffer) {
+    private static S2CSeismicResultPacket decode(RegistryFriendlyByteBuf buffer) {
         BlockPos origin = buffer.readBlockPos();
         int scannerEntityId = buffer.readVarInt();
         boolean lowPressure = buffer.readBoolean();
@@ -49,10 +54,19 @@ public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boole
         return new S2CSeismicResultPacket(origin, scannerEntityId, lowPressure, maxDepth, anomalies);
     }
 
-    public static void handle(S2CSeismicResultPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-            () -> () -> net.goldskinmc.creategeoresonance.client.GeoResonanceClient.handleResult(packet)));
-        context.setPacketHandled(true);
+    @Override
+    public void handle(LocalPlayer player) {
+        net.goldskinmc.creategeoresonance.client.GeoResonanceClient.handleResult(this);
+    }
+
+    @Override
+    public PacketTypeProvider getTypeProvider() {
+        return new PacketTypeProvider() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public <T extends CustomPacketPayload> CustomPacketPayload.Type<T> getType() {
+                return (CustomPacketPayload.Type<T>) GeoResonancePackets.SEISMIC_RESULT.type();
+            }
+        };
     }
 }

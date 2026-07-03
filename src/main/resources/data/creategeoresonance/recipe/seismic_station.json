@@ -1,0 +1,41 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "SCT",
+                    "MRP",
+                    "UBI"
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:shaft"
+                      },
+                "U":  {
+                          "item":  "create:sturdy_sheet"
+                      },
+                "M":  {
+                          "item":  "create:mechanical_press"
+                      },
+                "T":  {
+                          "item":  "minecraft:string"
+                      },
+                "I":  {
+                          "item":  "minecraft:iron_nugget"
+                      },
+                "P":  {
+                          "item":  "minecraft:polished_deepslate"
+                      },
+                "B":  {
+                          "item":  "create:brass_sheet"
+                      },
+                "C":  {
+                          "item":  "create:railway_casing"
+                      },
+                "R":  {
+                          "item":  "create:precision_mechanism"
+                      }
+            },
+    "result":  {
+                   "count":  1,
+                   "id":  "creategeoresonance:seismic_station"
+               }
+}

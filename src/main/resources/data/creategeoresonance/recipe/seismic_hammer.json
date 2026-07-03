@@ -1,0 +1,25 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "TA",
+                    "S ",
+                    "P "
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:shaft"
+                      },
+                "T":  {
+                          "item":  "create:copper_backtank"
+                      },
+                "A":  {
+                          "item":  "create:andesite_alloy"
+                      },
+                "P":  {
+                          "item":  "minecraft:heavy_weighted_pressure_plate"
+                      }
+            },
+    "result":  {
+                   "id":  "creategeoresonance:seismic_hammer"
+               }
+}

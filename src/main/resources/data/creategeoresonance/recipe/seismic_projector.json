@@ -1,0 +1,29 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "EPE",
+                    "SCS",
+                    " R "
+                ],
+    "key":  {
+                "E":  {
+                          "item":  "create:electron_tube"
+                      },
+                "P":  {
+                          "item":  "create:precision_mechanism"
+                      },
+                "R":  {
+                          "item":  "create:rose_quartz_lamp"
+                      },
+                "C":  {
+                          "item":  "create:railway_casing"
+                      },
+                "S":  {
+                          "item":  "create:shaft"
+                      }
+            },
+    "result":  {
+                   "count":  1,
+                   "id":  "creategeoresonance:seismic_projector"
+               }
+}

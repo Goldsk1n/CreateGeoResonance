@@ -1,5 +1,7 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import net.goldskinmc.creategeoresonance.ItemStackComponentData;
+import net.minecraft.core.component.DataComponents;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -14,7 +16,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
-import net.minecraftforge.event.TickEvent;
+import net.minecraft.world.level.saveddata.maps.MapId;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -64,12 +67,12 @@ public final class SeismogramMapService {
         }
 
         CompoundTag geoTag = buildGeoTag(centerX, centerZ, stationPos, level.dimension().location().toString(), entries, exactClusters);
-        mapStack.getOrCreateTag().put(TAG_ROOT, geoTag);
+        ItemStackComponentData.putCompound(mapStack, TAG_ROOT, geoTag);
 
         renderStaticMap(mapData, geoTag);
 
         MapItem.lockMap(level, mapStack);
-        mapStack.setHoverName(Component.translatable("item.creategeoresonance.seismogram")
+        mapStack.set(DataComponents.CUSTOM_NAME, Component.translatable("item.creategeoresonance.seismogram")
             .withStyle(style -> style.withItalic(false)));
         return mapStack;
     }
@@ -154,11 +157,11 @@ public final class SeismogramMapService {
         return readGeoTag(stack) != null;
     }
 
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) {
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (event.getEntity().level().isClientSide) {
             return;
         }
-        if (!(event.player instanceof ServerPlayer player)) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
 
@@ -172,7 +175,7 @@ public final class SeismogramMapService {
             return;
         }
 
-        Integer mapId = MapItem.getMapId(stack);
+        MapId mapId = stack.get(DataComponents.MAP_ID);
         if (mapId == null) {
             return;
         }
@@ -183,14 +186,14 @@ public final class SeismogramMapService {
         byte markerZ = projectToMarker(player.getZ(), centerZ);
         byte markerRot = (byte) Math.floorMod(Mth.floor(player.getYRot() * 16.0F / 360.0F), 16);
         MarkerState markerState = new MarkerState(markerX, markerZ, markerRot);
-        MarkerKey markerKey = new MarkerKey(player.getUUID(), mapId);
+        MarkerKey markerKey = new MarkerKey(player.getUUID(), mapId.id());
 
         if (markerState.equals(LAST_MARKERS.get(markerKey))) {
             return;
         }
 
         LAST_MARKERS.put(markerKey, markerState);
-        GeoResonancePackets.sendSeismogramMarker(player, mapId, markerX, markerZ, markerRot);
+        GeoResonancePackets.sendSeismogramMarker(player, mapId.id(), markerX, markerZ, markerRot);
     }
 
     private static CompoundTag buildGeoTag(int centerX, int centerZ, BlockPos stationPos,
@@ -330,14 +333,10 @@ public final class SeismogramMapService {
     }
 
     private static CompoundTag readGeoTag(ItemStack stack) {
-        if (!stack.is(Items.FILLED_MAP) || !stack.hasTag()) {
+        if (!stack.is(Items.FILLED_MAP)) {
             return null;
         }
-        CompoundTag root = stack.getTag();
-        if (root == null || !root.contains(TAG_ROOT, Tag.TAG_COMPOUND)) {
-            return null;
-        }
-        return root.getCompound(TAG_ROOT);
+        return ItemStackComponentData.getCompound(stack, TAG_ROOT);
     }
 
     private static SeismicAnomalyType parseType(String raw) {

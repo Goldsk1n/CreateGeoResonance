@@ -104,7 +104,7 @@ public class PlacedSeismicHammerBlock extends HorizontalKineticBlock implements 
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
         ItemStack stack = new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get());
         getBlockEntityOptional(level, pos).ifPresent(be -> SeismicPressureStorage.setStoredPressure(stack, be.getStoredPressure()));
         return stack;

@@ -5,6 +5,7 @@ import com.simibubi.create.content.equipment.armor.BacktankUtil;
 import com.simibubi.create.foundation.item.ItemDescription;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import net.goldskinmc.creategeoresonance.Config;
+import net.goldskinmc.creategeoresonance.ItemStackComponentData;
 import net.goldskinmc.creategeoresonance.client.render.SeismicHammerItemRenderer;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
@@ -24,6 +25,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -36,11 +38,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.tags.BlockTags;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -199,8 +200,7 @@ public class SeismicHammerItem extends Item {
 
     @Override
     public boolean isBarVisible(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        return tag == null || !tag.getBoolean(HIDE_PRESSURE_BAR_TAG);
+        return !ItemStackComponentData.getBoolean(stack, HIDE_PRESSURE_BAR_TAG);
     }
 
     @Override
@@ -217,7 +217,7 @@ public class SeismicHammerItem extends Item {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         ItemDescription description = ItemDescription.create(this, Palette.STANDARD_CREATE);
         if (description == null) {
             return;
@@ -264,9 +264,7 @@ public class SeismicHammerItem extends Item {
     }
 
     private static void setBacktankAir(ItemStack backtank, float air) {
-        CompoundTag tag = backtank.getOrCreateTag();
-        tag.putFloat("Air", Mth.clamp(air, 0.0F, BacktankUtil.maxAir(backtank)));
-        backtank.setTag(tag);
+        ItemStackComponentData.putFloat(backtank, "Air", Mth.clamp(air, 0.0F, BacktankUtil.maxAir(backtank)));
     }
 
     private static void applyStandingRecoil(Player player) {

@@ -1,0 +1,24 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "SA",
+                    "DP"
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:sturdy_sheet"
+                      },
+                "A":  {
+                          "item":  "create:andesite_alloy"
+                      },
+                "D":  {
+                          "item":  "minecraft:deepslate"
+                      },
+                "P":  {
+                          "item":  "minecraft:packed_ice"
+                      }
+            },
+    "result":  {
+                   "id":  "creategeoresonance:below_zero_module"
+               }
+}

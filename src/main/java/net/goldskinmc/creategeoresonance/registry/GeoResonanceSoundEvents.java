@@ -11,7 +11,7 @@ import net.minecraft.sounds.SoundEvent;
 public final class GeoResonanceSoundEvents {
     private static final Registrate REGISTRATE = GeoResonanceRegistrate.registrate();
 
-    public static final RegistryEntry<SoundEvent> SEISMIC_HAMMER_HIT = REGISTRATE.simple("seismic_hammer_hit",
+    public static final RegistryEntry<SoundEvent, SoundEvent> SEISMIC_HAMMER_HIT = REGISTRATE.simple("seismic_hammer_hit",
         Registries.SOUND_EVENT,
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID,
             "seismic_hammer_hit")));

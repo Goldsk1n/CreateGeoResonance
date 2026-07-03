@@ -7,7 +7,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -51,14 +51,14 @@ public class SeismicStationData {
         }
 
         @Override
-        public void deserializeNBT(CompoundTag nbt) {
+        public void deserializeNBT(net.minecraft.core.HolderLookup.Provider registries, CompoundTag nbt) {
             stacks = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
             ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
             List<ItemStack> overflowModules = new ArrayList<>();
             for (Tag tag : tagList) {
                 CompoundTag itemTag = (CompoundTag) tag;
                 int slot = itemTag.getInt("Slot");
-                ItemStack stack = ItemStack.of(itemTag);
+                ItemStack stack = ItemStack.parseOptional(registries, itemTag);
                 if (slot >= 0 && slot < getSlots()) {
                     stacks.set(slot, stack);
                 } else if (slot > SeismicStationBlockEntity.SLOT_MODULE_END
@@ -174,11 +174,11 @@ public class SeismicStationData {
         this.scanOrigin = scanOrigin;
     }
 
-    public void readFromTag(CompoundTag tag) {
+    public void readFromTag(net.minecraft.core.HolderLookup.Provider registries, CompoundTag tag) {
         if (tag == null) {
             return;
         }
-        inventory.deserializeNBT(tag.getCompound(INVENTORY_TAG));
+        inventory.deserializeNBT(registries, tag.getCompound(INVENTORY_TAG));
         scanRunning = tag.getBoolean(SCAN_RUNNING_TAG);
         awaitingScanResult = tag.getBoolean(AWAITING_RESULT_TAG);
         mapReady = tag.getBoolean(MAP_READY_TAG);
@@ -237,8 +237,8 @@ public class SeismicStationData {
         }
     }
 
-    public void writeToTag(CompoundTag tag) {
-        tag.put(INVENTORY_TAG, inventory.serializeNBT());
+    public void writeToTag(net.minecraft.core.HolderLookup.Provider registries, CompoundTag tag) {
+        tag.put(INVENTORY_TAG, inventory.serializeNBT(registries));
         tag.putBoolean(SCAN_RUNNING_TAG, scanRunning);
         tag.putBoolean(AWAITING_RESULT_TAG, awaitingScanResult);
         tag.putBoolean(MAP_READY_TAG, mapReady);

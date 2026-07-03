@@ -12,6 +12,7 @@ import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -37,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-public class SeismicStationBoundingBlock extends HorizontalKineticBlock implements IBE<SeismicStationBoundingBlockEntity> {
+public class SeismicStationBoundingBlock extends HorizontalKineticBlock implements IBE<SeismicStationBoundingBlockEntity>, IWrenchable {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final EnumProperty<BoundingPart> PART = EnumProperty.create("part", BoundingPart.class);
 
@@ -95,73 +96,83 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
         BlockPos controllerPos = getControllerPos(state, pos);
-        ItemStack held = player.getItemInHand(hand);
+        BlockState controllerState = level.getBlockState(controllerPos);
+
+        if (WrenchInteractionHelper.isWrench(stack)) {
+            if (player.isShiftKeyDown()) {
+                return WrenchInteractionHelper.pickupBlock(level, controllerPos, controllerState, player, stack).consumesAction()
+                    ? ItemInteractionResult.CONSUME
+                    : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
         if (state.getValue(PART) == BoundingPart.UPPER_LEFT && player.isShiftKeyDown()) {
             if (level.isClientSide) {
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
             if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
                 station.tryExtractModule(player, hand);
-                return InteractionResult.CONSUME;
+                return ItemInteractionResult.CONSUME;
             }
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        SeismicModuleType moduleType = SeismicModuleItem.getModuleType(held);
+        SeismicModuleType moduleType = SeismicModuleItem.getModuleType(stack);
         if (moduleType != null) {
             if (level.isClientSide) {
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
             if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
                 station.tryInsertModule(player, hand);
-                return InteractionResult.CONSUME;
+                return ItemInteractionResult.CONSUME;
             }
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
         if (state.getValue(PART) == BoundingPart.UPPER_RIGHT) {
             if (level.isClientSide) {
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
             if (player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
                 station.tryStartScan(serverPlayer);
-                return InteractionResult.CONSUME;
+                return ItemInteractionResult.CONSUME;
             }
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
         if (state.getValue(PART) == BoundingPart.LOWER_LEFT) {
-            boolean isIoInteraction = held.is(Items.PAPER) || held.is(Items.INK_SAC) || held.isEmpty();
+            boolean isIoInteraction = stack.is(Items.PAPER) || stack.is(Items.INK_SAC) || stack.isEmpty();
             if (isIoInteraction) {
                 if (level.isClientSide) {
-                    return InteractionResult.SUCCESS;
+                    return ItemInteractionResult.SUCCESS;
                 }
                 if (level.getBlockEntity(controllerPos) instanceof SeismicStationBlockEntity station) {
-                    if (held.is(Items.PAPER)) {
+                    if (stack.is(Items.PAPER)) {
                         station.tryInsertPaper(player, hand);
-                    } else if (held.is(Items.INK_SAC)) {
+                    } else if (stack.is(Items.INK_SAC)) {
                         station.tryInsertInk(player, hand);
                     } else {
                         station.tryTakeOutputWithBareHand(player, hand);
                     }
-                    return InteractionResult.CONSUME;
+                    return ItemInteractionResult.CONSUME;
                 }
-                return InteractionResult.PASS;
+                return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
             }
         }
 
         if (state.getValue(PART) == BoundingPart.UPPER_LEFT) {
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        BlockState controllerState = level.getBlockState(controllerPos);
         if (!(controllerState.getBlock() instanceof SeismicStationBlock stationBlock)) {
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
-        return stationBlock.use(controllerState, level, controllerPos, player, hand, hit);
+        return stationBlock.useItemOn(stack, controllerState, level, controllerPos, player, hand, hit);
     }
 
     @Override
@@ -181,7 +192,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
     }
 
     @Override
-    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         if (!level.isClientSide) {
             BlockPos controllerPos = getControllerPos(state, pos);
             BlockState controllerState = level.getBlockState(controllerPos);
@@ -190,7 +201,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
                 level.destroyBlock(controllerPos, !player.isCreative(), player);
             }
         }
-        super.playerWillDestroy(level, pos, state, player);
+        return super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
@@ -202,22 +213,11 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
 
         BlockPos controllerPos = getControllerPos(state, context.getClickedPos());
         BlockState controllerState = level.getBlockState(controllerPos);
-        if (!(controllerState.getBlock() instanceof IWrenchable wrenchable)
-            || controllerState.getBlock() != GeoResonanceBlocks.SEISMIC_STATION.get()) {
+        if (controllerState.getBlock() != GeoResonanceBlocks.SEISMIC_STATION.get()
+            || context.getPlayer() == null) {
             return InteractionResult.PASS;
         }
-
-        UseOnContext controllerContext = new UseOnContext(
-            context.getPlayer(),
-            context.getHand(),
-            new BlockHitResult(
-                context.getClickLocation(),
-                context.getClickedFace(),
-                controllerPos,
-                context.isInside()
-            )
-        );
-        return wrenchable.onSneakWrenched(controllerState, controllerContext);
+        return WrenchInteractionHelper.pickupBlock(level, controllerPos, controllerState, context.getPlayer(), context.getItemInHand());
     }
 
     @Override
@@ -231,7 +231,7 @@ public class SeismicStationBoundingBlock extends HorizontalKineticBlock implemen
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockState state, HitResult target, BlockGetter level, BlockPos pos, Player player) {
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
         return new ItemStack(GeoResonanceBlocks.SEISMIC_STATION.get());
     }
 

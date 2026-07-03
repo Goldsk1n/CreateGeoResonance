@@ -1,5 +1,6 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlockEntityTypes;
@@ -8,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -70,18 +72,28 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (SeismicModuleItem.getModuleType(player.getItemInHand(hand)) != null) {
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
+        if (WrenchInteractionHelper.isWrench(stack)) {
+            if (player.isShiftKeyDown()) {
+                return WrenchInteractionHelper.pickupBlock(level, pos, state, player, stack).consumesAction()
+                    ? ItemInteractionResult.CONSUME
+                    : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        if (SeismicModuleItem.getModuleType(stack) != null) {
             if (level.isClientSide) {
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
             if (level.getBlockEntity(pos) instanceof SeismicStationBlockEntity station) {
                 station.tryInsertModule(player, hand);
-                return InteractionResult.CONSUME;
+                return ItemInteractionResult.CONSUME;
             }
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
-        return InteractionResult.PASS;
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
@@ -116,6 +128,11 @@ public class SeismicStationBlock extends HorizontalKineticBlock implements IBE<S
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         return super.getDrops(state, params);
+    }
+
+    @Override
+    protected void spawnDestroyParticles(Level level, Player player, BlockPos pos, BlockState state) {
+        super.spawnDestroyParticles(level, player, pos, AllBlocks.RAILWAY_CASING.getDefaultState());
     }
 
     @Override

@@ -48,8 +48,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraftforge.client.ChunkRenderTypeSet;
-import net.minecraftforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -175,7 +175,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         BlockPos origin = blockEntity.getBlockPos();
         RenderGeometryData geometry = resolveRenderGeometry(blockEntity, origin, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder bufferBuilder = tesselator.getBuilder();
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -186,7 +185,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         try {
             if (fillEnabled && fillAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
@@ -206,12 +205,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                         drawBoxFaces(bufferBuilder, poseStack, box, color[0], color[1], color[2], fillAlpha);
                     }
                 }
-                BufferUploader.drawWithShader(bufferBuilder.end());
+                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
 
             if (edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
@@ -228,13 +227,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                         drawBoxEdges(bufferBuilder, poseStack, box, color[0], color[1], color[2], edgeAlpha);
                     }
                 }
-                BufferUploader.drawWithShader(bufferBuilder.end());
+                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
 
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
                 float guideHalfWidth = guideLineHalfWidth(projectorGuideLineWidth());
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 float[] guideStart = guideStartForFacing(facing);
                 float startX = guideStart[0];
                 float startY = guideStart[1];
@@ -255,7 +254,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                             color[0], color[1], color[2], edgeAlpha, guideHalfWidth);
                     }
                 }
-                BufferUploader.drawWithShader(bufferBuilder.end());
+                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
         } finally {
             RenderSystem.depthMask(true);
@@ -271,9 +270,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             return;
         }
 
-        Vec3 projectorCenter = context.position != null
-            ? context.position
-            : context.contraption.entity.toGlobalVector(Vec3.atCenterOf(context.localPos), AnimationTickHolder.getPartialTicks());
+        Vec3 projectorCenter = mountedProjectorCenter(context);
         BlockPos projectorPos = BlockPos.containing(projectorCenter);
         BlockState state = context.state;
         Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
@@ -344,12 +341,11 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
 
         float exactBlockInset = projectorBlockInset();
-        RenderGeometryData geometry = resolveRenderGeometry(context, projectorPos, visibleVeins, candidates, renderExact, exactBlockInset);
+        RenderGeometryData geometry = resolveWorldRenderGeometry(context, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder bufferBuilder = tesselator.getBuilder();
-        PoseStack projectedStack = new PoseStack();
-        ContraptionMatrices.transform(projectedStack, matrices.getViewProjection());
-        ContraptionMatrices.transform(projectedStack, matrices.getModel());
+        PoseStack localRenderStack = new PoseStack();
+        ContraptionMatrices.transform(localRenderStack, matrices.getViewProjection());
+        ContraptionMatrices.transform(localRenderStack, matrices.getModel());
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -360,73 +356,84 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         try {
             if (fillEnabled && fillAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
                         for (FaceQuad face : vein.faces()) {
-                            addQuad(bufferBuilder, projectedStack.last().pose(),
-                                face.x1(), face.y1(), face.z1(),
-                                face.x2(), face.y2(), face.z2(),
-                                face.x3(), face.y3(), face.z3(),
-                                face.x4(), face.y4(), face.z4(),
+                            Vec3 p1 = mountedTargetLocal(context, face.x1(), face.y1(), face.z1());
+                            Vec3 p2 = mountedTargetLocal(context, face.x2(), face.y2(), face.z2());
+                            Vec3 p3 = mountedTargetLocal(context, face.x3(), face.y3(), face.z3());
+                            Vec3 p4 = mountedTargetLocal(context, face.x4(), face.y4(), face.z4());
+                            addQuad(bufferBuilder, localRenderStack.last().pose(),
+                                (float) p1.x, (float) p1.y, (float) p1.z,
+                                (float) p2.x, (float) p2.y, (float) p2.z,
+                                (float) p3.x, (float) p3.y, (float) p3.z,
+                                (float) p4.x, (float) p4.y, (float) p4.z,
                                 color[0], color[1], color[2], fillAlpha);
                         }
                     }
                 } else {
                     for (CandidateGeometry candidate : geometry.candidates()) {
                         float[] color = colorFor(candidate.type());
-                        drawBoxFaces(bufferBuilder, projectedStack, candidate.box(), color[0], color[1], color[2], fillAlpha);
+                        drawMountedBoxFaces(bufferBuilder, localRenderStack.last().pose(), context, candidate.box(),
+                            color[0], color[1], color[2], fillAlpha);
                     }
                 }
-                BufferUploader.drawWithShader(bufferBuilder.end());
+                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
 
             if (edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
                         for (LineSegment edge : vein.edges()) {
-                            addEdge(bufferBuilder, projectedStack.last().pose(),
-                                edge.x1(), edge.y1(), edge.z1(), edge.x2(), edge.y2(), edge.z2(),
+                            Vec3 p1 = mountedTargetLocal(context, edge.x1(), edge.y1(), edge.z1());
+                            Vec3 p2 = mountedTargetLocal(context, edge.x2(), edge.y2(), edge.z2());
+                            addEdge(bufferBuilder, localRenderStack.last().pose(),
+                                (float) p1.x, (float) p1.y, (float) p1.z,
+                                (float) p2.x, (float) p2.y, (float) p2.z,
                                 color[0], color[1], color[2], edgeAlpha);
                         }
                     }
                 } else {
                     for (CandidateGeometry candidate : geometry.candidates()) {
                         float[] color = colorFor(candidate.type());
-                        drawBoxEdges(bufferBuilder, projectedStack, candidate.box(), color[0], color[1], color[2], edgeAlpha);
+                        drawMountedBoxEdges(bufferBuilder, localRenderStack.last().pose(), context, candidate.box(),
+                            color[0], color[1], color[2], edgeAlpha);
                     }
                 }
-                BufferUploader.drawWithShader(bufferBuilder.end());
+                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
 
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
                 float guideHalfWidth = guideLineHalfWidth(projectorGuideLineWidth());
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 float[] guideStart = guideStartForFacing(facing);
                 if (renderExact) {
                     float exactGuideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
                         float[] color = colorFor(vein.type());
-                        drawDashedLineThick(bufferBuilder, projectedStack.last().pose(),
+                        Vec3 localTarget = mountedTargetLocal(context, vein.centroidX(), vein.centroidY(), vein.centroidZ());
+                        drawDashedLineThick(bufferBuilder, localRenderStack.last().pose(),
                             guideStart[0], guideStart[1], guideStart[2],
-                            vein.centroidX(), vein.centroidY(), vein.centroidZ(),
+                            (float) localTarget.x, (float) localTarget.y, (float) localTarget.z,
                             color[0], color[1], color[2], exactGuideAlpha, guideHalfWidth);
                     }
                 } else {
                     for (CandidateGeometry candidate : geometry.candidates()) {
                         float[] color = colorFor(candidate.type());
-                        drawDashedLineThick(bufferBuilder, projectedStack.last().pose(),
+                        Vec3 localTarget = mountedTargetLocal(context, candidate.centerX(), candidate.centerY(), candidate.centerZ());
+                        drawDashedLineThick(bufferBuilder, localRenderStack.last().pose(),
                             guideStart[0], guideStart[1], guideStart[2],
-                            candidate.centerX(), candidate.centerY(), candidate.centerZ(),
+                            (float) localTarget.x, (float) localTarget.y, (float) localTarget.z,
                             color[0], color[1], color[2], edgeAlpha, guideHalfWidth);
                     }
                 }
-                BufferUploader.drawWithShader(bufferBuilder.end());
+                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
         } finally {
             RenderSystem.depthMask(true);
@@ -670,6 +677,16 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         );
     }
 
+    private static AABB toWorldCandidateBox(SeismicProjectorData.TriangulatedCandidate candidate) {
+        double centerX = candidate.worldX() + 0.5D;
+        double centerY = candidate.approxY() + 0.5D;
+        double centerZ = candidate.worldZ() + 0.5D;
+        return new AABB(
+            centerX - BOX_SIZE, centerY - BOX_SIZE, centerZ - BOX_SIZE,
+            centerX + BOX_SIZE, centerY + BOX_SIZE, centerZ + BOX_SIZE
+        );
+    }
+
     private static void drawBoxFaces(BufferBuilder builder, PoseStack poseStack, AABB box,
                                      float r, float g, float b, float a) {
         Matrix4f matrix = poseStack.last().pose();
@@ -692,10 +709,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                                 float x1, float y1, float z1, float x2, float y2, float z2,
                                 float x3, float y3, float z3, float x4, float y4, float z4,
                                 float r, float g, float b, float a) {
-        builder.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x4, y4, z4).color(r, g, b, a).endVertex();
+        builder.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
+        builder.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
+        builder.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
+        builder.addVertex(matrix, x4, y4, z4).setColor(r, g, b, a);
     }
 
     private static void drawBoxEdges(BufferBuilder builder, PoseStack poseStack, AABB box,
@@ -724,11 +741,63 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         addEdge(builder, matrix, minX, minY, maxZ, minX, maxY, maxZ, r, g, b, a);
     }
 
+    private static void drawMountedBoxFaces(BufferBuilder builder, Matrix4f matrix, MovementContext context, AABB box,
+                                            float r, float g, float b, float a) {
+        Vec3 p000 = mountedTargetLocal(context, (float) box.minX, (float) box.minY, (float) box.minZ);
+        Vec3 p100 = mountedTargetLocal(context, (float) box.maxX, (float) box.minY, (float) box.minZ);
+        Vec3 p110 = mountedTargetLocal(context, (float) box.maxX, (float) box.maxY, (float) box.minZ);
+        Vec3 p010 = mountedTargetLocal(context, (float) box.minX, (float) box.maxY, (float) box.minZ);
+        Vec3 p001 = mountedTargetLocal(context, (float) box.minX, (float) box.minY, (float) box.maxZ);
+        Vec3 p101 = mountedTargetLocal(context, (float) box.maxX, (float) box.minY, (float) box.maxZ);
+        Vec3 p111 = mountedTargetLocal(context, (float) box.maxX, (float) box.maxY, (float) box.maxZ);
+        Vec3 p011 = mountedTargetLocal(context, (float) box.minX, (float) box.maxY, (float) box.maxZ);
+
+        addQuad(builder, matrix, (float) p000.x, (float) p000.y, (float) p000.z, (float) p100.x, (float) p100.y, (float) p100.z,
+            (float) p110.x, (float) p110.y, (float) p110.z, (float) p010.x, (float) p010.y, (float) p010.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p101.x, (float) p101.y, (float) p101.z, (float) p001.x, (float) p001.y, (float) p001.z,
+            (float) p011.x, (float) p011.y, (float) p011.z, (float) p111.x, (float) p111.y, (float) p111.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p000.x, (float) p000.y, (float) p000.z,
+            (float) p010.x, (float) p010.y, (float) p010.z, (float) p011.x, (float) p011.y, (float) p011.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p100.x, (float) p100.y, (float) p100.z, (float) p101.x, (float) p101.y, (float) p101.z,
+            (float) p111.x, (float) p111.y, (float) p111.z, (float) p110.x, (float) p110.y, (float) p110.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p010.x, (float) p010.y, (float) p010.z, (float) p110.x, (float) p110.y, (float) p110.z,
+            (float) p111.x, (float) p111.y, (float) p111.z, (float) p011.x, (float) p011.y, (float) p011.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p101.x, (float) p101.y, (float) p101.z,
+            (float) p100.x, (float) p100.y, (float) p100.z, (float) p000.x, (float) p000.y, (float) p000.z, r, g, b, a);
+    }
+
+    private static void drawMountedBoxEdges(BufferBuilder builder, Matrix4f matrix, MovementContext context, AABB box,
+                                            float r, float g, float b, float a) {
+        Vec3 p000 = mountedTargetLocal(context, (float) box.minX, (float) box.minY, (float) box.minZ);
+        Vec3 p100 = mountedTargetLocal(context, (float) box.maxX, (float) box.minY, (float) box.minZ);
+        Vec3 p110 = mountedTargetLocal(context, (float) box.maxX, (float) box.maxY, (float) box.minZ);
+        Vec3 p010 = mountedTargetLocal(context, (float) box.minX, (float) box.maxY, (float) box.minZ);
+        Vec3 p001 = mountedTargetLocal(context, (float) box.minX, (float) box.minY, (float) box.maxZ);
+        Vec3 p101 = mountedTargetLocal(context, (float) box.maxX, (float) box.minY, (float) box.maxZ);
+        Vec3 p111 = mountedTargetLocal(context, (float) box.maxX, (float) box.maxY, (float) box.maxZ);
+        Vec3 p011 = mountedTargetLocal(context, (float) box.minX, (float) box.maxY, (float) box.maxZ);
+
+        addEdge(builder, matrix, (float) p000.x, (float) p000.y, (float) p000.z, (float) p100.x, (float) p100.y, (float) p100.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p100.x, (float) p100.y, (float) p100.z, (float) p101.x, (float) p101.y, (float) p101.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p101.x, (float) p101.y, (float) p101.z, (float) p001.x, (float) p001.y, (float) p001.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p000.x, (float) p000.y, (float) p000.z, r, g, b, a);
+
+        addEdge(builder, matrix, (float) p010.x, (float) p010.y, (float) p010.z, (float) p110.x, (float) p110.y, (float) p110.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p110.x, (float) p110.y, (float) p110.z, (float) p111.x, (float) p111.y, (float) p111.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p111.x, (float) p111.y, (float) p111.z, (float) p011.x, (float) p011.y, (float) p011.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p011.x, (float) p011.y, (float) p011.z, (float) p010.x, (float) p010.y, (float) p010.z, r, g, b, a);
+
+        addEdge(builder, matrix, (float) p000.x, (float) p000.y, (float) p000.z, (float) p010.x, (float) p010.y, (float) p010.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p100.x, (float) p100.y, (float) p100.z, (float) p110.x, (float) p110.y, (float) p110.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p101.x, (float) p101.y, (float) p101.z, (float) p111.x, (float) p111.y, (float) p111.z, r, g, b, a);
+        addEdge(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p011.x, (float) p011.y, (float) p011.z, r, g, b, a);
+    }
+
     private static void addEdge(BufferBuilder builder, Matrix4f matrix,
                                 float x1, float y1, float z1, float x2, float y2, float z2,
                                 float r, float g, float b, float a) {
-        builder.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
-        builder.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
+        builder.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
+        builder.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
     }
 
     private static void drawDashedLineThick(BufferBuilder builder, Matrix4f matrix,
@@ -863,6 +932,27 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         return new float[] {startX, startY, startZ};
     }
 
+    private static Vec3 mountedProjectorCenter(MovementContext context) {
+        if (context.contraption != null && context.contraption.entity != null) {
+            return context.contraption.entity.toGlobalVector(
+                Vec3.atCenterOf(context.localPos),
+                AnimationTickHolder.getPartialTicks()
+            );
+        }
+        if (context.position != null) {
+            return context.position;
+        }
+        return Vec3.atCenterOf(context.localPos);
+    }
+
+    private static Vec3 mountedTargetLocal(MovementContext context, float worldX, float worldY, float worldZ) {
+        Vec3 worldTarget = new Vec3(worldX, worldY, worldZ);
+        if (context.contraption != null && context.contraption.entity != null) {
+            return context.contraption.entity.toLocalVector(worldTarget, AnimationTickHolder.getPartialTicks());
+        }
+        return worldTarget;
+    }
+
     private static float projectorBlockInset() {
         return Mth.clamp(Config.PROJECTOR_BLOCK_EDGE_INSET.get().floatValue(), -0.45F, 0.45F);
     }
@@ -904,6 +994,51 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             List<CandidateGeometry> built = new ArrayList<>(candidates.size());
             for (SeismicProjectorData.TriangulatedCandidate candidate : candidates) {
                 AABB box = toLocalCandidateBox(origin, candidate);
+                built.add(new CandidateGeometry(
+                    candidate.type(),
+                    box,
+                    (float) ((box.minX + box.maxX) * 0.5D),
+                    (float) ((box.minY + box.maxY) * 0.5D),
+                    (float) ((box.minZ + box.maxZ) * 0.5D)
+                ));
+            }
+            candidateGeometries = List.copyOf(built);
+        }
+
+        RenderGeometryData data = new RenderGeometryData(exactGeometries, candidateGeometries);
+        GEOMETRY_CACHE.put(cacheKey, new GeometryCacheEntry(signature, data));
+        return data;
+    }
+
+    private static RenderGeometryData resolveWorldRenderGeometry(Object cacheKey,
+                                                                 List<RenderableVein> visibleVeins,
+                                                                 List<SeismicProjectorData.TriangulatedCandidate> candidates,
+                                                                 boolean renderExact, float exactBlockInset) {
+        if (GEOMETRY_CACHE.size() > MAX_GEOMETRY_CACHE_ENTRIES) {
+            GEOMETRY_CACHE.clear();
+        }
+        long signature = geometrySignature(renderExact, exactBlockInset, visibleVeins, candidates);
+        GeometryCacheEntry cached = GEOMETRY_CACHE.get(cacheKey);
+        if (cached != null && cached.signature() == signature) {
+            return cached.data();
+        }
+
+        List<ExactVeinGeometry> exactGeometries = List.of();
+        List<CandidateGeometry> candidateGeometries = List.of();
+        if (renderExact) {
+            List<ExactVeinGeometry> built = new ArrayList<>(visibleVeins.size());
+            for (RenderableVein vein : visibleVeins) {
+                List<FaceQuad> faces = buildSurfaceFaces(vein.blocks(), BlockPos.ZERO, exactBlockInset);
+                List<LineSegment> edges = buildJoinedEdges(faces);
+                float[] centroid = veinCentroid(BlockPos.ZERO, vein.blocks());
+                built.add(new ExactVeinGeometry(vein.type(), List.copyOf(faces), List.copyOf(edges),
+                    centroid[0], centroid[1], centroid[2]));
+            }
+            exactGeometries = List.copyOf(built);
+        } else {
+            List<CandidateGeometry> built = new ArrayList<>(candidates.size());
+            for (SeismicProjectorData.TriangulatedCandidate candidate : candidates) {
+                AABB box = toWorldCandidateBox(candidate);
                 built.add(new CandidateGeometry(
                     candidate.type(),
                     box,
@@ -995,9 +1130,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             try {
                 if (fillAlpha > 0.0F) {
                     Tesselator tesselator = Tesselator.getInstance();
-                    BufferBuilder builder = tesselator.getBuilder();
+                    BufferBuilder builder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                     RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                    builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                     for (FaceQuad face : surfaceFaces) {
                         addQuad(builder, matrix,
                             face.x1(), face.y1(), face.z1(),
@@ -1006,28 +1140,26 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                             face.x4(), face.y4(), face.z4(),
                             color[0], color[1], color[2], fillAlpha);
                     }
-                    BufferUploader.drawWithShader(builder.end());
+                    BufferUploader.drawWithShader(builder.buildOrThrow());
                 }
 
                 if (edgeAlpha > 0.0F) {
                     Tesselator tesselator = Tesselator.getInstance();
-                    BufferBuilder builder = tesselator.getBuilder();
+                    BufferBuilder builder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                     RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                    builder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                     for (LineSegment edge : surfaceEdges) {
                         addEdge(builder, matrix,
                             edge.x1(), edge.y1(), edge.z1(),
                             edge.x2(), edge.y2(), edge.z2(),
                             color[0], color[1], color[2], edgeAlpha);
                     }
-                    BufferUploader.drawWithShader(builder.end());
+                    BufferUploader.drawWithShader(builder.buildOrThrow());
                 }
 
                 if (Config.PROJECTOR_GUIDE_LINES_ENABLED.get() && edgeAlpha > 0.0F) {
                     Tesselator tesselator = Tesselator.getInstance();
-                    BufferBuilder builder = tesselator.getBuilder();
+                    BufferBuilder builder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                     RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                    builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                     float[] guideStart = guideStartForFacing(facing);
                     float guideHalfWidth = guideLineHalfWidth(ponderGuideLineWidth());
                     float guideAlpha = edgeAlpha * EXACT_GUIDE_ALPHA_SCALE;
@@ -1038,7 +1170,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                             centroid[0], centroid[1], centroid[2],
                             color[0], color[1], color[2], guideAlpha, guideHalfWidth);
                     }
-                    BufferUploader.drawWithShader(builder.end());
+                    BufferUploader.drawWithShader(builder.buildOrThrow());
                 }
 
             } finally {

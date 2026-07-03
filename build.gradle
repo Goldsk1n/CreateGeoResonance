@@ -1,79 +1,78 @@
 plugins {
-    id 'eclipse'
+    id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'net.neoforged.gradle.userdev' version '7.1.38'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
 }
 
 version = mod_version
 group = mod_group_id
 
 base {
-    archivesName = "${mod_id}-forge"
+    archivesName = "${mod_id}-neoforge"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 def fastDev = providers.gradleProperty('fastDev').map { it.toBoolean() }.orElse(false).get()
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 println "Dev profile: ${fastDev ? 'fastDev' : 'fullDev'}"
-minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-    copyIdeResources = true
 
-    runs {
-        configureEach {
-            workingDirectory project.file('run')
-            if (fastDev) {
-                // Faster startup for short manual test loops.
-                property 'forge.logging.console.level', 'warn'
-                jvmArgs '-XX:+TieredCompilation', '-XX:TieredStopAtLevel=1', '-XX:+UseSerialGC'
-            } else {
-                property 'forge.logging.markers', 'REGISTRIES'
-                property 'forge.logging.console.level', 'debug'
-            }
+sourceSets.main.resources {
+    srcDir('src/generated/resources')
+    exclude('**/*.bbmodel')
+    exclude('**/.cache/**')
+}
 
-            mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                }
-            }
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.createmod.net' }
+    maven { url = 'https://maven.blamejared.com' }
+    maven { url = 'https://maven.ithundxr.dev/snapshots' }
+    maven { url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/' }
+    maven { url = 'https://www.cursemaven.com' }
+}
+
+runs {
+    configureEach {
+        workingDirectory project.layout.projectDirectory.dir('run').dir(name)
+        if (fastDev) {
+            systemProperty 'forge.logging.console.level', 'warn'
+            jvmArguments.addAll('-XX:+TieredCompilation', '-XX:TieredStopAtLevel=1', '-XX:+UseSerialGC')
+        } else {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
         }
 
-        client {
-            property 'forge.enabledGameTestNamespaces', "${mod_id},minecraft"
-            property("mixin.env.remapRefMap", "true")
-            property("mixin.env.refMapRemappingFile", "${projectDir}/build/createSrgToMcp/output.srg")
-        }
+        modSource project.sourceSets.main
+    }
 
-        server {
-            property 'forge.enabledGameTestNamespaces', "${mod_id},minecraft"
-            args '--nogui'
-            property("mixin.env.remapRefMap", "true")
-            property("mixin.env.refMapRemappingFile", "${projectDir}/build/createSrgToMcp/output.srg")
-        }
+    client {
+        systemProperty 'neoforge.enabledGameTestNamespaces', "${mod_id},minecraft"
+    }
 
-        gameTestServer {
-            property 'forge.enabledGameTestNamespaces', "${mod_id},minecraft"
-            property("mixin.env.remapRefMap", "true")
-            property("mixin.env.refMapRemappingFile", "${projectDir}/build/createSrgToMcp/output.srg")
-        }
+    server {
+        systemProperty 'neoforge.enabledGameTestNamespaces', "${mod_id},minecraft"
+        argument '--nogui'
+    }
 
-        data {
-            workingDirectory project.file('run-data')
-            property("mixin.env.remapRefMap", "true")
-            property("mixin.env.refMapRemappingFile", "${projectDir}/build/createSrgToMcp/output.srg")
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-        }
+    gameTestServer {
+        systemProperty 'neoforge.enabledGameTestNamespaces', "${mod_id},minecraft"
+    }
+
+    data {
+        workingDirectory project.layout.projectDirectory.dir('run-data')
+        arguments.addAll '--mod', mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
 tasks.register('syncGameTestStructures', Copy) {
     from('gameteststructures')
-    into('run/gameteststructures')
+    into('run/gameTestServer/gameteststructures')
 }
 
 tasks.configureEach {
@@ -82,72 +81,49 @@ tasks.configureEach {
     }
 }
 
-repositories {
-    maven { url = "https://maven.blamejared.com" }
-    maven { url = "https://maven.createmod.net" }
-    maven { url = "https://maven.ithundxr.dev/mirror" }
-    maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" }
-    maven { url = "https://www.cursemaven.com" }
-}
-
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    implementation(fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false })
-    implementation(fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"))
-    compileOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}"))
-    runtimeOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"))
-    implementation(fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}"))
-    // Dev-only comfort/debug mods. runtimeOnly keeps them out of the final published jar.
-    // Omitted in fastDev profile to reduce startup/world-load overhead.
-    if (!fastDev) {
-        runtimeOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))
-        runtimeOnly(fg.deobf("curse.maven:the-one-probe-245211:${top_file_id}"))
+    implementation "net.neoforged:neoforge:${neo_version}"
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+        transitive = false
     }
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
-    implementation("io.github.llamalad7:mixinextras-forge:0.4.1")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    implementation "net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}"
+    compileOnly "dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}"
+    runtimeOnly "dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}"
+    implementation "com.tterrag.registrate:Registrate:${registrate_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    runtimeOnly "curse.maven:the-one-probe-245211:${top_file_id}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 }
 
-tasks.named('processResources', ProcessResources).configure {
+tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [
-            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
-            loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
-}
-
-tasks.named('jar', Jar).configure {
-    manifest {
-        attributes([
-                'Specification-Title'     : mod_id,
-                'Specification-Vendor'    : mod_authors,
-                'Specification-Version'   : '1',
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-
-    finalizedBy 'reobfJar'
 }
 
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            artifact jar
+            from components.java
         }
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url "file://${project.projectDir}/repo"
         }
     }
 }
@@ -158,4 +134,11 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
 }

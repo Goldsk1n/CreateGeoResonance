@@ -1,60 +1,60 @@
 package net.goldskinmc.creategeoresonance;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class Config {
-    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    private static final ForgeConfigSpec.Builder CLIENT_BUILDER = new ForgeConfigSpec.Builder();
+    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    private static final ModConfigSpec.Builder CLIENT_BUILDER = new ModConfigSpec.Builder();
 
-    public static final ForgeConfigSpec.IntValue RADIUS;
-    public static final ForgeConfigSpec.IntValue DEPTH;
-    public static final ForgeConfigSpec.IntValue COOLDOWN_TICKS;
-    public static final ForgeConfigSpec.IntValue MAX_ECHO_DELAY_TICKS;
-    public static final ForgeConfigSpec.IntValue MAX_ECHOES;
-    public static final ForgeConfigSpec.IntValue ECHO_MERGE_DISTANCE;
-    public static final ForgeConfigSpec.IntValue SCANS_PER_BACKTANK;
-    public static final ForgeConfigSpec.DoubleValue LOW_PRESSURE_THRESHOLD;
-    public static final ForgeConfigSpec.DoubleValue SOFT_BLOCK_DEPTH_MULTIPLIER;
-    public static final ForgeConfigSpec.DoubleValue BASE_NOISE;
+    public static final ModConfigSpec.IntValue RADIUS;
+    public static final ModConfigSpec.IntValue DEPTH;
+    public static final ModConfigSpec.IntValue COOLDOWN_TICKS;
+    public static final ModConfigSpec.IntValue MAX_ECHO_DELAY_TICKS;
+    public static final ModConfigSpec.IntValue MAX_ECHOES;
+    public static final ModConfigSpec.IntValue ECHO_MERGE_DISTANCE;
+    public static final ModConfigSpec.IntValue SCANS_PER_BACKTANK;
+    public static final ModConfigSpec.DoubleValue LOW_PRESSURE_THRESHOLD;
+    public static final ModConfigSpec.DoubleValue SOFT_BLOCK_DEPTH_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue BASE_NOISE;
 
-    public static final ForgeConfigSpec.IntValue SCAN_BLOCK_BUDGET_PER_TICK;
-    public static final ForgeConfigSpec.IntValue SCAN_SLICE_PER_JOB;
-    public static final ForgeConfigSpec.IntValue SCAN_TIME_BUDGET_MICROS;
+    public static final ModConfigSpec.IntValue SCAN_BLOCK_BUDGET_PER_TICK;
+    public static final ModConfigSpec.IntValue SCAN_SLICE_PER_JOB;
+    public static final ModConfigSpec.IntValue SCAN_TIME_BUDGET_MICROS;
 
-    public static final ForgeConfigSpec.IntValue STATION_RADIUS;
-    public static final ForgeConfigSpec.IntValue STATION_STRIKE_INTERVAL_TICKS;
-    public static final ForgeConfigSpec.IntValue STATION_MIN_STRIKE_INTERVAL_TICKS;
-    public static final ForgeConfigSpec.IntValue STATION_STRIKE_INTERVAL_MULTIPLIER;
-    public static final ForgeConfigSpec.IntValue STATION_MIN_SPEED;
-    public static final ForgeConfigSpec.DoubleValue STATION_MAX_SPEED_BONUS;
-    public static final ForgeConfigSpec.DoubleValue STATION_STRESS_IMPACT;
-    public static final ForgeConfigSpec.DoubleValue STATION_NOISE;
+    public static final ModConfigSpec.IntValue STATION_RADIUS;
+    public static final ModConfigSpec.IntValue STATION_STRIKE_INTERVAL_TICKS;
+    public static final ModConfigSpec.IntValue STATION_MIN_STRIKE_INTERVAL_TICKS;
+    public static final ModConfigSpec.IntValue STATION_STRIKE_INTERVAL_MULTIPLIER;
+    public static final ModConfigSpec.IntValue STATION_MIN_SPEED;
+    public static final ModConfigSpec.DoubleValue STATION_MAX_SPEED_BONUS;
+    public static final ModConfigSpec.DoubleValue STATION_STRESS_IMPACT;
+    public static final ModConfigSpec.DoubleValue STATION_NOISE;
 
-    public static final ForgeConfigSpec.IntValue PROJECTOR_MIN_SPEED;
-    public static final ForgeConfigSpec.DoubleValue PROJECTOR_STRESS_IMPACT;
-    public static final ForgeConfigSpec.IntValue PROJECTOR_STATION_RANGE_CHUNKS;
-    public static final ForgeConfigSpec.IntValue PROJECTOR_MIN_NODE_DISTANCE_BLOCKS;
-    public static final ForgeConfigSpec.IntValue PROJECTOR_MATCH_RADIUS_BLOCKS;
+    public static final ModConfigSpec.IntValue PROJECTOR_MIN_SPEED;
+    public static final ModConfigSpec.DoubleValue PROJECTOR_STRESS_IMPACT;
+    public static final ModConfigSpec.IntValue PROJECTOR_STATION_RANGE_CHUNKS;
+    public static final ModConfigSpec.IntValue PROJECTOR_MIN_NODE_DISTANCE_BLOCKS;
+    public static final ModConfigSpec.IntValue PROJECTOR_MATCH_RADIUS_BLOCKS;
 
-    public static final ForgeConfigSpec.BooleanValue PROJECTOR_FILL_ENABLED;
-    public static final ForgeConfigSpec.IntValue PROJECTOR_FILL_ALPHA;
-    public static final ForgeConfigSpec.IntValue PROJECTOR_EDGE_ALPHA;
-    public static final ForgeConfigSpec.DoubleValue PROJECTOR_BLOCK_EDGE_INSET;
-    public static final ForgeConfigSpec.BooleanValue PROJECTOR_GUIDE_LINES_ENABLED;
-    public static final ForgeConfigSpec.DoubleValue PROJECTOR_GUIDE_LINE_WIDTH;
-    public static final ForgeConfigSpec.IntValue PROJECTOR_VISIBLE_VEINS_MAX;
-    public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_BLOCK_EDGE_INSET;
-    public static final ForgeConfigSpec.DoubleValue PROJECTOR_PONDER_GUIDE_LINE_WIDTH;
+    public static final ModConfigSpec.BooleanValue PROJECTOR_FILL_ENABLED;
+    public static final ModConfigSpec.IntValue PROJECTOR_FILL_ALPHA;
+    public static final ModConfigSpec.IntValue PROJECTOR_EDGE_ALPHA;
+    public static final ModConfigSpec.DoubleValue PROJECTOR_BLOCK_EDGE_INSET;
+    public static final ModConfigSpec.BooleanValue PROJECTOR_GUIDE_LINES_ENABLED;
+    public static final ModConfigSpec.DoubleValue PROJECTOR_GUIDE_LINE_WIDTH;
+    public static final ModConfigSpec.IntValue PROJECTOR_VISIBLE_VEINS_MAX;
+    public static final ModConfigSpec.DoubleValue PROJECTOR_PONDER_BLOCK_EDGE_INSET;
+    public static final ModConfigSpec.DoubleValue PROJECTOR_PONDER_GUIDE_LINE_WIDTH;
 
-    public static final ForgeConfigSpec.BooleanValue SEISMOGRAM_SIDEBAR_ENABLED;
-    public static final ForgeConfigSpec.IntValue SEISMOGRAM_SIDEBAR_MAX_SIGNALS;
-    public static final ForgeConfigSpec.BooleanValue SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED;
+    public static final ModConfigSpec.BooleanValue SEISMOGRAM_SIDEBAR_ENABLED;
+    public static final ModConfigSpec.IntValue SEISMOGRAM_SIDEBAR_MAX_SIGNALS;
+    public static final ModConfigSpec.BooleanValue SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED;
 
-    public static final ForgeConfigSpec.BooleanValue CAMERA_SHAKE_ENABLED;
-    public static final ForgeConfigSpec.DoubleValue CAMERA_SHAKE_SCALE;
+    public static final ModConfigSpec.BooleanValue CAMERA_SHAKE_ENABLED;
+    public static final ModConfigSpec.DoubleValue CAMERA_SHAKE_SCALE;
 
-    static final ForgeConfigSpec SPEC;
-    static final ForgeConfigSpec CLIENT_SPEC;
+    static final ModConfigSpec SPEC;
+    static final ModConfigSpec CLIENT_SPEC;
 
     static {
         BUILDER.comment("Stage 1 seismic hammer tuning").push("hammer");

@@ -39,8 +39,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.ChunkRenderTypeSet;
-import net.minecraftforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 import java.util.List;
 
@@ -142,7 +142,7 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
         }
 
         SeismicStationData stationData = new SeismicStationData();
-        stationData.readFromTag(context.blockEntityData);
+        stationData.readFromTag(context.world.registryAccess(), context.blockEntityData);
         SeismicStationMountedVisualState visualState = SeismicStationMountedVisualState.getOrCreate(context);
         visualState.ensureCountdownBootstrapped(stationData, context.world.getGameTime());
 

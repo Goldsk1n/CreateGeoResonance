@@ -19,6 +19,7 @@ import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.SceneBuildingUtil;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
+import net.goldskinmc.creategeoresonance.ItemStackComponentData;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
@@ -63,7 +64,7 @@ public final class GeoResonancePonderScenes {
     }
 
     public static void register(PonderSceneRegistrationHelper<net.minecraft.resources.ResourceLocation> helper) {
-        PonderSceneRegistrationHelper<ItemProviderEntry<?>> itemHelper = helper.withKeyFunction(ItemProviderEntry::getId);
+        PonderSceneRegistrationHelper<ItemProviderEntry<?, ?>> itemHelper = helper.withKeyFunction(ItemProviderEntry::getId);
 
         itemHelper.forComponents(GeoResonanceItems.SEISMIC_HAMMER, GeoResonanceBlocks.PLACED_SEISMIC_HAMMER)
             .addStoryBoard("seismic_hammer/basics", GeoResonancePonderScenes::seismicHammerBasics, GeoResonancePonderTags.SEISMIC);
@@ -781,17 +782,13 @@ public final class GeoResonancePonderScenes {
 
     private static ItemStack createPonderSeismogramStack() {
         ItemStack stack = new ItemStack(Items.FILLED_MAP);
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.put("GeoSeismogram", new CompoundTag());
-        stack.setTag(tag);
+        ItemStackComponentData.putCompound(stack, "GeoSeismogram", new CompoundTag());
         return stack;
     }
 
     private static ItemStack createPonderHammerStack(float pistonProgress) {
         ItemStack stack = new ItemStack(GeoResonanceItems.SEISMIC_HAMMER.get());
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putFloat(TAG_PONDER_PISTON_PROGRESS, Mth.clamp(pistonProgress, 0.0F, 1.0F));
-        stack.setTag(tag);
+        ItemStackComponentData.putFloat(stack, TAG_PONDER_PISTON_PROGRESS, Mth.clamp(pistonProgress, 0.0F, 1.0F));
         return stack;
     }
 

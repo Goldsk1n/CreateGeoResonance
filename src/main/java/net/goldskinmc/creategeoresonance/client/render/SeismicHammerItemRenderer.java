@@ -6,9 +6,9 @@ import com.simibubi.create.foundation.item.render.CustomRenderedItemModelRendere
 import com.simibubi.create.foundation.item.render.PartialItemModelRenderer;
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
+import net.goldskinmc.creategeoresonance.ItemStackComponentData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -43,15 +43,18 @@ public class SeismicHammerItemRenderer extends CustomRenderedItemModelRenderer {
         if (!isHandContext(transformType)) {
             return 0.0F;
         }
-        if (stack.hasTag() && stack.getTag() != null && stack.getTag().contains(TAG_PONDER_PISTON_PROGRESS, Tag.TAG_FLOAT)) {
-            float ponderProgress = Mth.clamp(stack.getTag().getFloat(TAG_PONDER_PISTON_PROGRESS), 0.0F, 1.0F);
+        if (ItemStackComponentData.contains(stack, TAG_PONDER_PISTON_PROGRESS, net.minecraft.nbt.Tag.TAG_FLOAT)) {
+            float ponderProgress = Mth.clamp(ItemStackComponentData.getFloat(stack, TAG_PONDER_PISTON_PROGRESS, 0.0F), 0.0F, 1.0F);
             return MAX_PISTON_TRAVEL * ponderProgress;
         }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
             return 0.0F;
         }
-        float cooldown = minecraft.player.getCooldowns().getCooldownPercent(stack.getItem(), minecraft.getFrameTime());
+        float cooldown = minecraft.player.getCooldowns().getCooldownPercent(
+            stack.getItem(),
+            minecraft.getTimer().getGameTimeDeltaPartialTick(false)
+        );
         cooldown = Mth.clamp(cooldown, 0.0F, 1.0F);
         float eased = cooldown * cooldown * (3.0F - 2.0F * cooldown);
         return MAX_PISTON_TRAVEL * eased;

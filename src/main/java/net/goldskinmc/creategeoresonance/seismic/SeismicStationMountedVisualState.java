@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 
@@ -21,11 +22,11 @@ public final class SeismicStationMountedVisualState {
         return state;
     }
 
-    public void syncFromState(CompoundTag previousTag, CompoundTag currentTag, long gameTime) {
+    public void syncFromState(HolderLookup.Provider registries, CompoundTag previousTag, CompoundTag currentTag, long gameTime) {
         SeismicStationData previous = new SeismicStationData();
-        previous.readFromTag(previousTag == null ? new CompoundTag() : previousTag);
+        previous.readFromTag(registries, previousTag == null ? new CompoundTag() : previousTag);
         SeismicStationData current = new SeismicStationData();
-        current.readFromTag(currentTag == null ? new CompoundTag() : currentTag);
+        current.readFromTag(registries, currentTag == null ? new CompoundTag() : currentTag);
 
         if (!current.scanRunning() || current.awaitingScanResult()) {
             strikeCycleStartTick = NO_CYCLE;

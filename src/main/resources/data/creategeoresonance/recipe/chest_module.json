@@ -1,0 +1,24 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "pattern":  [
+                    "SA",
+                    "BC"
+                ],
+    "key":  {
+                "S":  {
+                          "item":  "create:sturdy_sheet"
+                      },
+                "A":  {
+                          "item":  "create:andesite_alloy"
+                      },
+                "B":  {
+                          "item":  "minecraft:ender_chest"
+                      },
+                "C":  {
+                          "item":  "minecraft:chest_minecart"
+                      }
+            },
+    "result":  {
+                   "id":  "creategeoresonance:chest_module"
+               }
+}

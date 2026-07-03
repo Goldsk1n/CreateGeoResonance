@@ -121,7 +121,7 @@ public final class SeismicStationMountedRuntime {
 
         AbstractContraptionEntity contraptionEntity = context.contraption.entity;
         SeismicStationData stationData = new SeismicStationData();
-        stationData.readFromTag(context.blockEntityData == null ? new CompoundTag() : context.blockEntityData);
+        stationData.readFromTag(context.world.registryAccess(), context.blockEntityData == null ? new CompoundTag() : context.blockEntityData);
 
         if (!stationData.scanRunning() || stationData.awaitingScanResult()) {
             return;
@@ -167,7 +167,7 @@ public final class SeismicStationMountedRuntime {
         }
 
         SeismicStationData stationData = new SeismicStationData();
-        stationData.readFromTag(controllerInfo.nbt() == null ? new CompoundTag() : controllerInfo.nbt());
+        stationData.readFromTag(level.registryAccess(), controllerInfo.nbt() == null ? new CompoundTag() : controllerInfo.nbt());
         if (!stationData.scanRunning() || !stationData.awaitingScanResult()) {
             return;
         }
@@ -337,7 +337,7 @@ public final class SeismicStationMountedRuntime {
         }
 
         CompoundTag updatedTag = new CompoundTag();
-        stationData.writeToTag(updatedTag);
+        stationData.writeToTag(contraptionEntity.level().registryAccess(), updatedTag);
         StructureTemplate.StructureBlockInfo updatedInfo = new StructureTemplate.StructureBlockInfo(
             controllerLocalPos,
             controllerInfo.state(),
@@ -394,7 +394,7 @@ public final class SeismicStationMountedRuntime {
         return tag.getFloat("Speed");
     }
 
-    private static Set<SeismicAnomalyType> buildDetectableTypes(net.minecraftforge.items.ItemStackHandler inventory) {
+    private static Set<SeismicAnomalyType> buildDetectableTypes(net.neoforged.neoforge.items.ItemStackHandler inventory) {
         EnumSet<SeismicAnomalyType> detectable = EnumSet.noneOf(SeismicAnomalyType.class);
         if (!SeismicStationControllerLogic.hasModuleInstalled(inventory, SeismicModuleType.NOISE_CANCELLATION)) {
             detectable.add(SeismicAnomalyType.CAVE);
@@ -410,7 +410,7 @@ public final class SeismicStationMountedRuntime {
         return detectable;
     }
 
-    private static List<SeismicAnomaly> prioritizeByModuleOrder(net.minecraftforge.items.ItemStackHandler inventory,
+    private static List<SeismicAnomaly> prioritizeByModuleOrder(net.neoforged.neoforge.items.ItemStackHandler inventory,
                                                                 List<SeismicAnomaly> anomalies) {
         if (anomalies.isEmpty()) {
             return anomalies;
@@ -437,7 +437,7 @@ public final class SeismicStationMountedRuntime {
         return selected;
     }
 
-    private static Map<SeismicAnomalyType, Integer> buildModulePriorityMap(net.minecraftforge.items.ItemStackHandler inventory) {
+    private static Map<SeismicAnomalyType, Integer> buildModulePriorityMap(net.neoforged.neoforge.items.ItemStackHandler inventory) {
         Map<SeismicAnomalyType, Integer> priority = new HashMap<>();
         for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
             SeismicAnomalyType type = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));

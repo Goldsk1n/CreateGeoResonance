@@ -14,7 +14,7 @@ public final class GeoResonancePonderTags {
     }
 
     public static void register(PonderTagRegistrationHelper<ResourceLocation> helper) {
-        PonderTagRegistrationHelper<ItemProviderEntry<?>> itemHelper = helper.withKeyFunction(ItemProviderEntry::getId);
+        PonderTagRegistrationHelper<ItemProviderEntry<?, ?>> itemHelper = helper.withKeyFunction(ItemProviderEntry::getId);
 
         helper.registerTag(SEISMIC)
             .item(GeoResonanceItems.SEISMIC_HAMMER.get(), true, false)
