@@ -16,7 +16,8 @@ public final class SeismicPressureStorage {
     }
 
     public static float getStoredPressure(ItemStack stack) {
-        return Mth.clamp(ItemStackComponentData.getFloat(stack, STORED_PRESSURE_TAG, 0.0F), 0.0F, maxPressure());
+        float pressure = ItemStackComponentData.getFloat(stack, STORED_PRESSURE_TAG, 0.0F);
+        return pressure <= 0.0F ? 0.0F : Mth.clamp(pressure, 0.0F, maxPressure());
     }
 
     public static void setStoredPressure(ItemStack stack, float pressure) {

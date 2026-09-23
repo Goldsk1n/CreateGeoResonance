@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 
 ## [Unreleased]
 
+## [1.21.1-1.1.1] - 2026-09-21
+
+### Fixed
+- Avoid reading Create's air capacity config while other mods inspect the default Seismic Hammer stack during world loading.
+
 ## [1.20.1-1.1.0] - 2026-06-27
 
 ### Added

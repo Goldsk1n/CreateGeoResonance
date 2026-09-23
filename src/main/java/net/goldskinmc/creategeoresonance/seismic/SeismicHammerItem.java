@@ -57,13 +57,6 @@ public class SeismicHammerItem extends Item {
     }
 
     @Override
-    public ItemStack getDefaultInstance() {
-        ItemStack stack = super.getDefaultInstance();
-        SeismicPressureStorage.setStoredPressure(stack, SeismicPressureStorage.maxPressure());
-        return stack;
-    }
-
-    @Override
     public void onCraftedBy(ItemStack stack, Level level, Player player) {
         super.onCraftedBy(stack, level, player);
         if (level.isClientSide || SeismicPressureStorage.getStoredPressure(stack) > 0.0F) {
