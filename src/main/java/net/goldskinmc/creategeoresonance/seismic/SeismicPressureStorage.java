@@ -20,7 +20,8 @@ public final class SeismicPressureStorage {
         if (tag == null || !tag.contains(STORED_PRESSURE_TAG)) {
             return 0.0F;
         }
-        return Mth.clamp(tag.getFloat(STORED_PRESSURE_TAG), 0.0F, maxPressure());
+        float pressure = tag.getFloat(STORED_PRESSURE_TAG);
+        return pressure <= 0.0F ? 0.0F : Mth.clamp(pressure, 0.0F, maxPressure());
     }
 
     public static void setStoredPressure(ItemStack stack, float pressure) {
