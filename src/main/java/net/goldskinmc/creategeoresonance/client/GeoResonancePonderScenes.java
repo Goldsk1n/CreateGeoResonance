@@ -66,7 +66,7 @@ public final class GeoResonancePonderScenes {
     public static void register(PonderSceneRegistrationHelper<net.minecraft.resources.ResourceLocation> helper) {
         PonderSceneRegistrationHelper<ItemProviderEntry<?, ?>> itemHelper = helper.withKeyFunction(ItemProviderEntry::getId);
 
-        itemHelper.forComponents(GeoResonanceItems.SEISMIC_HAMMER, GeoResonanceBlocks.PLACED_SEISMIC_HAMMER)
+        itemHelper.forComponents(GeoResonanceItems.SEISMIC_HAMMER)
             .addStoryBoard("seismic_hammer/basics", GeoResonancePonderScenes::seismicHammerBasics, GeoResonancePonderTags.SEISMIC);
 
         itemHelper.forComponents(GeoResonanceBlocks.SEISMIC_STATION)
