@@ -14,6 +14,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Match mineral module icon sizes to the Noise Cancellation module.
 - Prevent signal grouping collisions when scanning the new mineral types.
 - Use NeoForge's common zinc tags for the zinc module recipe, scanning, and projection validation.
 
