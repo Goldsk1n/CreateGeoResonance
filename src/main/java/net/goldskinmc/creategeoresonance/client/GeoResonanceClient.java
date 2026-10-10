@@ -260,6 +260,10 @@ public final class GeoResonanceClient {
             case EMERALD -> 0x2DBA6B;
             case DIAMOND -> 0x53DAD6;
             case ZINC -> 0xA5ABB8;
+            case CRIMSITE -> 0xB85C70;
+            case ASURINE -> 0x669FD0;
+            case OCHRUM -> 0xD9AC55;
+            case VERIDIUM -> 0x79B883;
             case AMETHYST -> 0xAE7BE0;
             case CHEST -> 0xB9864A;
             case SPAWNER -> 0x8A8A8A;
@@ -283,6 +287,7 @@ public final class GeoResonanceClient {
             case EMERALD -> SoundEvents.NOTE_BLOCK_FLUTE.value();
             case DIAMOND -> SoundEvents.AMETHYST_BLOCK_RESONATE;
             case ZINC -> SoundEvents.CHAIN_STEP;
+            case CRIMSITE, ASURINE, OCHRUM, VERIDIUM -> SoundEvents.STONE_BREAK;
             case AMETHYST -> SoundEvents.AMETHYST_BLOCK_CHIME;
             case CHEST -> SoundEvents.CHEST_OPEN;
             case SPAWNER -> SoundEvents.CAVE_VINES_STEP;
@@ -301,6 +306,10 @@ public final class GeoResonanceClient {
             case EMERALD -> 1.28F;
             case DIAMOND -> 1.34F;
             case ZINC -> 0.9F;
+            case CRIMSITE -> 1.0F;
+            case ASURINE -> 1.1F;
+            case OCHRUM -> 0.95F;
+            case VERIDIUM -> 1.05F;
             case AMETHYST -> 1.18F;
             case CHEST -> 0.85F;
             case SPAWNER -> 0.7F;
@@ -770,6 +779,10 @@ public final class GeoResonanceClient {
             case EMERALD -> 0x61D692;
             case DIAMOND -> 0x9AECEC;
             case ZINC -> 0xC2C7D3;
+            case CRIMSITE -> 0xD78697;
+            case ASURINE -> 0x91BCE2;
+            case OCHRUM -> 0xE9C57B;
+            case VERIDIUM -> 0xA0D2A8;
             case AMETHYST -> 0xC69EFF;
             case CHEST -> 0xD5A26B;
             case SPAWNER -> 0xB6B6B6;
@@ -791,6 +804,10 @@ public final class GeoResonanceClient {
             case EMERALD -> "item.creategeoresonance.seismogram.signal.emerald";
             case DIAMOND -> "item.creategeoresonance.seismogram.signal.diamond";
             case ZINC -> "item.creategeoresonance.seismogram.signal.zinc";
+            case CRIMSITE -> "item.creategeoresonance.seismogram.signal.crimsite";
+            case ASURINE -> "item.creategeoresonance.seismogram.signal.asurine";
+            case OCHRUM -> "item.creategeoresonance.seismogram.signal.ochrum";
+            case VERIDIUM -> "item.creategeoresonance.seismogram.signal.veridium";
             case AMETHYST -> "item.creategeoresonance.seismogram.signal.amethyst";
             case CHEST -> "item.creategeoresonance.seismogram.signal.chest";
             case SPAWNER -> "item.creategeoresonance.seismogram.signal.spawner";

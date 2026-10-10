@@ -285,6 +285,10 @@ public final class SeismicProjectorData {
             case EMERALD -> "item.creategeoresonance.seismogram.signal.emerald";
             case DIAMOND -> "item.creategeoresonance.seismogram.signal.diamond";
             case ZINC -> "item.creategeoresonance.seismogram.signal.zinc";
+            case CRIMSITE -> "item.creategeoresonance.seismogram.signal.crimsite";
+            case ASURINE -> "item.creategeoresonance.seismogram.signal.asurine";
+            case OCHRUM -> "item.creategeoresonance.seismogram.signal.ochrum";
+            case VERIDIUM -> "item.creategeoresonance.seismogram.signal.veridium";
             case AMETHYST -> "item.creategeoresonance.seismogram.signal.amethyst";
             case CHEST -> "item.creategeoresonance.seismogram.signal.chest";
             case SPAWNER -> "item.creategeoresonance.seismogram.signal.spawner";
@@ -386,7 +390,7 @@ public final class SeismicProjectorData {
         NodeSnapshot first = nodes.get(0);
         NodeSnapshot second = nodes.get(1);
         List<ExactVein> confirmed = new ArrayList<>();
-        Set<Long> dedupe = new HashSet<>();
+        Set<ClusterKey> dedupe = new HashSet<>();
 
         for (SeismogramMapService.ExactCluster a : first.exactClusters()) {
             for (SeismogramMapService.ExactCluster b : second.exactClusters()) {
@@ -397,7 +401,7 @@ public final class SeismicProjectorData {
                 if (merged.isEmpty()) {
                     continue;
                 }
-                long signature = clusterSignature(a.type(), merged);
+                ClusterKey signature = clusterSignature(a.type(), merged);
                 if (dedupe.add(signature)) {
                     confirmed.add(new ExactVein(a.type(), merged));
                 }
@@ -428,7 +432,7 @@ public final class SeismicProjectorData {
         return List.copyOf(merged);
     }
 
-    private static long clusterSignature(SeismicAnomalyType type, List<BlockPos> blocks) {
+    private static ClusterKey clusterSignature(SeismicAnomalyType type, List<BlockPos> blocks) {
         BlockPos anchor = blocks.get(0);
         for (BlockPos blockPos : blocks) {
             if (blockPos.getY() < anchor.getY()
@@ -437,8 +441,10 @@ public final class SeismicProjectorData {
                 anchor = blockPos;
             }
         }
-        long packed = BlockPos.asLong(anchor.getX(), anchor.getY(), anchor.getZ());
-        return packed ^ ((long) type.ordinal() << 58);
+        return new ClusterKey(type, anchor.immutable());
+    }
+
+    private record ClusterKey(SeismicAnomalyType type, BlockPos anchor) {
     }
 
     private static SeismicAnomalyType parseType(String raw) {

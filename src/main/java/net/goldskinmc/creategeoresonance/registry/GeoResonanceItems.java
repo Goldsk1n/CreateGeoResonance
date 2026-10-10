@@ -29,6 +29,10 @@ public final class GeoResonanceItems {
     public static final ItemEntry<SeismicModuleItem> EMERALD_RESONANCE_MODULE = module(SeismicModuleType.EMERALD);
     public static final ItemEntry<SeismicModuleItem> DIAMOND_RESONANCE_MODULE = module(SeismicModuleType.DIAMOND);
     public static final ItemEntry<SeismicModuleItem> ZINC_RESONANCE_MODULE = module(SeismicModuleType.ZINC);
+    public static final ItemEntry<SeismicModuleItem> CRIMSITE_RESONANCE_MODULE = module(SeismicModuleType.CRIMSITE);
+    public static final ItemEntry<SeismicModuleItem> ASURINE_RESONANCE_MODULE = module(SeismicModuleType.ASURINE);
+    public static final ItemEntry<SeismicModuleItem> OCHRUM_RESONANCE_MODULE = module(SeismicModuleType.OCHRUM);
+    public static final ItemEntry<SeismicModuleItem> VERIDIUM_RESONANCE_MODULE = module(SeismicModuleType.VERIDIUM);
 
     private GeoResonanceItems() {
     }

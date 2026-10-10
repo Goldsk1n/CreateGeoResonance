@@ -162,7 +162,8 @@ public final class SeismicScanQueue {
         return switch (type) {
             case LAVA -> 5;
             case WATER -> 4;
-            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST -> 3;
+            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST,
+                CRIMSITE, ASURINE, OCHRUM, VERIDIUM -> 3;
             case CHEST, SPAWNER -> 2;
             case CAVE -> 2;
             case SOLID -> 0;
@@ -258,7 +259,7 @@ public final class SeismicScanQueue {
         private final RandomSource random;
         private final int width;
         private final int totalCells;
-        private final Map<Integer, Aggregate> aggregates;
+        private final Map<Long, Aggregate> aggregates;
         private final Map<SeismicAnomalyType, Set<BlockPos>> exactHitsByType;
         private final boolean detectCave;
         private final boolean detectWater;
@@ -275,6 +276,10 @@ public final class SeismicScanQueue {
         private final boolean detectEmerald;
         private final boolean detectDiamond;
         private final boolean detectZinc;
+        private final boolean detectCrimsite;
+        private final boolean detectAsurine;
+        private final boolean detectOchrum;
+        private final boolean detectVeridium;
         private final boolean detectAnyOre;
         private final boolean detectAnySolidTarget;
         private final int[] horizontalDxByIndex;
@@ -308,6 +313,10 @@ public final class SeismicScanQueue {
             this.detectEmerald = request.canDetect(SeismicAnomalyType.EMERALD);
             this.detectDiamond = request.canDetect(SeismicAnomalyType.DIAMOND);
             this.detectZinc = request.canDetect(SeismicAnomalyType.ZINC);
+            this.detectCrimsite = request.canDetect(SeismicAnomalyType.CRIMSITE);
+            this.detectAsurine = request.canDetect(SeismicAnomalyType.ASURINE);
+            this.detectOchrum = request.canDetect(SeismicAnomalyType.OCHRUM);
+            this.detectVeridium = request.canDetect(SeismicAnomalyType.VERIDIUM);
             this.detectAnyOre = detectCoal
                 || detectIron
                 || detectCopper
@@ -316,7 +325,11 @@ public final class SeismicScanQueue {
                 || detectLapis
                 || detectEmerald
                 || detectDiamond
-                || detectZinc;
+                || detectZinc
+                || detectCrimsite
+                || detectAsurine
+                || detectOchrum
+                || detectVeridium;
             this.detectAnySolidTarget = detectAmethyst
                 || detectSpawner
                 || detectChest
@@ -462,6 +475,14 @@ public final class SeismicScanQueue {
                             type = SeismicAnomalyType.DIAMOND;
                         } else if (detectZinc && state.is(createZincOresTag())) {
                             type = SeismicAnomalyType.ZINC;
+                        } else if (detectCrimsite && state.is(SeismicMineralTags.CRIMSITE)) {
+                            type = SeismicAnomalyType.CRIMSITE;
+                        } else if (detectAsurine && state.is(SeismicMineralTags.ASURINE)) {
+                            type = SeismicAnomalyType.ASURINE;
+                        } else if (detectOchrum && state.is(SeismicMineralTags.OCHRUM)) {
+                            type = SeismicAnomalyType.OCHRUM;
+                        } else if (detectVeridium && state.is(SeismicMineralTags.VERIDIUM)) {
+                            type = SeismicAnomalyType.VERIDIUM;
                         } else {
                             continue;
                         }
@@ -478,7 +499,8 @@ public final class SeismicScanQueue {
 
                 int cellX = cellXByHorizontalIndex[horizontalIndex];
                 int cellZ = cellZByHorizontalIndex[horizontalIndex];
-                int key = (type.ordinal() << 28) | (cellX << 14) | cellZ;
+                // Keep the type above the 28 coordinate bits without truncating it to four bits.
+                long key = ((long) type.ordinal() << 28) | ((long) cellX << 14) | cellZ;
                 aggregates.computeIfAbsent(key, ignored -> new Aggregate(type))
                     .add(dx, dz, depthIndex + 1, weight);
             }
@@ -628,7 +650,8 @@ public final class SeismicScanQueue {
 
         private static boolean shouldTrackExactType(SeismicAnomalyType type) {
             return switch (type) {
-                case WATER, LAVA, COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST, CHEST, SPAWNER -> true;
+                case WATER, LAVA, COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC,
+                    AMETHYST, CHEST, SPAWNER, CRIMSITE, ASURINE, OCHRUM, VERIDIUM -> true;
                 default -> false;
             };
         }

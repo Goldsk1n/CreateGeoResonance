@@ -33,6 +33,10 @@ public final class GeoResonanceCreativeTabs {
             output.accept(GeoResonanceItems.EMERALD_RESONANCE_MODULE.get());
             output.accept(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get());
             output.accept(GeoResonanceItems.ZINC_RESONANCE_MODULE.get());
+            output.accept(GeoResonanceItems.CRIMSITE_RESONANCE_MODULE.get());
+            output.accept(GeoResonanceItems.ASURINE_RESONANCE_MODULE.get());
+            output.accept(GeoResonanceItems.OCHRUM_RESONANCE_MODULE.get());
+            output.accept(GeoResonanceItems.VERIDIUM_RESONANCE_MODULE.get());
             output.accept(GeoResonanceBlocks.SEISMIC_STATION.get().asItem());
             output.accept(GeoResonanceBlocks.SEISMIC_PROJECTOR.get().asItem());
         })

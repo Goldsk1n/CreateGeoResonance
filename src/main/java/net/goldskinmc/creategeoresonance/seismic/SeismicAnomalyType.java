@@ -16,5 +16,9 @@ public enum SeismicAnomalyType {
     AMETHYST,
     CHEST,
     SPAWNER,
-    SOLID
+    SOLID,
+    CRIMSITE,
+    ASURINE,
+    OCHRUM,
+    VERIDIUM
 }

@@ -322,6 +322,10 @@ public final class SeismogramMapService {
             case EMERALD -> MapColor.COLOR_GREEN;
             case DIAMOND -> MapColor.COLOR_LIGHT_BLUE;
             case ZINC -> MapColor.COLOR_GRAY;
+            case CRIMSITE -> MapColor.TERRACOTTA_RED;
+            case ASURINE -> MapColor.COLOR_LIGHT_BLUE;
+            case OCHRUM -> MapColor.TERRACOTTA_YELLOW;
+            case VERIDIUM -> MapColor.TERRACOTTA_GREEN;
             case AMETHYST -> MapColor.COLOR_PURPLE;
             case CHEST -> MapColor.WOOD;
             case SPAWNER -> MapColor.COLOR_BLACK;
@@ -354,6 +358,10 @@ public final class SeismogramMapService {
             case "EMERALD" -> SeismicAnomalyType.EMERALD;
             case "DIAMOND" -> SeismicAnomalyType.DIAMOND;
             case "ZINC" -> SeismicAnomalyType.ZINC;
+            case "CRIMSITE" -> SeismicAnomalyType.CRIMSITE;
+            case "ASURINE" -> SeismicAnomalyType.ASURINE;
+            case "OCHRUM" -> SeismicAnomalyType.OCHRUM;
+            case "VERIDIUM" -> SeismicAnomalyType.VERIDIUM;
             case "AMETHYST" -> SeismicAnomalyType.AMETHYST;
             case "CHEST" -> SeismicAnomalyType.CHEST;
             case "SPAWNER" -> SeismicAnomalyType.SPAWNER;

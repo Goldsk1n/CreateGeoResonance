@@ -1,0 +1,6 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base",
+  "textures": {
+    "18": "create:block/palettes/stone_types/natural/ochrum_0"
+  }
+}
