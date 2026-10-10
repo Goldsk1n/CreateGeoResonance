@@ -15,7 +15,7 @@
                           "item":  "create:raw_zinc"
                       },
                 "R":  {
-                          "tag":  "forge:ingots/zinc"
+                          "tag":  "c:ingots/zinc"
                       }
             },
     "result":  {

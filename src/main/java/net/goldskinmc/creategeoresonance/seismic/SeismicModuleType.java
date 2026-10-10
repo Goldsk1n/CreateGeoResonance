@@ -16,7 +16,11 @@ public enum SeismicModuleType {
     LAPIS("lapis_resonance_module", SeismicAnomalyType.LAPIS),
     EMERALD("emerald_resonance_module", SeismicAnomalyType.EMERALD),
     DIAMOND("diamond_resonance_module", SeismicAnomalyType.DIAMOND),
-    ZINC("zinc_resonance_module", SeismicAnomalyType.ZINC);
+    ZINC("zinc_resonance_module", SeismicAnomalyType.ZINC),
+    CRIMSITE("crimsite_resonance_module", SeismicAnomalyType.CRIMSITE),
+    ASURINE("asurine_resonance_module", SeismicAnomalyType.ASURINE),
+    OCHRUM("ochrum_resonance_module", SeismicAnomalyType.OCHRUM),
+    VERIDIUM("veridium_resonance_module", SeismicAnomalyType.VERIDIUM);
 
     private final String itemName;
     @Nullable

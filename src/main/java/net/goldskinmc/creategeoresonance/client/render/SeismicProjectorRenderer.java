@@ -23,6 +23,7 @@ import net.createmod.ponder.api.level.PonderLevel;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
+import net.goldskinmc.creategeoresonance.seismic.SeismicMineralTags;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorData;
@@ -80,15 +81,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float SEISMOGRAM_RIGHT_OFFSET_X = 17.4F / 16.0F;
     private static final float SEISMOGRAM_RIGHT_OFFSET_Y = 11.95F / 16.0F;
     private static final float SEISMOGRAM_RIGHT_OFFSET_Z = -2.475F / 16.0F;
-    private static final float MIN_EXACT_FILL_ALPHA = 0.38F;
-    private static final float MIN_EXACT_EDGE_ALPHA = 0.9F;
     private static final float EXACT_GUIDE_ALPHA_SCALE = 0.82F;
     private static final int MAX_PONDER_OUTLINES = 48;
     private static final int MAX_GEOMETRY_CACHE_ENTRIES = 256;
     private static final Map<Object, GeometryCacheEntry> GEOMETRY_CACHE =
         Collections.synchronizedMap(new IdentityHashMap<>());
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
-        ResourceLocation.fromNamespaceAndPath("forge", "ores/zinc"));
+        ResourceLocation.fromNamespaceAndPath("c", "ores/zinc"));
 
     public SeismicProjectorRenderer(BlockEntityRendererProvider.Context context) {
         super(context);
@@ -163,10 +162,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
         float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
         float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
-        if (renderExact) {
-            fillAlpha = Math.max(fillAlpha, MIN_EXACT_FILL_ALPHA);
-            edgeAlpha = Math.max(edgeAlpha, MIN_EXACT_EDGE_ALPHA);
-        }
         if (edgeAlpha <= 0.0F && (!fillEnabled || fillAlpha <= 0.0F)) {
             return;
         }
@@ -180,7 +175,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
-        RenderSystem.disableCull();
+        // Cull only filled surfaces; outlines and guide beams stay two-sided.
+        RenderSystem.enableCull();
 
         try {
             if (fillEnabled && fillAlpha > 0.0F) {
@@ -207,6 +203,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 }
                 BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
+
+            RenderSystem.disableCull();
 
             if (edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -346,10 +344,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         boolean guideLinesEnabled = Config.PROJECTOR_GUIDE_LINES_ENABLED.get();
         float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
         float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
-        if (renderExact) {
-            fillAlpha = Math.max(fillAlpha, MIN_EXACT_FILL_ALPHA);
-            edgeAlpha = Math.max(edgeAlpha, MIN_EXACT_EDGE_ALPHA);
-        }
         if (edgeAlpha <= 0.0F && (!fillEnabled || fillAlpha <= 0.0F)) {
             return;
         }
@@ -373,7 +367,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
-        RenderSystem.disableCull();
+        // Cull only filled surfaces; outlines and guide beams stay two-sided.
+        RenderSystem.enableCull();
 
         try {
             if (fillEnabled && fillAlpha > 0.0F) {
@@ -404,6 +399,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 }
                 BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
+
+            RenderSystem.disableCull();
 
             if (edgeAlpha > 0.0F) {
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -608,6 +605,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             case EMERALD -> state.is(BlockTags.EMERALD_ORES);
             case DIAMOND -> state.is(BlockTags.DIAMOND_ORES);
             case ZINC -> state.is(CREATE_ZINC_ORES);
+            case CRIMSITE -> state.is(SeismicMineralTags.CRIMSITE);
+            case ASURINE -> state.is(SeismicMineralTags.ASURINE);
+            case OCHRUM -> state.is(SeismicMineralTags.OCHRUM);
+            case VERIDIUM -> state.is(SeismicMineralTags.VERIDIUM);
             case AMETHYST -> state.is(Blocks.BUDDING_AMETHYST)
                 || state.is(Blocks.AMETHYST_CLUSTER)
                 || state.is(Blocks.LARGE_AMETHYST_BUD)
@@ -681,11 +682,11 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
         switch (direction) {
             case DOWN -> faces.add(new FaceQuad(Direction.DOWN, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ));
-            case UP -> faces.add(new FaceQuad(Direction.UP, minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ));
-            case NORTH -> faces.add(new FaceQuad(Direction.NORTH, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ));
+            case UP -> faces.add(new FaceQuad(Direction.UP, minX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
+            case NORTH -> faces.add(new FaceQuad(Direction.NORTH, minX, minY, minZ, minX, maxY, minZ, maxX, maxY, minZ, maxX, minY, minZ));
             case SOUTH -> faces.add(new FaceQuad(Direction.SOUTH, minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ));
             case WEST -> faces.add(new FaceQuad(Direction.WEST, minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ));
-            case EAST -> faces.add(new FaceQuad(Direction.EAST, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
+            case EAST -> faces.add(new FaceQuad(Direction.EAST, maxX, minY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, maxX, minY, maxZ));
         }
     }
 
@@ -719,12 +720,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float maxY = (float) box.maxY;
         float maxZ = (float) box.maxZ;
 
-        addQuad(builder, matrix, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ, r, g, b, a);
-        addQuad(builder, matrix, maxX, minY, maxZ, minX, minY, maxZ, minX, maxY, maxZ, maxX, maxY, maxZ, r, g, b, a);
-        addQuad(builder, matrix, minX, minY, maxZ, minX, minY, minZ, minX, maxY, minZ, minX, maxY, maxZ, r, g, b, a);
-        addQuad(builder, matrix, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ, r, g, b, a);
-        addQuad(builder, matrix, minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ, r, g, b, a);
-        addQuad(builder, matrix, minX, minY, maxZ, maxX, minY, maxZ, maxX, minY, minZ, minX, minY, minZ, r, g, b, a);
+        addQuad(builder, matrix, minX, minY, minZ, minX, maxY, minZ, maxX, maxY, minZ, maxX, minY, minZ, r, g, b, a);
+        addQuad(builder, matrix, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ, minX, minY, maxZ, r, g, b, a);
+        addQuad(builder, matrix, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ, minX, minY, minZ, r, g, b, a);
+        addQuad(builder, matrix, maxX, minY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, maxX, minY, maxZ, r, g, b, a);
+        addQuad(builder, matrix, minX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ, r, g, b, a);
+        addQuad(builder, matrix, minX, minY, maxZ, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, r, g, b, a);
     }
 
     private static void addQuad(BufferBuilder builder, Matrix4f matrix,
@@ -774,18 +775,18 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         Vec3 p111 = mountedTargetLocal(context, (float) box.maxX, (float) box.maxY, (float) box.maxZ);
         Vec3 p011 = mountedTargetLocal(context, (float) box.minX, (float) box.maxY, (float) box.maxZ);
 
-        addQuad(builder, matrix, (float) p000.x, (float) p000.y, (float) p000.z, (float) p100.x, (float) p100.y, (float) p100.z,
-            (float) p110.x, (float) p110.y, (float) p110.z, (float) p010.x, (float) p010.y, (float) p010.z, r, g, b, a);
-        addQuad(builder, matrix, (float) p101.x, (float) p101.y, (float) p101.z, (float) p001.x, (float) p001.y, (float) p001.z,
-            (float) p011.x, (float) p011.y, (float) p011.z, (float) p111.x, (float) p111.y, (float) p111.z, r, g, b, a);
-        addQuad(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p000.x, (float) p000.y, (float) p000.z,
-            (float) p010.x, (float) p010.y, (float) p010.z, (float) p011.x, (float) p011.y, (float) p011.z, r, g, b, a);
-        addQuad(builder, matrix, (float) p100.x, (float) p100.y, (float) p100.z, (float) p101.x, (float) p101.y, (float) p101.z,
+        addQuad(builder, matrix, (float) p000.x, (float) p000.y, (float) p000.z, (float) p010.x, (float) p010.y, (float) p010.z,
+            (float) p110.x, (float) p110.y, (float) p110.z, (float) p100.x, (float) p100.y, (float) p100.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p101.x, (float) p101.y, (float) p101.z, (float) p111.x, (float) p111.y, (float) p111.z,
+            (float) p011.x, (float) p011.y, (float) p011.z, (float) p001.x, (float) p001.y, (float) p001.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p011.x, (float) p011.y, (float) p011.z,
+            (float) p010.x, (float) p010.y, (float) p010.z, (float) p000.x, (float) p000.y, (float) p000.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p100.x, (float) p100.y, (float) p100.z, (float) p110.x, (float) p110.y, (float) p110.z,
+            (float) p111.x, (float) p111.y, (float) p111.z, (float) p101.x, (float) p101.y, (float) p101.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p010.x, (float) p010.y, (float) p010.z, (float) p011.x, (float) p011.y, (float) p011.z,
             (float) p111.x, (float) p111.y, (float) p111.z, (float) p110.x, (float) p110.y, (float) p110.z, r, g, b, a);
-        addQuad(builder, matrix, (float) p010.x, (float) p010.y, (float) p010.z, (float) p110.x, (float) p110.y, (float) p110.z,
-            (float) p111.x, (float) p111.y, (float) p111.z, (float) p011.x, (float) p011.y, (float) p011.z, r, g, b, a);
-        addQuad(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p101.x, (float) p101.y, (float) p101.z,
-            (float) p100.x, (float) p100.y, (float) p100.z, (float) p000.x, (float) p000.y, (float) p000.z, r, g, b, a);
+        addQuad(builder, matrix, (float) p001.x, (float) p001.y, (float) p001.z, (float) p000.x, (float) p000.y, (float) p000.z,
+            (float) p100.x, (float) p100.y, (float) p100.z, (float) p101.x, (float) p101.y, (float) p101.z, r, g, b, a);
     }
 
     private static void drawMountedBoxEdges(BufferBuilder builder, Matrix4f matrix, MovementContext context, AABB box,
@@ -1129,8 +1130,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 return;
             }
             float[] color = colorFor(type);
-            float fillAlpha = Math.max(0.26F, Math.max(MIN_EXACT_FILL_ALPHA, Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F)));
-            float edgeAlpha = Math.max(MIN_EXACT_EDGE_ALPHA, Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F));
+            float fillAlpha = Mth.clamp(Config.PROJECTOR_FILL_ALPHA.get() / 255.0F, 0.0F, 1.0F);
+            float edgeAlpha = Mth.clamp(Config.PROJECTOR_EDGE_ALPHA.get() / 255.0F, 0.0F, 1.0F);
             float inset = ponderBlockInset();
             List<FaceQuad> surfaceFaces = buildSurfaceFaces(blocks, projectorPos, inset);
             List<LineSegment> surfaceEdges = buildJoinedEdges(surfaceFaces);
@@ -1147,10 +1148,11 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             RenderSystem.defaultBlendFunc();
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
-            RenderSystem.disableCull();
+            // Cull only filled surfaces; outlines and guide beams stay two-sided.
+            RenderSystem.enableCull();
 
             try {
-                if (fillAlpha > 0.0F) {
+                if (Config.PROJECTOR_FILL_ENABLED.get() && fillAlpha > 0.0F) {
                     Tesselator tesselator = Tesselator.getInstance();
                     BufferBuilder builder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                     RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -1164,6 +1166,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                     }
                     BufferUploader.drawWithShader(builder.buildOrThrow());
                 }
+
+                RenderSystem.disableCull();
 
                 if (edgeAlpha > 0.0F) {
                     Tesselator tesselator = Tesselator.getInstance();
@@ -1220,6 +1224,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             case EMERALD -> rgb(49, 210, 113);
             case DIAMOND -> rgb(87, 238, 220);
             case ZINC -> rgb(156, 190, 205);
+            case CRIMSITE -> rgb(184, 92, 112);
+            case ASURINE -> rgb(102, 159, 208);
+            case OCHRUM -> rgb(217, 172, 85);
+            case VERIDIUM -> rgb(121, 184, 131);
             case AMETHYST -> rgb(192, 138, 230);
             case CHEST -> rgb(171, 119, 66);
             case SPAWNER -> rgb(96, 168, 198);

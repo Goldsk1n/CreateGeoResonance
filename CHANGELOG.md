@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 
 ## [Unreleased]
 
+### Added
+- Separate Crimsite, Asurine, Ochrum, and Veridium station modules with recipes, localized tooltips, and distinct scan and projection signals.
+
+### Changed
+- Reduce default hologram opacity and cull back-facing filled surfaces to improve projection readability.
+- Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
+
+### Fixed
+- Prevent signal grouping collisions when scanning the new mineral types.
+- Use NeoForge's common zinc tags for the zinc module recipe, scanning, and projection validation.
+
 ## [1.21.1-1.1.1] - 2026-09-21
 
 ### Fixed
