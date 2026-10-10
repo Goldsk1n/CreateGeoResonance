@@ -25,7 +25,6 @@ public final class GeoResonancePonderTags {
 
         itemHelper.addToTag(SEISMIC)
             .add(GeoResonanceItems.SEISMIC_HAMMER)
-            .add(GeoResonanceBlocks.PLACED_SEISMIC_HAMMER)
             .add(GeoResonanceBlocks.SEISMIC_STATION)
             .add(GeoResonanceBlocks.SEISMIC_PROJECTOR);
     }

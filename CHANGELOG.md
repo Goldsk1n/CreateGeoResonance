@@ -14,6 +14,8 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Keep adjacent block faces visible through the projector's recessed rear section.
+- Add missing seismic Ponder category translations and remove the itemless placed-hammer entry that crashed when clicked.
 - Match mineral module icon sizes to the Noise Cancellation module.
 - Prevent signal grouping collisions when scanning the new mineral types.
 

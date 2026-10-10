@@ -112,6 +112,8 @@
   "block.creategeoresonance.seismic_projector.exact_matches": "Підтверджено точних жил: %s",
   "block.creategeoresonance.seismic_projector.match_line": "%s @ x:%s z:%s ~y:%s (+/-%s)",
   "creategeoresonance.gui.goggles.pressure": "Тиск:",
+  "creategeoresonance.ponder.tag.seismic": "Сейсмічна розвідка",
+  "creategeoresonance.ponder.tag.seismic.description": "Знаходьте печери, рідини та руди, не копаючи навмання.",
   "creategeoresonance.ponder.seismic_hammer/basics.header": "Досліджуйте поверхню сейсмомолотом",
   "creategeoresonance.ponder.seismic_hammer/basics.text_1": "Сейсмомолот виявляє підземні аномалії через поверхневі удари.",
   "creategeoresonance.ponder.seismic_hammer/basics.text_2": "Вдарте по поверхні, щоб надіслати сейсмоімпульс.",

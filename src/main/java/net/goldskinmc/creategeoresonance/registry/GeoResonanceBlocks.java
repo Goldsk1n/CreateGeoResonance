@@ -51,7 +51,8 @@ public final class GeoResonanceBlocks {
         .properties(properties -> properties
             .strength(3.5F)
             .sound(SoundType.STONE)
-            .requiresCorrectToolForDrops())
+            .requiresCorrectToolForDrops()
+            .noOcclusion())
         .item()
         .build()
         .register();

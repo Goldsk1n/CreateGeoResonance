@@ -113,6 +113,8 @@
   "block.creategeoresonance.seismic_projector.exact_matches": "Confirmed exact veins: %s",
   "block.creategeoresonance.seismic_projector.match_line": "%s @ x:%s z:%s ~y:%s (+/-%s)",
   "creategeoresonance.gui.goggles.pressure": "Pressure:",
+  "creategeoresonance.ponder.tag.seismic": "Seismic Exploration",
+  "creategeoresonance.ponder.tag.seismic.description": "Locate caves, fluids and ore signatures without digging blind",
   "creategeoresonance.ponder.seismic_hammer/basics.header": "Survey terrain with the Seismic Hammer",
   "creategeoresonance.ponder.seismic_hammer/basics.text_1": "Seismic Hammer reveals underground anomalies using surface impacts.",
   "creategeoresonance.ponder.seismic_hammer/basics.text_2": "Strike the surface to send a seismic pulse.",
