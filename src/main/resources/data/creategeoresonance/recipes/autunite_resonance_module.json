@@ -1,0 +1,46 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "createnuclear"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "createnuclear:autunite"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "createnuclear:raw_uranium"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "RI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "R": {
+            "item": "createnuclear:autunite"
+          },
+          "I": {
+            "item": "createnuclear:raw_uranium"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:autunite_resonance_module"
+        }
+      }
+    }
+  ]
+}
+

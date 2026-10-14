@@ -1,0 +1,45 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "forbidden_arcanus"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "forbidden_arcanus:stellarite_piece"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "forbidden_arcanus:arcane_crystal"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "RI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "R": {
+            "item": "forbidden_arcanus:stellarite_piece"
+          },
+          "I": {
+            "item": "forbidden_arcanus:arcane_crystal"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:stellarite_resonance_module"
+        }
+      }
+    }
+  ]
+}

@@ -2,8 +2,6 @@ package net.goldskinmc.creategeoresonance.seismic;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -29,6 +27,11 @@ public final class SeismicStationControllerLogic {
         if (moduleType == null) {
             return false;
         }
+        if (moduleType.isRetired()) {
+            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_retired")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
         if (hasModuleInstalled(host.inventory(), moduleType)) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_duplicate")
                 .withStyle(ChatFormatting.RED), true);
@@ -50,7 +53,6 @@ public final class SeismicStationControllerLogic {
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_loaded", inserted.getHoverName())
             .withStyle(ChatFormatting.GREEN), true);
         playFeedbackSound(host, SoundEvents.NOTE_BLOCK_HAT.value(), 0.6F, 1.05F);
-        spawnFeedbackParticles(host, ParticleTypes.WAX_ON, 5, 0.18D, 0.01D);
         return true;
     }
 
@@ -59,14 +61,21 @@ public final class SeismicStationControllerLogic {
             return false;
         }
         int slot = findLastFilledModuleSlot(host.inventory());
-        if (slot < 0) {
+        ItemStack extracted;
+        if (slot >= 0) {
+            extracted = host.inventory().getStackInSlot(slot).copy();
+            host.inventory().setStackInSlot(slot, ItemStack.EMPTY);
+        } else if (host.inventory() instanceof SeismicStationInventory inventory) {
+            extracted = inventory.takeRecoveredModule();
+        } else {
+            extracted = ItemStack.EMPTY;
+        }
+        if (extracted.isEmpty()) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.no_module")
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
 
-        ItemStack extracted = host.inventory().getStackInSlot(slot).copy();
-        host.inventory().setStackInSlot(slot, ItemStack.EMPTY);
         ItemStack held = player.getItemInHand(hand);
         if (held.isEmpty()) {
             player.setItemInHand(hand, extracted);
@@ -77,7 +86,6 @@ public final class SeismicStationControllerLogic {
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_unloaded", extracted.getHoverName())
             .withStyle(ChatFormatting.AQUA), true);
         playFeedbackSound(host, SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 0.72F);
-        spawnFeedbackParticles(host, ParticleTypes.WAX_OFF, 5, 0.18D, 0.01D);
         return true;
     }
 
@@ -100,7 +108,6 @@ public final class SeismicStationControllerLogic {
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.paper_loaded")
             .withStyle(ChatFormatting.GREEN), true);
         playFeedbackSound(host, SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 1.35F);
-        spawnFeedbackParticles(host, ParticleTypes.CLOUD, 6, 0.22D, 0.01D);
         return true;
     }
 
@@ -123,7 +130,6 @@ public final class SeismicStationControllerLogic {
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.ink_loaded")
             .withStyle(ChatFormatting.GREEN), true);
         playFeedbackSound(host, SoundEvents.NOTE_BLOCK_HAT.value(), 0.55F, 0.8F);
-        spawnFeedbackParticles(host, ParticleTypes.SQUID_INK, 4, 0.18D, 0.0D);
         return true;
     }
 
@@ -145,7 +151,6 @@ public final class SeismicStationControllerLogic {
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.output_taken")
             .withStyle(ChatFormatting.AQUA), true);
         playFeedbackSound(host, SoundEvents.NOTE_BLOCK_BASS.value(), 0.65F, 1.3F);
-        spawnFeedbackParticles(host, ParticleTypes.GLOW, 8, 0.2D, 0.01D);
         return true;
     }
 
@@ -208,23 +213,6 @@ public final class SeismicStationControllerLogic {
             return;
         }
         level.playSound(null, host.feedbackPos(), sound, SoundSource.BLOCKS, volume, pitch);
-    }
-
-    private static void spawnFeedbackParticles(Host host, ParticleOptions particle, int count, double spread, double speed) {
-        Level level = host.level();
-        if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
-            return;
-        }
-        BlockPos pos = host.feedbackPos();
-        serverLevel.sendParticles(particle,
-            pos.getX() + 0.5D,
-            pos.getY() + 1.05D,
-            pos.getZ() + 0.5D,
-            count,
-            spread,
-            0.12D,
-            spread,
-            speed);
     }
 
     public interface Host {

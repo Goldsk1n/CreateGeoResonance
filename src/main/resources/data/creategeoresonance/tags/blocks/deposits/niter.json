@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "thermal:niter_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_niter_ore",
+      "required": false
+    }
+  ]
+}

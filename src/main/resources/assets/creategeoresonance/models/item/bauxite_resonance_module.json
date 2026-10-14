@@ -1,0 +1,7 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base_small_icon",
+  "textures": {
+    "18": "creategeoresonance:block/compat/tfmg/bauxite"
+  }
+}
+

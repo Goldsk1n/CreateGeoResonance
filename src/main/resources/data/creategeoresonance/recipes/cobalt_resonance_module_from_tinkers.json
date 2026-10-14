@@ -1,0 +1,45 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "tconstruct"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "tconstruct:raw_cobalt"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "tconstruct:cobalt_ingot"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "RI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "R": {
+            "item": "tconstruct:raw_cobalt"
+          },
+          "I": {
+            "item": "tconstruct:cobalt_ingot"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:cobalt_resonance_module"
+        }
+      }
+    }
+  ]
+}

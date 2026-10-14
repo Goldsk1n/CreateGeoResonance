@@ -1,0 +1,45 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "powah"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "powah:uraninite_raw"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "powah:uraninite"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "RI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "R": {
+            "item": "powah:uraninite_raw"
+          },
+          "I": {
+            "item": "powah:uraninite"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:uraninite_resonance_module"
+        }
+      }
+    }
+  ]
+}

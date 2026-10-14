@@ -1,0 +1,6 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base",
+  "textures": {
+    "18": "ae2:item/certus_quartz_crystal"
+  }
+}

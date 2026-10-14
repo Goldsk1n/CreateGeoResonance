@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:aluminum_ingot",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ingot_aluminum",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:crude_oil",
+      "required": false
+    },
+    {
+      "id": "tfmg:flowing_crude_oil",
+      "required": false
+    },
+    {
+      "id": "pneumaticcraft:oil",
+      "required": false
+    },
+    {
+      "id": "pneumaticcraft:oil_flowing",
+      "required": false
+    }
+  ]
+}

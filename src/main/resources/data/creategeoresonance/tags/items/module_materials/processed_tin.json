@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "mekanism:ingot_tin",
+      "required": false
+    },
+    {
+      "id": "thermal:tin_ingot",
+      "required": false
+    }
+  ]
+}

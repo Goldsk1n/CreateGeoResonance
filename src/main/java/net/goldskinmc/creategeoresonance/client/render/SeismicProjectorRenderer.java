@@ -24,6 +24,8 @@ import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.client.GeoResonancePartialModels;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicMineralTags;
+import net.goldskinmc.creategeoresonance.seismic.SeismicRockStoneDeposits;
+import net.goldskinmc.creategeoresonance.seismic.SeismicFluidTags;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorData;
@@ -62,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Comparator;
+import java.util.function.Consumer;
 
 public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
@@ -84,6 +87,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     private static final float EXACT_GUIDE_ALPHA_SCALE = 0.82F;
     private static final int MAX_PONDER_OUTLINES = 48;
     private static final int MAX_GEOMETRY_CACHE_ENTRIES = 256;
+    private static final Map<Object, DeferredProjection> DEFERRED_PROJECTIONS = new IdentityHashMap<>();
     private static final Map<Object, GeometryCacheEntry> GEOMETRY_CACHE =
         Collections.synchronizedMap(new IdentityHashMap<>());
     private static final TagKey<Block> CREATE_ZINC_ORES = BlockTags.create(
@@ -123,6 +127,20 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             rightSeismogram.translate(SEISMOGRAM_RIGHT_OFFSET_X, SEISMOGRAM_RIGHT_OFFSET_Y, SEISMOGRAM_RIGHT_OFFSET_Z);
             rightSeismogram.light(seismogramLight).renderInto(poseStack, vertexConsumer);
         }
+        if (ponderLevel) {
+            renderProjection(blockEntity, poseStack);
+        } else {
+            deferProjection(blockEntity.getLevel(), blockEntity, poseStack, deferredStack -> {
+                if (!blockEntity.isRemoved()) {
+                    renderProjection(blockEntity, deferredStack);
+                }
+            });
+        }
+    }
+
+    private static void renderProjection(SeismicProjectorBlockEntity blockEntity, PoseStack poseStack) {
+        boolean ponderLevel = blockEntity.getLevel() instanceof PonderLevel;
+        Direction facing = blockEntity.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         if (!blockEntity.getBlockState().hasProperty(SeismicProjectorBlock.ACTIVE)
             || !blockEntity.getBlockState().getValue(SeismicProjectorBlock.ACTIVE)) {
             if (ponderLevel) {
@@ -263,6 +281,43 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
     }
 
+    private static void deferProjection(net.minecraft.world.level.Level level, Object key,
+                                        PoseStack poseStack, Consumer<PoseStack> render) {
+        // Preserve the original view transform; the final pass has different matrices on each loader.
+        PoseStack deferredStack = new PoseStack();
+        deferredStack.last().pose().set(RenderSystem.getModelViewMatrix()).mul(poseStack.last().pose());
+        DEFERRED_PROJECTIONS.put(key, new DeferredProjection(level, deferredStack, render));
+    }
+
+    public static void renderDeferredProjectionOverlays(net.minecraft.world.level.Level level) {
+        if (DEFERRED_PROJECTIONS.isEmpty()) {
+            return;
+        }
+        var modelView = RenderSystem.getModelViewStack();
+        modelView.pushPose();
+        modelView.setIdentity();
+        RenderSystem.applyModelViewMatrix();
+        try {
+            for (DeferredProjection projection : DEFERRED_PROJECTIONS.values()) {
+                if (projection.level() == level) {
+                    projection.render().accept(projection.poseStack());
+                }
+            }
+        } finally {
+            DEFERRED_PROJECTIONS.clear();
+            modelView.popPose();
+            RenderSystem.applyModelViewMatrix();
+        }
+    }
+
+    public static void clearDeferredProjectionOverlays() {
+        DEFERRED_PROJECTIONS.clear();
+    }
+
+    private record DeferredProjection(net.minecraft.world.level.Level level, PoseStack poseStack,
+                                      Consumer<PoseStack> render) {
+    }
+
     public static void renderInContraption(MovementContext context, VirtualRenderWorld renderWorld,
                                            ContraptionMatrices matrices, MultiBufferSource buffer) {
         if (context.world == null || context.contraption == null || context.contraption.entity == null) {
@@ -313,6 +368,18 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 .renderInto(matrices.getViewProjection(), vertexConsumer);
         }
 
+        PoseStack projectedStack = new PoseStack();
+        ContraptionMatrices.transform(projectedStack, matrices.getViewProjection());
+        ContraptionMatrices.transform(projectedStack, matrices.getModel());
+        deferProjection(context.world, context, projectedStack,
+            deferredStack -> renderMountedProjection(context, projectorPos, deferredStack));
+    }
+
+    private static void renderMountedProjection(MovementContext context, BlockPos projectorPos,
+                                                PoseStack projectedStack) {
+        SeismicProjectorData projectorData = new SeismicProjectorData();
+        projectorData.readFromTag(context.blockEntityData);
+        Direction facing = context.state.getValue(HorizontalDirectionalBlock.FACING);
         if (!projectorData.canProjectFrom(projectorPos, true)) {
             return;
         }
@@ -341,9 +408,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         RenderGeometryData geometry = resolveRenderGeometry(context, projectorPos, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
-        PoseStack projectedStack = new PoseStack();
-        ContraptionMatrices.transform(projectedStack, matrices.getViewProjection());
-        ContraptionMatrices.transform(projectedStack, matrices.getModel());
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -461,7 +525,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 }
             }
             if (!liveBlocks.isEmpty()) {
-                filtered.add(new RenderableVein(vein.type(), List.copyOf(liveBlocks)));
+                filtered.add(new RenderableVein(vein.type(), List.copyOf(liveBlocks), vein.blocks()));
             }
         }
         return filtered;
@@ -549,7 +613,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
         List<RenderableVeinDistance> ranked = new ArrayList<>(veins.size());
         for (RenderableVein vein : veins) {
-            float[] centroid = veinCentroid(origin, vein.blocks());
+            // Mining must shrink the hologram without changing its distance priority.
+            float[] centroid = veinCentroid(origin, vein.surveyedBlocks());
             float distSq = centroid[0] * centroid[0] + centroid[1] * centroid[1] + centroid[2] * centroid[2];
             ranked.add(new RenderableVeinDistance(vein, distSq));
         }
@@ -580,6 +645,46 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             case ASURINE -> state.is(SeismicMineralTags.ASURINE);
             case OCHRUM -> state.is(SeismicMineralTags.OCHRUM);
             case VERIDIUM -> state.is(SeismicMineralTags.VERIDIUM);
+            case THORIUM -> state.is(SeismicMineralTags.THORIUM);
+            case MAGNETITE -> state.is(SeismicMineralTags.MAGNETITE);
+            case LEAD -> state.is(SeismicMineralTags.LEAD);
+            case NICKEL -> state.is(SeismicMineralTags.NICKEL);
+            case LITHIUM -> state.is(SeismicMineralTags.LITHIUM);
+            case BAUXITE -> state.is(SeismicMineralTags.BAUXITE);
+            case GALENA -> state.is(SeismicMineralTags.GALENA);
+            case LIGNITE -> state.is(SeismicMineralTags.LIGNITE);
+            case SULFUR -> state.is(SeismicMineralTags.SULFUR);
+            case WOLFRAMITE -> state.is(SeismicMineralTags.WOLFRAMITE);
+            case URANIUM -> state.is(SeismicMineralTags.URANIUM);
+            case AUTUNITE -> state.is(SeismicMineralTags.AUTUNITE);
+            case NITRATE -> state.is(SeismicMineralTags.NITRATE);
+            case QUARTZ -> state.is(Blocks.NETHER_QUARTZ_ORE);
+            case ANCIENT_DEBRIS -> state.is(Blocks.ANCIENT_DEBRIS);
+            case TIN -> state.is(SeismicMineralTags.TIN);
+            case OSMIUM -> state.is(SeismicMineralTags.OSMIUM);
+            case FLUORITE -> state.is(SeismicMineralTags.FLUORITE);
+            case CERTUS_QUARTZ -> state.is(SeismicMineralTags.CERTUS_QUARTZ);
+            case INFERIUM -> state.is(SeismicMineralTags.INFERIUM);
+            case PROSPERITY -> state.is(SeismicMineralTags.PROSPERITY);
+            case SOULIUM -> state.is(SeismicMineralTags.SOULIUM);
+            case ARCANE_CRYSTAL -> state.is(SeismicMineralTags.ARCANE_CRYSTAL);
+            case RUNE -> state.is(SeismicMineralTags.RUNE);
+            case STELLARITE -> state.is(SeismicMineralTags.STELLARITE);
+            case URANINITE -> state.is(SeismicMineralTags.URANINITE);
+            case DRACONIUM -> state.is(SeismicMineralTags.DRACONIUM);
+            case XPETRIFIED -> state.is(SeismicMineralTags.XPETRIFIED);
+            case SILVER -> state.is(SeismicMineralTags.SILVER);
+            case APATITE -> state.is(SeismicMineralTags.APATITE);
+            case CINNABAR -> state.is(SeismicMineralTags.CINNABAR);
+            case NITER -> state.is(SeismicMineralTags.NITER);
+            case COBALT -> state.is(SeismicMineralTags.COBALT);
+            case PLATINUM, COAL_DEPOSIT, IRON_DEPOSIT, COPPER_DEPOSIT,
+                GOLD_DEPOSIT, REDSTONE_DEPOSIT, LAPIS_DEPOSIT, ZINC_DEPOSIT, LEAD_DEPOSIT, NICKEL_DEPOSIT,
+                URANIUM_DEPOSIT, THORIUM_DEPOSIT, WOLFRAMITE_DEPOSIT, TIN_DEPOSIT, SILVER_DEPOSIT, PLATINUM_DEPOSIT,
+                OSMIUM_DEPOSIT, QUARTZ_DEPOSIT, COBALT_DEPOSIT ->
+                SeismicRockStoneDeposits.matches(state, type);
+            case CRUDE_OIL -> state.is(SeismicMineralTags.CRUDE_OIL)
+                || state.getFluidState().is(SeismicFluidTags.CRUDE_OIL);
             case AMETHYST -> state.is(Blocks.BUDDING_AMETHYST)
                 || state.is(Blocks.AMETHYST_CLUSTER)
                 || state.is(Blocks.LARGE_AMETHYST_BUD)
@@ -1061,19 +1166,54 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             case WATER -> rgb(80, 170, 255);
             case LAVA -> rgb(255, 120, 40);
             case CAVE -> rgb(180, 200, 220);
-            case COAL -> rgb(70, 70, 70);
-            case IRON -> rgb(216, 166, 129);
-            case COPPER -> rgb(211, 132, 75);
-            case GOLD -> rgb(255, 215, 61);
-            case REDSTONE -> rgb(229, 49, 49);
-            case LAPIS -> rgb(66, 108, 208);
+            case COAL, COAL_DEPOSIT -> rgb(70, 70, 70);
+            case IRON, IRON_DEPOSIT -> rgb(216, 166, 129);
+            case COPPER, COPPER_DEPOSIT -> rgb(211, 132, 75);
+            case GOLD, GOLD_DEPOSIT -> rgb(255, 215, 61);
+            case REDSTONE, REDSTONE_DEPOSIT -> rgb(229, 49, 49);
+            case LAPIS, LAPIS_DEPOSIT -> rgb(66, 108, 208);
             case EMERALD -> rgb(49, 210, 113);
             case DIAMOND -> rgb(87, 238, 220);
-            case ZINC -> rgb(156, 190, 205);
+            case ZINC, ZINC_DEPOSIT -> rgb(156, 190, 205);
             case CRIMSITE -> rgb(184, 92, 112);
             case ASURINE -> rgb(102, 159, 208);
             case OCHRUM -> rgb(217, 172, 85);
             case VERIDIUM -> rgb(121, 184, 131);
+            case THORIUM, THORIUM_DEPOSIT -> rgb(198, 216, 107);
+            case MAGNETITE -> rgb(116, 126, 138);
+            case LEAD, LEAD_DEPOSIT -> rgb(132, 140, 184);
+            case NICKEL, NICKEL_DEPOSIT -> rgb(175, 195, 141);
+            case LITHIUM -> rgb(216, 150, 182);
+            case BAUXITE -> rgb(209, 139, 91);
+            case GALENA -> rgb(158, 123, 184);
+            case LIGNITE -> rgb(130, 96, 70);
+            case SULFUR -> rgb(223, 216, 90);
+            case CRUDE_OIL -> rgb(104, 78, 125);
+            case WOLFRAMITE, WOLFRAMITE_DEPOSIT -> rgb(144, 169, 191);
+            case URANIUM, URANIUM_DEPOSIT -> rgb(100, 206, 103);
+            case AUTUNITE -> rgb(173, 204, 87);
+            case NITRATE -> rgb(220, 230, 240);
+            case TIN, TIN_DEPOSIT -> rgb(166, 196, 190);
+            case SILVER, SILVER_DEPOSIT -> rgb(202, 220, 236);
+            case PLATINUM, PLATINUM_DEPOSIT -> rgb(193, 187, 232);
+            case OSMIUM, OSMIUM_DEPOSIT -> rgb(117, 146, 190);
+            case QUARTZ, QUARTZ_DEPOSIT -> rgb(242, 231, 214);
+            case ANCIENT_DEBRIS -> rgb(169, 127, 108);
+            case FLUORITE -> rgb(174, 184, 239);
+            case CERTUS_QUARTZ -> rgb(155, 205, 232);
+            case INFERIUM -> rgb(131, 183, 77);
+            case PROSPERITY -> rgb(217, 230, 233);
+            case SOULIUM -> rgb(128, 102, 74);
+            case ARCANE_CRYSTAL -> rgb(111, 148, 241);
+            case RUNE -> rgb(180, 128, 217);
+            case STELLARITE -> rgb(241, 196, 93);
+            case URANINITE -> rgb(157, 190, 85);
+            case DRACONIUM -> rgb(165, 124, 230);
+            case XPETRIFIED -> rgb(145, 217, 91);
+            case APATITE -> rgb(93, 171, 206);
+            case CINNABAR -> rgb(213, 92, 87);
+            case NITER -> rgb(213, 220, 194);
+            case COBALT, COBALT_DEPOSIT -> rgb(72, 109, 219);
             case AMETHYST -> rgb(192, 138, 230);
             case CHEST -> rgb(171, 119, 66);
             case SPAWNER -> rgb(96, 168, 198);
@@ -1138,7 +1278,10 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float x4, float y4, float z4) {
     }
 
-    private record RenderableVein(SeismicAnomalyType type, List<BlockPos> blocks) {
+    private record RenderableVein(SeismicAnomalyType type, List<BlockPos> blocks, List<BlockPos> surveyedBlocks) {
+        private RenderableVein(SeismicAnomalyType type, List<BlockPos> blocks) {
+            this(type, blocks, blocks);
+        }
     }
 
     private record RenderableVeinDistance(RenderableVein vein, float distanceSq) {
@@ -1236,4 +1379,3 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             .translate(-px, -py, -pz);
     }
 }
-

@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "powah:uraninite_ore_poor",
+      "required": false
+    },
+    {
+      "id": "powah:uraninite_ore",
+      "required": false
+    },
+    {
+      "id": "powah:uraninite_ore_dense",
+      "required": false
+    },
+    {
+      "id": "powah:deepslate_uraninite_ore_poor",
+      "required": false
+    },
+    {
+      "id": "powah:deepslate_uraninite_ore",
+      "required": false
+    },
+    {
+      "id": "powah:deepslate_uraninite_ore_dense",
+      "required": false
+    }
+  ]
+}

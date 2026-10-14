@@ -83,6 +83,10 @@ tasks.configureEach {
 }
 
 repositories {
+    maven {
+        url = "https://api.modrinth.com/maven"
+        content { includeGroup "maven.modrinth" }
+    }
     maven { url = "https://maven.blamejared.com" }
     maven { url = "https://maven.createmod.net" }
     maven { url = "https://maven.ithundxr.dev/mirror" }
@@ -97,6 +101,37 @@ dependencies {
     compileOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}"))
     runtimeOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"))
     implementation(fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}"))
+    // Integration testing in all dev profiles; New Age bundles its required ESL library.
+    runtimeOnly(fg.deobf("maven.modrinth:create-new-age:${new_age_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:create-tfmg:${tfmg_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:create-metallurgy:${metallurgy_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:createnuclear:${nuclear_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:create-rns:${rock_stone_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:mekanism:${mekanism_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:tinkers-construct:${tinkers_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:mantle:${mantle_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:oreganized:${oreganized_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:blueprint:${blueprint_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:ae2:${ae2_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:guideme:${guideme_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:mystical-agriculture:${mystical_agriculture_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:cucumber:${cucumber_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:immersiveengineering:${immersive_engineering_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:forbidden-arcanus:${forbidden_arcanus_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:valhelsia-core:${valhelsia_core_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:powah:${powah_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:cloth-config:${cloth_config_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:architectury-api:${architectury_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:draconic-evolution:${draconic_evolution_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:brandons-core:${brandons_core_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:codechicken-lib:${codechicken_lib_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:pneumaticcraft-repressurized:${pneumaticcraft_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:patchouli:${patchouli_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:thermal-foundation:${thermal_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:cofh-core:${cofh_core_version_id}"))
+    // Startup compatibility regression mods, included in all dev profiles.
+    runtimeOnly(fg.deobf("maven.modrinth:moonlight:${moonlight_version_id}"))
+    runtimeOnly(fg.deobf("maven.modrinth:supplementaries:${supplementaries_version_id}"))
     // Dev-only comfort/debug mods. runtimeOnly keeps them out of the final published jar.
     // Omitted in fastDev profile to reduce startup/world-load overhead.
     if (!fastDev) {

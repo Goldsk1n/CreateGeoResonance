@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "createnuclear:uranium_ore",
+      "required": false
+    },
+    {
+      "id": "createnuclear:deepslate_uranium_ore",
+      "required": false
+    },
+    {
+      "id": "mekanism:uranium_ore",
+      "required": false
+    },
+    {
+      "id": "mekanism:deepslate_uranium_ore",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ore_uranium",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:deepslate_ore_uranium",
+      "required": false
+    }
+  ]
+}

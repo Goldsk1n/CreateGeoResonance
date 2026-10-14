@@ -1,0 +1,6 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base_small_icon",
+  "textures": {
+    "18": "create_rns:block/uranium_deposit_block"
+  }
+}

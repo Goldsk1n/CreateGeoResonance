@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "thermal:cinnabar_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_cinnabar_ore",
+      "required": false
+    }
+  ]
+}

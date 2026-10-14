@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:sulfur",
+      "required": false
+    },
+    {
+      "id": "thermal:sulfur_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_sulfur_ore",
+      "required": false
+    }
+  ]
+}

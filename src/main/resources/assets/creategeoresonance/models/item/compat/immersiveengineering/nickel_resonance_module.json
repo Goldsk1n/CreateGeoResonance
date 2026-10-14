@@ -1,0 +1,6 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base",
+  "textures": {
+    "18": "immersiveengineering:item/metal_raw_nickel"
+  }
+}

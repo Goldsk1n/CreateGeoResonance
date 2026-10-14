@@ -1,0 +1,38 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "tfmg"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "MI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "M": {
+            "item": "tfmg:raw_lithium"
+          },
+          "I": {
+            "item": "tfmg:lithium_ingot"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:lithium_resonance_module"
+        }
+      }
+    }
+  ]
+}
+

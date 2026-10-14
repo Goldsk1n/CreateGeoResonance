@@ -50,6 +50,10 @@ public class Config {
     public static final ForgeConfigSpec.IntValue SEISMOGRAM_SIDEBAR_MAX_SIGNALS;
     public static final ForgeConfigSpec.BooleanValue SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED;
 
+    public static final ForgeConfigSpec.DoubleValue WAVE_IMPACT_OPACITY;
+    public static final ForgeConfigSpec.DoubleValue WAVE_ECHO_LOW_CONFIDENCE_OPACITY;
+    public static final ForgeConfigSpec.DoubleValue WAVE_ECHO_HIGH_CONFIDENCE_OPACITY;
+
     public static final ForgeConfigSpec.BooleanValue CAMERA_SHAKE_ENABLED;
     public static final ForgeConfigSpec.DoubleValue CAMERA_SHAKE_SCALE;
 
@@ -187,6 +191,18 @@ public class Config {
         SEISMOGRAM_BOUNDARY_OVERLAY_ENABLED = CLIENT_BUILDER
             .comment("Show triangulation invalid-distance boundary when a nearby projector has exactly one loaded node.")
             .define("boundaryOverlayEnabled", true);
+        CLIENT_BUILDER.pop();
+
+        CLIENT_BUILDER.comment("Client-side in-world seismic waves. Opacity multiplies texture alpha and fades over each wave's lifetime.").push("waves");
+        WAVE_IMPACT_OPACITY = CLIENT_BUILDER
+            .comment("Starting opacity of impact waves from the hand hammer and station, at any pressure. Set 0 to hide.")
+            .defineInRange("impactOpacity", 1.0D, 0.0D, 1.0D);
+        WAVE_ECHO_LOW_CONFIDENCE_OPACITY = CLIENT_BUILDER
+            .comment("Starting echo opacity at confidence 0, at any pressure. Intermediate confidence interpolates between the two endpoints.")
+            .defineInRange("echoLowConfidenceOpacity", 1.0D, 0.0D, 1.0D);
+        WAVE_ECHO_HIGH_CONFIDENCE_OPACITY = CLIENT_BUILDER
+            .comment("Starting echo opacity at confidence 1, at any pressure. Set both echo endpoints to 0 to hide echoes.")
+            .defineInRange("echoHighConfidenceOpacity", 1.0D, 0.0D, 1.0D);
         CLIENT_BUILDER.pop();
 
         CLIENT_BUILDER.comment("Client-side camera feedback.").push("camera");

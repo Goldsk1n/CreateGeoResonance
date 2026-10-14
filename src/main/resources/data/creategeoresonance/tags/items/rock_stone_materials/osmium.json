@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ingots/osmium",
+      "required": false
+    },
+    {
+      "id": "#forge:raw_materials/osmium",
+      "required": false
+    },
+    {
+      "id": "#c:ingots/osmium",
+      "required": false
+    },
+    {
+      "id": "#c:raw_materials/osmium",
+      "required": false
+    }
+  ]
+}

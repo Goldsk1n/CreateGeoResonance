@@ -1,0 +1,130 @@
+{
+    "credit":  "Generated from seismic_station.json by tools/generate_station_models.ps1",
+    "parent":  "creategeoresonance:block/seismic_station",
+    "ambientocclusion":  false,
+    "render_type":  "minecraft:cutout_mipped",
+    "elements":  [
+                     {
+                         "name":  "Side",
+                         "from":  [
+                                      14,
+                                      0,
+                                      0
+                                  ],
+                         "to":  [
+                                    16,
+                                    16,
+                                    16
+                                ],
+                         "faces":  {
+                                       "north":  {
+                                                     "uv":  [
+                                                                0,
+                                                                7.4666666666666668,
+                                                                1,
+                                                                16
+                                                            ],
+                                                     "texture":  "#3"
+                                                 },
+                                       "east":  {
+                                                    "uv":  [
+                                                               0,
+                                                               8,
+                                                               8,
+                                                               16
+                                                           ],
+                                                    "texture":  "#3"
+                                                },
+                                       "south":  {
+                                                     "uv":  [
+                                                                7,
+                                                                7.4666666666666668,
+                                                                8,
+                                                                16
+                                                            ],
+                                                     "texture":  "#3"
+                                                 },
+                                       "west":  {
+                                                    "uv":  [
+                                                               0,
+                                                               8,
+                                                               8,
+                                                               16
+                                                           ],
+                                                    "texture":  "#3"
+                                                },
+                                       "down":  {
+                                                    "uv":  [
+                                                               0,
+                                                               4,
+                                                               1,
+                                                               12
+                                                           ],
+                                                    "rotation":  180,
+                                                    "texture":  "#3"
+                                                }
+                                   }
+                     },
+                     {
+                         "name":  "Side",
+                         "from":  [
+                                      0,
+                                      0,
+                                      0
+                                  ],
+                         "to":  [
+                                    2,
+                                    16,
+                                    16
+                                ],
+                         "faces":  {
+                                       "north":  {
+                                                     "uv":  [
+                                                                7,
+                                                                7.4666666666666668,
+                                                                8,
+                                                                16
+                                                            ],
+                                                     "texture":  "#3"
+                                                 },
+                                       "east":  {
+                                                    "uv":  [
+                                                               0,
+                                                               8,
+                                                               8,
+                                                               16
+                                                           ],
+                                                    "texture":  "#3"
+                                                },
+                                       "south":  {
+                                                     "uv":  [
+                                                                0,
+                                                                7.4666666666666668,
+                                                                1,
+                                                                16
+                                                            ],
+                                                     "texture":  "#3"
+                                                 },
+                                       "west":  {
+                                                    "uv":  [
+                                                               0,
+                                                               8,
+                                                               8,
+                                                               16
+                                                           ],
+                                                    "texture":  "#3"
+                                                },
+                                       "down":  {
+                                                    "uv":  [
+                                                               7,
+                                                               4,
+                                                               8,
+                                                               12
+                                                           ],
+                                                    "rotation":  180,
+                                                    "texture":  "#3"
+                                                }
+                                   }
+                     }
+                 ]
+}

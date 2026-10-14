@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oreganized:silver_ore",
+      "required": false
+    },
+    {
+      "id": "oreganized:deepslate_silver_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:silver_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_silver_ore",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ore_silver",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:deepslate_ore_silver",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "immersiveengineering:raw_silver",
+      "required": false
+    },
+    {
+      "id": "oreganized:raw_silver",
+      "required": false
+    },
+    {
+      "id": "thermal:raw_silver",
+      "required": false
+    }
+  ]
+}

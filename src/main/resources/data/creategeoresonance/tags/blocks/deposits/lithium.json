@@ -1,0 +1,18 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ores/lithium",
+      "required": false
+    },
+    {
+      "id": "tfmg:lithium_ore",
+      "required": false
+    },
+    {
+      "id": "tfmg:deepslate_lithium_ore",
+      "required": false
+    }
+  ]
+}
+

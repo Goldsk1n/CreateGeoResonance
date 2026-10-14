@@ -1,0 +1,57 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ores/lead",
+      "required": false
+    },
+    {
+      "id": "tfmg:lead_ore",
+      "required": false
+    },
+    {
+      "id": "tfmg:deepslate_lead_ore",
+      "required": false
+    },
+    {
+      "id": "createnuclear:lead_ore",
+      "required": false
+    },
+    {
+      "id": "createnuclear:deepslate_lead_ore",
+      "required": false
+    },
+    {
+      "id": "mekanism:lead_ore",
+      "required": false
+    },
+    {
+      "id": "mekanism:deepslate_lead_ore",
+      "required": false
+    },
+    {
+      "id": "oreganized:lead_ore",
+      "required": false
+    },
+    {
+      "id": "oreganized:deepslate_lead_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:lead_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_lead_ore",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ore_lead",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:deepslate_ore_lead",
+      "required": false
+    }
+  ]
+}

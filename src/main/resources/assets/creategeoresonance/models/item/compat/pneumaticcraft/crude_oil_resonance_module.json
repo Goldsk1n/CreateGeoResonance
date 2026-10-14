@@ -1,0 +1,6 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base",
+  "textures": {
+    "18": "pneumaticcraft:block/fluid/oil_still"
+  }
+}

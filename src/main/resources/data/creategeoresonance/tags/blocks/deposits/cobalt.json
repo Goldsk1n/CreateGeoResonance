@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tconstruct:cobalt_ore",
+      "required": false
+    },
+    {
+      "id": "tconstruct:cobalt_cluster",
+      "required": false
+    }
+  ]
+}

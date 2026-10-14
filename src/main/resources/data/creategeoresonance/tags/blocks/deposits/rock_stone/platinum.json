@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "create_rns:platinum_deposit_block",
+      "required": false
+    }
+  ]
+}

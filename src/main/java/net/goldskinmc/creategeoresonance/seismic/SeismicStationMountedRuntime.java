@@ -2,14 +2,17 @@ package net.goldskinmc.creategeoresonance.seismic;
 
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
+import com.simibubi.create.content.kinetics.base.IRotate.StressImpact;
 import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import net.goldskinmc.creategeoresonance.Config;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -54,7 +57,7 @@ public final class SeismicStationMountedRuntime {
                 .withStyle(ChatFormatting.RED), true);
             return true;
         }
-        if (!hasRequiredSpeed(contraptionEntity, controllerLocalPos)) {
+        if (!hasRequiredSpeed(contraptionEntity, controllerLocalPos, stationData)) {
             player.displayClientMessage(Component.translatable(
                     "block.creategeoresonance.seismic_station.no_rotation",
                     Config.STATION_MIN_SPEED.get())
@@ -102,7 +105,6 @@ public final class SeismicStationMountedRuntime {
             serverLevel.getGameTime(),
             false,
             buildDetectableTypes(stationData.inventory()),
-            SeismicStationControllerLogic.hasModuleInstalled(stationData.inventory(), SeismicModuleType.BELOW_ZERO),
             (request, result) -> acceptScanResult(contraptionEntity.getId(), controllerLocalPos, request.level(), result)
         ));
 
@@ -129,7 +131,7 @@ public final class SeismicStationMountedRuntime {
         if (!isParkedTrain(contraptionEntity)) {
             return;
         }
-        if (!hasRequiredSpeed(contraptionEntity, context.localPos)) {
+        if (!hasRequiredSpeed(contraptionEntity, context.localPos, stationData)) {
             return;
         }
         if (stationData.strikeTimer() > 0) {
@@ -250,16 +252,14 @@ public final class SeismicStationMountedRuntime {
 
         stationData.mapEntries().clear();
         for (SeismicAnomaly anomaly : stationData.queuedAnomalies()) {
-            int spread = 5 + Mth.floor(anomaly.depth() / 20.0F);
-            int sampledOffset = serverLevel.random.nextInt(spread * 2 + 1) - spread;
-            int sampledY = scanOrigin.getY() - anomaly.depth() + sampledOffset;
-            sampledY = Math.max(-64, sampledY);
-            sampledY = Math.max(serverLevel.getMinBuildHeight(), sampledY);
+            int estimatedY = scanOrigin.getY() - anomaly.depth();
+            estimatedY = Math.max(-64, estimatedY);
+            estimatedY = Math.max(serverLevel.getMinBuildHeight(), estimatedY);
             stationData.mapEntries().add(new SeismicStationBlockEntity.MapEntry(
                 anomaly.type(),
                 anomaly.offsetX(),
                 anomaly.offsetZ(),
-                sampledY
+                estimatedY
             ));
         }
         writeSeismogramOutput(serverLevel, stationData);
@@ -358,8 +358,58 @@ public final class SeismicStationMountedRuntime {
         return BlockPos.containing(contraptionEntity.toGlobalVector(Vec3.atCenterOf(localPos), 1.0F));
     }
 
-    private static boolean hasRequiredSpeed(AbstractContraptionEntity contraptionEntity, BlockPos controllerLocalPos) {
-        return Math.abs(getOperationalSpeed(contraptionEntity, controllerLocalPos)) >= Config.STATION_MIN_SPEED.get();
+    private static boolean hasRequiredSpeed(AbstractContraptionEntity contraptionEntity, BlockPos controllerLocalPos,
+                                            SeismicStationData stationData) {
+        if (Math.abs(getOperationalSpeed(contraptionEntity, controllerLocalPos)) < Config.STATION_MIN_SPEED.get()) {
+            return false;
+        }
+        if (!StressImpact.isEnabled()) {
+            return true;
+        }
+        StructureTemplate.StructureBlockInfo inputInfo = contraptionEntity.getContraption().getBlocks()
+            .get(controllerLocalPos.above());
+        if (inputInfo == null || inputInfo.nbt() == null || !inputInfo.nbt().contains("Network", Tag.TAG_COMPOUND)) {
+            return false;
+        }
+        CompoundTag networkTag = inputInfo.nbt().getCompound("Network");
+        float requiredLoad = networkTag.getFloat("Stress");
+        // Adjust every station sharing the assembly-time network, keeping all non-station loads intact.
+        for (StructureTemplate.StructureBlockInfo info : contraptionEntity.getContraption().getBlocks().values()) {
+            if (!info.state().is(GeoResonanceBlocks.SEISMIC_STATION.get())) {
+                continue;
+            }
+            StructureTemplate.StructureBlockInfo stationInput = contraptionEntity.getContraption().getBlocks()
+                .get(info.pos().above());
+            if (stationInput == null || stationInput.nbt() == null
+                || !stationInput.nbt().contains("Network", Tag.TAG_COMPOUND)) {
+                continue;
+            }
+            CompoundTag stationInputTag = stationInput.nbt();
+            CompoundTag stationNetwork = stationInputTag.getCompound("Network");
+            if (stationNetwork.getLong("Id") != networkTag.getLong("Id")) {
+                continue;
+            }
+            int moduleCount = info.pos().equals(controllerLocalPos)
+                ? SeismicStationControllerLogic.getInstalledModuleCount(stationData.inventory())
+                : readMountedModuleCount(contraptionEntity, info);
+            float previousLoad = stationNetwork.getFloat("AddedStress") * Math.abs(stationInputTag.getFloat("Speed"));
+            requiredLoad += SeismicStationBlockEntity.requiredStress(moduleCount) - previousLoad;
+        }
+        return networkTag.getFloat("Capacity") >= Math.max(0.0F, requiredLoad);
+    }
+
+    private static int readMountedModuleCount(AbstractContraptionEntity contraptionEntity,
+                                              StructureTemplate.StructureBlockInfo controllerInfo) {
+        MutablePair<StructureTemplate.StructureBlockInfo, MovementContext> actor =
+            contraptionEntity.getContraption().getActorAt(controllerInfo.pos());
+        CompoundTag tag = actor != null && actor.getRight().blockEntityData != null
+            ? actor.getRight().blockEntityData : controllerInfo.nbt();
+        if (tag == null) {
+            return 0;
+        }
+        SeismicStationInventory inventory = new SeismicStationInventory();
+        inventory.deserializeNBT(tag.getCompound("Inventory"));
+        return SeismicStationControllerLogic.getInstalledModuleCount(inventory);
     }
 
     private static float getOperationalSpeed(AbstractContraptionEntity contraptionEntity, BlockPos controllerLocalPos) {
@@ -471,7 +521,7 @@ public final class SeismicStationMountedRuntime {
     }
 
     private static int typePriorityScore(SeismicAnomalyType type, Map<SeismicAnomalyType, Integer> modulePriority) {
-        Integer slotPriority = modulePriority.get(type);
+        Integer slotPriority = modulePriority.get(type.mineralType());
         if (slotPriority != null) {
             return 1000 + slotPriority;
         }

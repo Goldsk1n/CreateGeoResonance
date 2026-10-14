@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:raw_lead",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:raw_lead",
+      "required": false
+    },
+    {
+      "id": "mekanism:raw_lead",
+      "required": false
+    },
+    {
+      "id": "createnuclear:raw_lead",
+      "required": false
+    },
+    {
+      "id": "oreganized:raw_lead",
+      "required": false
+    },
+    {
+      "id": "thermal:raw_lead",
+      "required": false
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
+import net.goldskinmc.creategeoresonance.seismic.SeismicModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovingInteraction;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovementBehaviour;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
@@ -70,6 +71,13 @@ public class CreateGeoResonanceMod {
     }
 
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        Iterator<Map.Entry<ItemStack, CreativeModeTab.TabVisibility>> modules = event.getEntries().iterator();
+        while (modules.hasNext()) {
+            if (modules.next().getKey().getItem() instanceof SeismicModuleItem module
+                && !module.moduleType().isAvailable()) {
+                modules.remove();
+            }
+        }
         if (event.getTabKey() == CreativeModeTabs.SEARCH) {
             normalizeSearchHammerEntries(event);
             return;

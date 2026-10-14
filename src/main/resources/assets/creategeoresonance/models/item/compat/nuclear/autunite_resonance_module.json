@@ -1,0 +1,7 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base_small_icon",
+  "textures": {
+    "18": "createnuclear:block/palettes/stone_types/natural/autunite_0"
+  }
+}
+

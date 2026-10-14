@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "thermal:apatite_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_apatite_ore",
+      "required": false
+    }
+  ]
+}

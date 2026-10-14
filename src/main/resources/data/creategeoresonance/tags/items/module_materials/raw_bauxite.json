@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:bauxite",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:raw_aluminum",
+      "required": false
+    }
+  ]
+}

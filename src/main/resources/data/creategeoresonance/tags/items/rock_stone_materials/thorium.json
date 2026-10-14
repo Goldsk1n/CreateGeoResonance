@@ -1,0 +1,33 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ingots/thorium",
+      "required": false
+    },
+    {
+      "id": "#forge:raw_materials/thorium",
+      "required": false
+    },
+    {
+      "id": "#c:ingots/thorium",
+      "required": false
+    },
+    {
+      "id": "#c:raw_materials/thorium",
+      "required": false
+    },
+    {
+      "id": "create_new_age:thorium",
+      "required": false
+    },
+    {
+      "id": "createnuclear:raw_thorium",
+      "required": false
+    },
+    {
+      "id": "createnuclear:thorium_ingot",
+      "required": false
+    }
+  ]
+}

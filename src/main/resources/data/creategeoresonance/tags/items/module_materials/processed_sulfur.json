@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:sulfur_dust",
+      "required": false
+    },
+    {
+      "id": "thermal:sulfur",
+      "required": false
+    }
+  ]
+}

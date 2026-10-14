@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "immersiveengineering:ingot_silver",
+      "required": false
+    },
+    {
+      "id": "oreganized:silver_ingot",
+      "required": false
+    },
+    {
+      "id": "thermal:silver_ingot",
+      "required": false
+    }
+  ]
+}

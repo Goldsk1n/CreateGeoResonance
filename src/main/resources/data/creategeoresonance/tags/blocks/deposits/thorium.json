@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ores/thorium",
+      "required": false
+    },
+    {
+      "id": "create_new_age:thorium_ore",
+      "required": false
+    },
+    {
+      "id": "createnuclear:thorium_ore",
+      "required": false
+    },
+    {
+      "id": "createnuclear:deepslate_thorium_ore",
+      "required": false
+    }
+  ]
+}

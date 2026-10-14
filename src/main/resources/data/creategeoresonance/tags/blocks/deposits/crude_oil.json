@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:oil_deposit",
+      "required": false
+    },
+    {
+      "id": "tfmg:crude_oil",
+      "required": false
+    },
+    {
+      "id": "thermal:oil_sand",
+      "required": false
+    },
+    {
+      "id": "thermal:oil_red_sand",
+      "required": false
+    }
+  ]
+}

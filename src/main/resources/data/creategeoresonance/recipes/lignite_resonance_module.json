@@ -1,0 +1,38 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "tfmg"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "MI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "M": {
+            "item": "tfmg:lignite"
+          },
+          "I": {
+            "item": "minecraft:coal"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:lignite_resonance_module"
+        }
+      }
+    }
+  ]
+}
+

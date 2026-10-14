@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ingots/uranium",
+      "required": false
+    },
+    {
+      "id": "#forge:raw_materials/uranium",
+      "required": false
+    },
+    {
+      "id": "#c:ingots/uranium",
+      "required": false
+    },
+    {
+      "id": "#c:raw_materials/uranium",
+      "required": false
+    }
+  ]
+}

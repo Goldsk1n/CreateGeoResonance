@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "mekanism:raw_tin",
+      "required": false
+    },
+    {
+      "id": "thermal:raw_tin",
+      "required": false
+    }
+  ]
+}

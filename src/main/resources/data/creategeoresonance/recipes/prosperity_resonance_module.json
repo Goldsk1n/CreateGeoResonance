@@ -1,0 +1,45 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "mysticalagriculture"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "mysticalagriculture:prosperity_shard"
+        },
+        {
+          "type": "forge:item_exists",
+          "item": "mysticalagriculture:prosperity_block"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "RI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "R": {
+            "item": "mysticalagriculture:prosperity_shard"
+          },
+          "I": {
+            "item": "mysticalagriculture:prosperity_block"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:prosperity_resonance_module"
+        }
+      }
+    }
+  ]
+}

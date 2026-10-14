@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:raw_nickel",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:raw_nickel",
+      "required": false
+    },
+    {
+      "id": "thermal:raw_nickel",
+      "required": false
+    }
+  ]
+}

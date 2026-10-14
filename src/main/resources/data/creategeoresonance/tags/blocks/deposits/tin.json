@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "mekanism:tin_ore",
+      "required": false
+    },
+    {
+      "id": "mekanism:deepslate_tin_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:tin_ore",
+      "required": false
+    },
+    {
+      "id": "thermal:deepslate_tin_ore",
+      "required": false
+    }
+  ]
+}

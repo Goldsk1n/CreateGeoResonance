@@ -1,0 +1,37 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "create_new_age"
+        }
+      ],
+      "recipe": {
+        "type": "minecraft:crafting_shaped",
+        "pattern": [
+          "SA",
+          "MI"
+        ],
+        "key": {
+          "S": {
+            "item": "create:sturdy_sheet"
+          },
+          "A": {
+            "item": "create:andesite_alloy"
+          },
+          "M": {
+            "item": "create_new_age:magnetite_block"
+          },
+          "I": {
+            "item": "minecraft:iron_ingot"
+          }
+        },
+        "result": {
+          "item": "creategeoresonance:magnetite_resonance_module"
+        }
+      }
+    }
+  ]
+}

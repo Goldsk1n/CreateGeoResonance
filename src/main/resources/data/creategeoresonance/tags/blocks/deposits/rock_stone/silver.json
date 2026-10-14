@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "create_rns:silver_deposit_block",
+      "required": false
+    }
+  ]
+}

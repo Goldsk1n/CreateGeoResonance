@@ -1,12 +1,10 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,55 +27,7 @@ public class SeismicStationData {
     private static final String SCAN_ORIGIN_Y_TAG = "ScanOriginY";
     private static final String SCAN_ORIGIN_Z_TAG = "ScanOriginZ";
 
-    private final ItemStackHandler inventory = new ItemStackHandler(
-        SeismicStationBlockEntity.SLOT_MODULE_START + SeismicStationBlockEntity.MODULE_SLOT_COUNT) {
-        @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
-            if (slot == SeismicStationBlockEntity.SLOT_PAPER_INPUT) {
-                return stack.is(Items.PAPER);
-            }
-            if (slot == SeismicStationBlockEntity.SLOT_INK_INPUT) {
-                return stack.is(Items.INK_SAC);
-            }
-            if (SeismicStationControllerLogic.isModuleSlot(slot)) {
-                return SeismicModuleItem.getModuleType(stack) != null;
-            }
-            return false;
-        }
-
-        @Override
-        public int getSlotLimit(int slot) {
-            return 1;
-        }
-
-        @Override
-        public void deserializeNBT(CompoundTag nbt) {
-            stacks = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
-            ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
-            List<ItemStack> overflowModules = new ArrayList<>();
-            for (Tag tag : tagList) {
-                CompoundTag itemTag = (CompoundTag) tag;
-                int slot = itemTag.getInt("Slot");
-                ItemStack stack = ItemStack.of(itemTag);
-                if (slot >= 0 && slot < getSlots()) {
-                    stacks.set(slot, stack);
-                } else if (slot > SeismicStationBlockEntity.SLOT_MODULE_END
-                    && slot < SeismicStationBlockEntity.SLOT_MODULE_START + 16
-                    && SeismicModuleItem.getModuleType(stack) != null) {
-                    overflowModules.add(stack);
-                }
-            }
-
-            if (!overflowModules.isEmpty()) {
-                for (ItemStack moduleStack : overflowModules) {
-                    int emptySlot = SeismicStationControllerLogic.findEmptyModuleSlot(this);
-                    if (emptySlot >= 0) {
-                        stacks.set(emptySlot, moduleStack.copyWithCount(1));
-                    }
-                }
-            }
-        }
-    };
+    private final SeismicStationInventory inventory = new SeismicStationInventory();
 
     private final List<SeismicAnomaly> queuedAnomalies = new ArrayList<>();
     private final List<SeismicStationBlockEntity.MapEntry> mapEntries = new ArrayList<>();
