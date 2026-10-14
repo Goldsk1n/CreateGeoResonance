@@ -18,9 +18,14 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 def fastDev = providers.gradleProperty('fastDev').map { it.toBoolean() }.orElse(false).get()
+def propulsionDev = providers.gradleProperty('propulsionDev').map { it.toBoolean() }.orElse(true).get()
+def devNeoVersion = propulsionDev ? propulsion_dev_neo_version : neo_version
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 println "Dev profile: ${fastDev ? 'fastDev' : 'fullDev'}"
+if (propulsionDev) {
+    println "Propulsion dev runtime: NeoForge ${devNeoVersion} with Sable and Aeronautics"
+}
 
 sourceSets.main.resources {
     srcDir('src/generated/resources')
@@ -29,6 +34,10 @@ sourceSets.main.resources {
 }
 
 repositories {
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
     mavenCentral()
     maven { url = 'https://maven.createmod.net' }
     maven { url = 'https://maven.blamejared.com' }
@@ -82,7 +91,7 @@ tasks.configureEach {
 }
 
 dependencies {
-    implementation "net.neoforged:neoforge:${neo_version}"
+    implementation "net.neoforged:neoforge:${devNeoVersion}"
     implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
         transitive = false
     }
@@ -90,6 +99,39 @@ dependencies {
     compileOnly "dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}"
     runtimeOnly "dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}"
     implementation "com.tterrag.registrate:Registrate:${registrate_version}"
+    // Integration testing in all dev profiles; New Age bundles its required ESL library.
+    runtimeOnly "maven.modrinth:create-new-age:${new_age_version_id}"
+    runtimeOnly "maven.modrinth:create-tfmg:${tfmg_version_id}"
+    runtimeOnly "maven.modrinth:create-metallurgy:${metallurgy_version_id}"
+    runtimeOnly "maven.modrinth:createnuclear:${nuclear_version_id}"
+    runtimeOnly "maven.modrinth:create-rns:${rock_stone_version_id}"
+    runtimeOnly "maven.modrinth:mekanism:${mekanism_version_id}"
+    runtimeOnly "maven.modrinth:oreganized:${oreganized_version_id}"
+    runtimeOnly "maven.modrinth:blueprint:${blueprint_version_id}"
+    runtimeOnly "maven.modrinth:ae2:${ae2_version_id}"
+    runtimeOnly "maven.modrinth:guideme:${guideme_version_id}"
+    runtimeOnly "maven.modrinth:mystical-agriculture:${mystical_agriculture_version_id}"
+    runtimeOnly "maven.modrinth:cucumber:${cucumber_version_id}"
+    runtimeOnly "maven.modrinth:immersiveengineering:${immersive_engineering_version_id}"
+    runtimeOnly "maven.modrinth:forbidden-arcanus:${forbidden_arcanus_version_id}"
+    runtimeOnly "maven.modrinth:valhelsia-core:${valhelsia_core_version_id}"
+    runtimeOnly "maven.modrinth:powah:${powah_version_id}"
+    runtimeOnly "maven.modrinth:cloth-config:${cloth_config_version_id}"
+    runtimeOnly "maven.modrinth:draconic-evolution:${draconic_evolution_version_id}"
+    runtimeOnly "maven.modrinth:brandons-core:${brandons_core_version_id}"
+    runtimeOnly "maven.modrinth:codechicken-lib:${codechicken_lib_version_id}"
+    runtimeOnly "maven.modrinth:actually-additions:${actually_additions_version_id}"
+    runtimeOnly "maven.modrinth:patchouli:${patchouli_version_id}"
+    runtimeOnly "maven.modrinth:pneumaticcraft-repressurized:${pneumaticcraft_version_id}"
+    // Startup compatibility regression mods, included in all dev profiles.
+    runtimeOnly "maven.modrinth:moonlight:${moonlight_version_id}"
+    runtimeOnly "maven.modrinth:supplementaries:${supplementaries_version_id}"
+    // Dev-only physics runtime; disable with -PpropulsionDev=false. Not a release requirement.
+    if (propulsionDev) {
+        runtimeOnly "maven.modrinth:create-propulsion-simulated:${propulsion_version_id}"
+        runtimeOnly "maven.modrinth:sable:${sable_version_id}"
+        runtimeOnly "maven.modrinth:create-aeronautics:${aeronautics_version_id}"
+    }
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     runtimeOnly "curse.maven:the-one-probe-245211:${top_file_id}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'

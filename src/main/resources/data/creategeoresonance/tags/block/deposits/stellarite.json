@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "forbidden_arcanus:stella_arcanum",
+      "required": false
+    }
+  ]
+}

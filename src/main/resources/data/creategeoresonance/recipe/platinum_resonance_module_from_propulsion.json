@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "createpropulsion"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "createpropulsion:raw_platinum"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "createpropulsion:platinum_ingot"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SA",
+    "RI"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "R": {
+      "item": "createpropulsion:raw_platinum"
+    },
+    "I": {
+      "item": "createpropulsion:platinum_ingot"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:platinum_resonance_module"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "forbidden_arcanus:runic_stone",
+      "required": false
+    },
+    {
+      "id": "forbidden_arcanus:runic_deepslate",
+      "required": false
+    },
+    {
+      "id": "forbidden_arcanus:runic_darkstone",
+      "required": false
+    }
+  ]
+}

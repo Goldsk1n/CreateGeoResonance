@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "actuallyadditions:black_quartz_ore",
+      "required": false
+    }
+  ]
+}

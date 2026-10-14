@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "ae2"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "ae2:certus_quartz_crystal"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "ae2:quartz_block"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SA",
+    "RI"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "R": {
+      "item": "ae2:certus_quartz_crystal"
+    },
+    "I": {
+      "item": "ae2:quartz_block"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:certus_quartz_resonance_module"
+  }
+}

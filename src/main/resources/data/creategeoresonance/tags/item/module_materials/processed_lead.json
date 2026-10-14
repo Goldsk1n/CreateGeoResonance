@@ -1,0 +1,25 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:lead_ingot",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ingot_lead",
+      "required": false
+    },
+    {
+      "id": "mekanism:ingot_lead",
+      "required": false
+    },
+    {
+      "id": "createnuclear:lead_ingot",
+      "required": false
+    },
+    {
+      "id": "oreganized:lead_ingot",
+      "required": false
+    }
+  ]
+}

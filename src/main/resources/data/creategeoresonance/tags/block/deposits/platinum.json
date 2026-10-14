@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "createpropulsion:platinum_ore",
+      "required": false
+    },
+    {
+      "id": "createpropulsion:deepslate_platinum_ore",
+      "required": false
+    }
+  ]
+}

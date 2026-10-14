@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "createnuclear:raw_uranium",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:raw_uranium",
+      "required": false
+    },
+    {
+      "id": "mekanism:raw_uranium",
+      "required": false
+    }
+  ]
+}

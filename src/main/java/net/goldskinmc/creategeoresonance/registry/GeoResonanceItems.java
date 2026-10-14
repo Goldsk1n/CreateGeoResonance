@@ -33,6 +33,38 @@ public final class GeoResonanceItems {
     public static final ItemEntry<SeismicModuleItem> ASURINE_RESONANCE_MODULE = module(SeismicModuleType.ASURINE);
     public static final ItemEntry<SeismicModuleItem> OCHRUM_RESONANCE_MODULE = module(SeismicModuleType.OCHRUM);
     public static final ItemEntry<SeismicModuleItem> VERIDIUM_RESONANCE_MODULE = module(SeismicModuleType.VERIDIUM);
+    public static final ItemEntry<SeismicModuleItem> THORIUM_RESONANCE_MODULE = module(SeismicModuleType.THORIUM);
+    public static final ItemEntry<SeismicModuleItem> MAGNETITE_RESONANCE_MODULE = module(SeismicModuleType.MAGNETITE);
+    public static final ItemEntry<SeismicModuleItem> LEAD_RESONANCE_MODULE = module(SeismicModuleType.LEAD);
+    public static final ItemEntry<SeismicModuleItem> NICKEL_RESONANCE_MODULE = module(SeismicModuleType.NICKEL);
+    public static final ItemEntry<SeismicModuleItem> LITHIUM_RESONANCE_MODULE = module(SeismicModuleType.LITHIUM);
+    public static final ItemEntry<SeismicModuleItem> BAUXITE_RESONANCE_MODULE = module(SeismicModuleType.BAUXITE);
+    public static final ItemEntry<SeismicModuleItem> GALENA_RESONANCE_MODULE = module(SeismicModuleType.GALENA);
+    public static final ItemEntry<SeismicModuleItem> LIGNITE_RESONANCE_MODULE = module(SeismicModuleType.LIGNITE);
+    public static final ItemEntry<SeismicModuleItem> SULFUR_RESONANCE_MODULE = module(SeismicModuleType.SULFUR);
+    public static final ItemEntry<SeismicModuleItem> CRUDE_OIL_RESONANCE_MODULE = module(SeismicModuleType.CRUDE_OIL);
+    public static final ItemEntry<SeismicModuleItem> WOLFRAMITE_RESONANCE_MODULE = module(SeismicModuleType.WOLFRAMITE);
+    public static final ItemEntry<SeismicModuleItem> URANIUM_RESONANCE_MODULE = module(SeismicModuleType.URANIUM);
+    public static final ItemEntry<SeismicModuleItem> AUTUNITE_RESONANCE_MODULE = module(SeismicModuleType.AUTUNITE);
+    public static final ItemEntry<SeismicModuleItem> NITRATE_RESONANCE_MODULE = module(SeismicModuleType.NITRATE);
+    public static final ItemEntry<SeismicModuleItem> TIN_RESONANCE_MODULE = module(SeismicModuleType.TIN);
+    public static final ItemEntry<SeismicModuleItem> SILVER_RESONANCE_MODULE = module(SeismicModuleType.SILVER);
+    public static final ItemEntry<SeismicModuleItem> PLATINUM_RESONANCE_MODULE = module(SeismicModuleType.PLATINUM);
+    public static final ItemEntry<SeismicModuleItem> OSMIUM_RESONANCE_MODULE = module(SeismicModuleType.OSMIUM);
+    public static final ItemEntry<SeismicModuleItem> QUARTZ_RESONANCE_MODULE = module(SeismicModuleType.QUARTZ);
+    public static final ItemEntry<SeismicModuleItem> ANCIENT_DEBRIS_RESONANCE_MODULE = module(SeismicModuleType.ANCIENT_DEBRIS);
+    public static final ItemEntry<SeismicModuleItem> FLUORITE_RESONANCE_MODULE = module(SeismicModuleType.FLUORITE);
+    public static final ItemEntry<SeismicModuleItem> CERTUS_QUARTZ_RESONANCE_MODULE = module(SeismicModuleType.CERTUS_QUARTZ);
+    public static final ItemEntry<SeismicModuleItem> INFERIUM_RESONANCE_MODULE = module(SeismicModuleType.INFERIUM);
+    public static final ItemEntry<SeismicModuleItem> PROSPERITY_RESONANCE_MODULE = module(SeismicModuleType.PROSPERITY);
+    public static final ItemEntry<SeismicModuleItem> SOULIUM_RESONANCE_MODULE = module(SeismicModuleType.SOULIUM);
+    public static final ItemEntry<SeismicModuleItem> ARCANE_CRYSTAL_RESONANCE_MODULE = module(SeismicModuleType.ARCANE_CRYSTAL);
+    public static final ItemEntry<SeismicModuleItem> RUNE_RESONANCE_MODULE = module(SeismicModuleType.RUNE);
+    public static final ItemEntry<SeismicModuleItem> STELLARITE_RESONANCE_MODULE = module(SeismicModuleType.STELLARITE);
+    public static final ItemEntry<SeismicModuleItem> URANINITE_RESONANCE_MODULE = module(SeismicModuleType.URANINITE);
+    public static final ItemEntry<SeismicModuleItem> DRACONIUM_RESONANCE_MODULE = module(SeismicModuleType.DRACONIUM);
+    public static final ItemEntry<SeismicModuleItem> BLACK_QUARTZ_RESONANCE_MODULE = module(SeismicModuleType.BLACK_QUARTZ);
+    public static final ItemEntry<SeismicModuleItem> COBALT_RESONANCE_MODULE = module(SeismicModuleType.COBALT);
 
     private GeoResonanceItems() {
     }

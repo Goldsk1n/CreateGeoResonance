@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:crude_oil_bucket",
+      "required": false
+    },
+    {
+      "id": "pneumaticcraft:oil_bucket",
+      "required": false
+    }
+  ]
+}

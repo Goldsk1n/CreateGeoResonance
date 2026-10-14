@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:nickel_ingot",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ingot_nickel",
+      "required": false
+    }
+  ]
+}

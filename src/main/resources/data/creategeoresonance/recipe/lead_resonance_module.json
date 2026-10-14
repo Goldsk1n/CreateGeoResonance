@@ -1,0 +1,40 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:not",
+      "value": {
+        "type": "neoforge:tag_empty",
+        "tag": "creategeoresonance:module_materials/raw_lead"
+      }
+    },
+    {
+      "type": "neoforge:not",
+      "value": {
+        "type": "neoforge:tag_empty",
+        "tag": "creategeoresonance:module_materials/processed_lead"
+      }
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SA",
+    "RI"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "R": {
+      "tag": "creategeoresonance:module_materials/raw_lead"
+    },
+    "I": {
+      "tag": "creategeoresonance:module_materials/processed_lead"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:lead_resonance_module"
+  }
+}

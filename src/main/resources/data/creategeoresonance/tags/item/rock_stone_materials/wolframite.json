@@ -1,0 +1,33 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#forge:ingots/tungsten",
+      "required": false
+    },
+    {
+      "id": "#forge:raw_materials/tungsten",
+      "required": false
+    },
+    {
+      "id": "#c:ingots/tungsten",
+      "required": false
+    },
+    {
+      "id": "#c:raw_materials/tungsten",
+      "required": false
+    },
+    {
+      "id": "#forge:raw_materials/wolframite",
+      "required": false
+    },
+    {
+      "id": "#c:raw_materials/wolframite",
+      "required": false
+    },
+    {
+      "id": "createmetallurgy:raw_tungsten",
+      "required": false
+    }
+  ]
+}

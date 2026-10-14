@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "mekanism"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "mekanism:fluorite_gem"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "mekanism:block_fluorite"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SA",
+    "RI"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "R": {
+      "item": "mekanism:fluorite_gem"
+    },
+    "I": {
+      "item": "mekanism:block_fluorite"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:fluorite_resonance_module"
+  }
+}

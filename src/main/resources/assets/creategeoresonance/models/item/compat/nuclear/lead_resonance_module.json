@@ -1,0 +1,7 @@
+{
+  "parent": "creategeoresonance:item/resonance_module_base",
+  "textures": {
+    "18": "createnuclear:item/raw_lead"
+  }
+}
+

@@ -1,0 +1,40 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:not",
+      "value": {
+        "type": "neoforge:tag_empty",
+        "tag": "creategeoresonance:module_materials/raw_uranium"
+      }
+    },
+    {
+      "type": "neoforge:not",
+      "value": {
+        "type": "neoforge:tag_empty",
+        "tag": "creategeoresonance:module_materials/processed_uranium"
+      }
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SA",
+    "RI"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "R": {
+      "tag": "creategeoresonance:module_materials/raw_uranium"
+    },
+    "I": {
+      "tag": "creategeoresonance:module_materials/processed_uranium"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:uranium_resonance_module"
+  }
+}

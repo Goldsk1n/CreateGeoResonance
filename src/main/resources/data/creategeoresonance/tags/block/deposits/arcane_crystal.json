@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "forbidden_arcanus:arcane_crystal_ore",
+      "required": false
+    },
+    {
+      "id": "forbidden_arcanus:deepslate_arcane_crystal_ore",
+      "required": false
+    }
+  ]
+}

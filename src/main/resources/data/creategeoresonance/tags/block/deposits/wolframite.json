@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "createmetallurgy:wolframite_ore",
+      "required": false
+    }
+  ]
+}
+

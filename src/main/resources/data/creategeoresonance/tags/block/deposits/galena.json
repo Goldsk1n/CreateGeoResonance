@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:galena",
+      "required": false
+    }
+  ]
+}
+

@@ -25,7 +25,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.Containers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -33,7 +32,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.core.NonNullList;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
@@ -67,59 +65,12 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final float BASE_REQUIRED_SU = 256.0F;
     private static final float MODULE_REQUIRED_SU = 64.0F;
 
-    private final ItemStackHandler inventory = new ItemStackHandler(SLOT_MODULE_START + MODULE_SLOT_COUNT) {
+    private final SeismicStationInventory inventory = new SeismicStationInventory() {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
+            refreshInputStress();
             sendData();
-        }
-
-        @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
-            if (slot == SLOT_PAPER_INPUT) {
-                return stack.is(Items.PAPER);
-            }
-            if (slot == SLOT_INK_INPUT) {
-                return stack.is(Items.INK_SAC);
-            }
-            if (isModuleSlot(slot)) {
-                return SeismicModuleItem.getModuleType(stack) != null;
-            }
-            return false;
-        }
-
-        @Override
-        public int getSlotLimit(int slot) {
-            return 1;
-        }
-
-        @Override
-        public void deserializeNBT(HolderLookup.Provider registries, CompoundTag nbt) {
-            stacks = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
-            ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
-            List<ItemStack> overflowModules = new ArrayList<>();
-            for (Tag tag : tagList) {
-                CompoundTag itemTag = (CompoundTag) tag;
-                int slot = itemTag.getInt("Slot");
-                ItemStack stack = ItemStack.parseOptional(registries, itemTag);
-                if (slot >= 0 && slot < getSlots()) {
-                    stacks.set(slot, stack);
-                } else if (slot > SLOT_MODULE_END && slot < SLOT_MODULE_START + 16 && SeismicModuleItem.getModuleType(stack) != null) {
-                    overflowModules.add(stack);
-                }
-            }
-
-            if (!overflowModules.isEmpty()) {
-                for (ItemStack moduleStack : overflowModules) {
-                    for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-                        if (stacks.get(slot).isEmpty()) {
-                            stacks.set(slot, moduleStack.copyWithCount(1));
-                            break;
-                        }
-                    }
-                }
-            }
-            onLoad();
         }
     };
     private final List<SeismicAnomaly> queuedAnomalies = new ArrayList<>();
@@ -148,10 +99,18 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     @Override
+    public boolean addToTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+        SeismicStationBoundingBlockEntity input = getInputNode();
+        return input != null
+            ? input.addToTooltip(tooltip, isPlayerSneaking)
+            : super.addToTooltip(tooltip, isPlayerSneaking);
+    }
+
+    @Override
     public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
         float speed = getOperationalSpeed();
         boolean overStressed = isStationOverStressed();
-        float stressLoad = calculateStressApplied() * Math.abs(speed);
+        float stressLoad = getRequiredStress();
 
         CreateLang.translate("gui.goggles.kinetic_stats").forGoggles(tooltip);
         SpeedLevel.getFormattedSpeedText(speed, overStressed).forGoggles(tooltip, 1);
@@ -240,10 +199,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return SeismicStationControllerLogic.getInstalledModuleStacks(inventory);
     }
 
-    public boolean hasBelowZeroModule() {
-        return hasModuleInstalled(SeismicModuleType.BELOW_ZERO);
-    }
-
     public boolean hasNoiseCancellationModule() {
         return hasModuleInstalled(SeismicModuleType.NOISE_CANCELLATION);
     }
@@ -299,6 +254,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     public boolean hasRequiredSpeed() {
+        refreshInputStress();
         return Math.abs(getOperationalSpeed()) >= Config.STATION_MIN_SPEED.get();
     }
 
@@ -420,7 +376,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 serverLevel.getGameTime(),
                 false,
                 buildDetectableTypes(),
-                hasModuleInstalled(SeismicModuleType.BELOW_ZERO),
                 (request, result) -> {
                     BlockEntity blockEntity = request.level().getBlockEntity(origin);
                     if (blockEntity instanceof SeismicStationBlockEntity station) {
@@ -515,7 +470,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private static int typePriorityScore(SeismicAnomalyType type, Map<SeismicAnomalyType, Integer> modulePriority) {
-        Integer slotPriority = modulePriority.get(type);
+        Integer slotPriority = modulePriority.get(type.mineralType());
         if (slotPriority != null) {
             return 1000 + slotPriority;
         }
@@ -588,12 +543,10 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private void generateMapEntries(ServerLevel serverLevel) {
         mapEntries.clear();
         for (SeismicAnomaly anomaly : queuedAnomalies) {
-            int spread = 5 + Mth.floor(anomaly.depth() / 20.0F);
-            int sampledOffset = serverLevel.random.nextInt(spread * 2 + 1) - spread;
-            int sampledY = worldPosition.getY() - anomaly.depth() + sampledOffset;
-            sampledY = Math.max(-64, sampledY);
-            sampledY = Math.max(serverLevel.getMinBuildHeight(), sampledY);
-            mapEntries.add(new MapEntry(anomaly.type(), anomaly.offsetX(), anomaly.offsetZ(), sampledY));
+            int estimatedY = worldPosition.getY() - anomaly.depth();
+            estimatedY = Math.max(-64, estimatedY);
+            estimatedY = Math.max(serverLevel.getMinBuildHeight(), estimatedY);
+            mapEntries.add(new MapEntry(anomaly.type(), anomaly.offsetX(), anomaly.offsetZ(), estimatedY));
         }
         writeSeismogramOutput();
         mapReady = true;
@@ -663,11 +616,27 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     @Override
     public float calculateStressApplied() {
-        float requiredSu = BASE_REQUIRED_SU + (getInstalledModuleCount() * MODULE_REQUIRED_SU);
-        float absSpeed = Math.max(1.0F, Math.abs(getOperationalSpeed()));
-        float impact = requiredSu / absSpeed;
-        lastStressApplied = impact;
-        return impact;
+        // Only the upper-right input is connected to Create's kinetic network.
+        lastStressApplied = 0.0F;
+        return 0.0F;
+    }
+
+    public float getRequiredStress() {
+        return requiredStress(getInstalledModuleCount());
+    }
+
+    static float requiredStress(int moduleCount) {
+        return BASE_REQUIRED_SU + moduleCount * MODULE_REQUIRED_SU;
+    }
+
+    private void refreshInputStress() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        SeismicStationBoundingBlockEntity input = getInputNode();
+        if (input != null) {
+            input.refreshStress();
+        }
     }
 
     private int calculateStrikeIntervalTicks() {
@@ -747,6 +716,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D, stack.copy());
                 inventory.setStackInSlot(slot, ItemStack.EMPTY);
             }
+        }
+        ItemStack recovered = inventory.takeRecoveredModule();
+        while (!recovered.isEmpty()) {
+            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D, recovered);
+            recovered = inventory.takeRecoveredModule();
         }
         updateComparatorOutputIfNeeded();
     }

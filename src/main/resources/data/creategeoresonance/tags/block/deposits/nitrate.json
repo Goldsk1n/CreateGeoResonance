@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "createnuclear:nitrate_ore",
+      "required": false
+    },
+    {
+      "id": "createnuclear:deepslate_nitrate_ore",
+      "required": false
+    }
+  ]
+}
+

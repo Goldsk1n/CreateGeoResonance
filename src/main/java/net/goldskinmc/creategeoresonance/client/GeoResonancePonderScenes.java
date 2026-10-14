@@ -448,15 +448,8 @@ public final class GeoResonancePonderScenes {
         scene.idle(88);
 
         scene.addKeyframe();
-        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 55)
-            .rightClick()
-            .withItem(new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()));
-        scene.idle(20);
-        setStationPonderModules(scene, impact,
-            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
-            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()));
         scene.overlay().showText(78)
-            .text("Below Zero enables detection for deep layers, y < 0.")
+            .text("Target modules work at any height within the scan range.")
             .pointAt(util.vector().centerOf(diamondPatch.get(0)))
             .placeNearTarget();
         scene.idle(88);
@@ -468,7 +461,6 @@ public final class GeoResonancePonderScenes {
         scene.idle(18);
         setStationPonderModules(scene, impact,
             new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
-            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.overlay().showText(64)
             .text("Target modules add specific signatures, like redstone.")
@@ -481,7 +473,6 @@ public final class GeoResonancePonderScenes {
         scene.idle(18);
         setStationPonderModules(scene, impact,
             new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
-            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()),
             new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
         scene.overlay().showText(64)
@@ -500,7 +491,6 @@ public final class GeoResonancePonderScenes {
         scene.idle(40);
         setStationPonderModules(scene, impact,
             new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
-            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(50);
         scene.overlay().showText(120)

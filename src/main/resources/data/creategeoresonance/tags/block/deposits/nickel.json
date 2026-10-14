@@ -1,0 +1,25 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#c:ores/nickel",
+      "required": false
+    },
+    {
+      "id": "tfmg:nickel_ore",
+      "required": false
+    },
+    {
+      "id": "tfmg:deepslate_nickel_ore",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ore_nickel",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:deepslate_ore_nickel",
+      "required": false
+    }
+  ]
+}

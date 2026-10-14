@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:oil_deposit",
+      "required": false
+    },
+    {
+      "id": "tfmg:crude_oil",
+      "required": false
+    }
+  ]
+}
+

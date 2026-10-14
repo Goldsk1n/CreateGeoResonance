@@ -162,8 +162,15 @@ public final class SeismicScanQueue {
         return switch (type) {
             case LAVA -> 5;
             case WATER -> 4;
-            case COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC, AMETHYST,
-                CRIMSITE, ASURINE, OCHRUM, VERIDIUM -> 3;
+            case COAL, COAL_DEPOSIT, IRON, IRON_DEPOSIT, COPPER, COPPER_DEPOSIT, GOLD, GOLD_DEPOSIT, REDSTONE,
+                REDSTONE_DEPOSIT, LAPIS, LAPIS_DEPOSIT, EMERALD, DIAMOND, ZINC, ZINC_DEPOSIT, AMETHYST, CRIMSITE,
+                ASURINE, OCHRUM, VERIDIUM, THORIUM, THORIUM_DEPOSIT, MAGNETITE, LEAD, LEAD_DEPOSIT, NICKEL,
+                NICKEL_DEPOSIT, LITHIUM, BAUXITE, GALENA, LIGNITE, SULFUR, CRUDE_OIL, WOLFRAMITE, WOLFRAMITE_DEPOSIT,
+                URANIUM, URANIUM_DEPOSIT, AUTUNITE, NITRATE, TIN, TIN_DEPOSIT, SILVER, SILVER_DEPOSIT, PLATINUM,
+                PLATINUM_DEPOSIT, OSMIUM, OSMIUM_DEPOSIT, QUARTZ, QUARTZ_DEPOSIT, COBALT, COBALT_DEPOSIT,
+                ANCIENT_DEBRIS, FLUORITE, CERTUS_QUARTZ,
+                INFERIUM, PROSPERITY, SOULIUM,
+                ARCANE_CRYSTAL, RUNE, STELLARITE, URANINITE, DRACONIUM, BLACK_QUARTZ -> 3;
             case CHEST, SPAWNER -> 2;
             case CAVE -> 2;
             case SOLID -> 0;
@@ -191,7 +198,6 @@ public final class SeismicScanQueue {
         long startTick,
         boolean lowPressure,
         Set<SeismicAnomalyType> detectableTypes,
-        boolean allowBelowZeroOres,
         @Nullable ResultConsumer resultConsumer
     ) {
         private static final Set<SeismicAnomalyType> DEFAULT_DETECTABLE_TYPES = Set.of(
@@ -217,7 +223,7 @@ public final class SeismicScanQueue {
             long startTick,
             boolean lowPressure
         ) {
-            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, false, null);
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, null);
         }
 
         public SeismicScanRequest(
@@ -231,26 +237,11 @@ public final class SeismicScanQueue {
             boolean lowPressure,
             @Nullable ResultConsumer resultConsumer
         ) {
-            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, false, resultConsumer);
-        }
-
-        public SeismicScanRequest(
-            ServerLevel level,
-            BlockPos origin,
-            int scannerEntityId,
-            int radius,
-            int depth,
-            float noise,
-            long startTick,
-            boolean lowPressure,
-            Set<SeismicAnomalyType> detectableTypes,
-            @Nullable ResultConsumer resultConsumer
-        ) {
-            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, detectableTypes, false, resultConsumer);
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure, DEFAULT_DETECTABLE_TYPES, resultConsumer);
         }
 
         public boolean canDetect(SeismicAnomalyType type) {
-            return detectableTypes.contains(type);
+            return detectableTypes.contains(type) || detectableTypes.contains(type.mineralType());
         }
     }
 
@@ -280,6 +271,38 @@ public final class SeismicScanQueue {
         private final boolean detectAsurine;
         private final boolean detectOchrum;
         private final boolean detectVeridium;
+        private final boolean detectThorium;
+        private final boolean detectMagnetite;
+        private final boolean detectLead;
+        private final boolean detectNickel;
+        private final boolean detectLithium;
+        private final boolean detectBauxite;
+        private final boolean detectGalena;
+        private final boolean detectLignite;
+        private final boolean detectSulfur;
+        private final boolean detectCrudeOil;
+        private final boolean detectWolframite;
+        private final boolean detectUranium;
+        private final boolean detectAutunite;
+        private final boolean detectNitrate;
+        private final boolean detectQuartz;
+        private final boolean detectAncientDebris;
+        private final boolean detectTin;
+        private final boolean detectOsmium;
+        private final boolean detectFluorite;
+        private final boolean detectCertusQuartz;
+        private final boolean detectInferium;
+        private final boolean detectProsperity;
+        private final boolean detectSoulium;
+        private final boolean detectArcaneCrystal;
+        private final boolean detectRune;
+        private final boolean detectStellarite;
+        private final boolean detectUraninite;
+        private final boolean detectDraconium;
+        private final boolean detectBlackQuartz;
+        private final boolean detectSilver;
+        private final boolean detectPlatinum;
+        private final Map<Block, SeismicAnomalyType> rockStoneTargets;
         private final boolean detectAnyOre;
         private final boolean detectAnySolidTarget;
         private final int[] horizontalDxByIndex;
@@ -317,6 +340,38 @@ public final class SeismicScanQueue {
             this.detectAsurine = request.canDetect(SeismicAnomalyType.ASURINE);
             this.detectOchrum = request.canDetect(SeismicAnomalyType.OCHRUM);
             this.detectVeridium = request.canDetect(SeismicAnomalyType.VERIDIUM);
+            this.detectThorium = request.canDetect(SeismicAnomalyType.THORIUM);
+            this.detectMagnetite = request.canDetect(SeismicAnomalyType.MAGNETITE);
+            this.detectLead = request.canDetect(SeismicAnomalyType.LEAD);
+            this.detectNickel = request.canDetect(SeismicAnomalyType.NICKEL);
+            this.detectLithium = request.canDetect(SeismicAnomalyType.LITHIUM);
+            this.detectBauxite = request.canDetect(SeismicAnomalyType.BAUXITE);
+            this.detectGalena = request.canDetect(SeismicAnomalyType.GALENA);
+            this.detectLignite = request.canDetect(SeismicAnomalyType.LIGNITE);
+            this.detectSulfur = request.canDetect(SeismicAnomalyType.SULFUR);
+            this.detectCrudeOil = request.canDetect(SeismicAnomalyType.CRUDE_OIL);
+            this.detectWolframite = request.canDetect(SeismicAnomalyType.WOLFRAMITE);
+            this.detectUranium = request.canDetect(SeismicAnomalyType.URANIUM);
+            this.detectAutunite = request.canDetect(SeismicAnomalyType.AUTUNITE);
+            this.detectNitrate = request.canDetect(SeismicAnomalyType.NITRATE);
+            this.detectQuartz = request.canDetect(SeismicAnomalyType.QUARTZ);
+            this.detectAncientDebris = request.canDetect(SeismicAnomalyType.ANCIENT_DEBRIS);
+            this.detectTin = request.canDetect(SeismicAnomalyType.TIN);
+            this.detectOsmium = request.canDetect(SeismicAnomalyType.OSMIUM);
+            this.detectFluorite = request.canDetect(SeismicAnomalyType.FLUORITE);
+            this.detectCertusQuartz = request.canDetect(SeismicAnomalyType.CERTUS_QUARTZ);
+            this.detectInferium = request.canDetect(SeismicAnomalyType.INFERIUM);
+            this.detectProsperity = request.canDetect(SeismicAnomalyType.PROSPERITY);
+            this.detectSoulium = request.canDetect(SeismicAnomalyType.SOULIUM);
+            this.detectArcaneCrystal = request.canDetect(SeismicAnomalyType.ARCANE_CRYSTAL);
+            this.detectRune = request.canDetect(SeismicAnomalyType.RUNE);
+            this.detectStellarite = request.canDetect(SeismicAnomalyType.STELLARITE);
+            this.detectUraninite = request.canDetect(SeismicAnomalyType.URANINITE);
+            this.detectDraconium = request.canDetect(SeismicAnomalyType.DRACONIUM);
+            this.detectBlackQuartz = request.canDetect(SeismicAnomalyType.BLACK_QUARTZ);
+            this.detectSilver = request.canDetect(SeismicAnomalyType.SILVER);
+            this.detectPlatinum = request.canDetect(SeismicAnomalyType.PLATINUM);
+            this.rockStoneTargets = SeismicRockStoneDeposits.detectableBlocks(request.detectableTypes());
             this.detectAnyOre = detectCoal
                 || detectIron
                 || detectCopper
@@ -329,11 +384,43 @@ public final class SeismicScanQueue {
                 || detectCrimsite
                 || detectAsurine
                 || detectOchrum
-                || detectVeridium;
+                || detectVeridium
+                || detectThorium
+                || detectMagnetite
+                || detectLead
+                || detectNickel
+                || detectLithium
+                || detectBauxite
+                || detectGalena
+                || detectLignite
+                || detectSulfur
+                || detectWolframite
+                || detectUranium
+                || detectAutunite
+                || detectNitrate
+                || detectQuartz
+                || detectAncientDebris
+                || detectTin
+                || detectOsmium
+                || detectFluorite
+                || detectCertusQuartz
+                || detectInferium
+                || detectProsperity
+                || detectSoulium
+                || detectArcaneCrystal
+                || detectRune
+                || detectStellarite
+                || detectUraninite
+                || detectDraconium
+                || detectBlackQuartz
+                || detectSilver
+                || detectPlatinum
+                || !rockStoneTargets.isEmpty();
             this.detectAnySolidTarget = detectAmethyst
                 || detectSpawner
                 || detectChest
-                || detectAnyOre;
+                || detectAnyOre
+                || detectCrudeOil;
             this.horizontalDxByIndex = new int[width * width];
             this.horizontalDzByIndex = new int[width * width];
             this.cellXByHorizontalIndex = new int[width * width];
@@ -393,7 +480,6 @@ public final class SeismicScanQueue {
             int radiusSquared = radius * radius;
             int depth = request.depth();
             int widthSquared = width * width;
-            boolean allowBelowZeroOres = request.allowBelowZeroOres();
             float noiseStrength = request.noise();
             BlockPos.MutableBlockPos scanPos = new BlockPos.MutableBlockPos();
             int consumed = 0;
@@ -421,8 +507,16 @@ public final class SeismicScanQueue {
                 BlockState state = level.getBlockState(scanPos);
                 FluidState fluid = state.getFluidState();
                 SeismicAnomalyType type;
-                if (!fluid.isEmpty()) {
-                    if (fluid.is(FluidTags.LAVA)) {
+                // Certus buds can be waterlogged; retain the crystal signal instead of reporting water.
+                if (detectCertusQuartz && state.is(SeismicMineralTags.CERTUS_QUARTZ)) {
+                    type = SeismicAnomalyType.CERTUS_QUARTZ;
+                } else if (!fluid.isEmpty()) {
+                    if (fluid.is(SeismicFluidTags.CRUDE_OIL)) {
+                        if (!detectCrudeOil) {
+                            continue;
+                        }
+                        type = SeismicAnomalyType.CRUDE_OIL;
+                    } else if (fluid.is(FluidTags.LAVA)) {
                         if (!detectLava) {
                             continue;
                         }
@@ -442,7 +536,12 @@ public final class SeismicScanQueue {
                     if (!detectAnySolidTarget) {
                         continue;
                     }
-                    if (detectAmethyst && (state.is(Blocks.BUDDING_AMETHYST)
+                    SeismicAnomalyType depositType = rockStoneTargets.get(state.getBlock());
+                    if (depositType != null) {
+                        type = depositType;
+                    } else if (detectCrudeOil && state.is(SeismicMineralTags.CRUDE_OIL)) {
+                        type = SeismicAnomalyType.CRUDE_OIL;
+                    } else if (detectAmethyst && (state.is(Blocks.BUDDING_AMETHYST)
                         || state.is(Blocks.AMETHYST_CLUSTER)
                         || state.is(Blocks.LARGE_AMETHYST_BUD)
                         || state.is(Blocks.MEDIUM_AMETHYST_BUD)
@@ -453,11 +552,42 @@ public final class SeismicScanQueue {
                     } else if (detectChest && (state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST))) {
                         type = SeismicAnomalyType.CHEST;
                     } else {
-                        boolean oreDepthAllowed = scanPos.getY() >= 0 || allowBelowZeroOres;
-                        if (!detectAnyOre || !oreDepthAllowed) {
+                        if (!detectAnyOre) {
                             continue;
                         }
-                        if (detectCoal && state.is(BlockTags.COAL_ORES)) {
+                        if (detectQuartz && state.is(Blocks.NETHER_QUARTZ_ORE)) {
+                            type = SeismicAnomalyType.QUARTZ;
+                        } else if (detectAncientDebris && state.is(Blocks.ANCIENT_DEBRIS)) {
+                            type = SeismicAnomalyType.ANCIENT_DEBRIS;
+                        } else if (detectTin && state.is(SeismicMineralTags.TIN)) {
+                            type = SeismicAnomalyType.TIN;
+                        } else if (detectOsmium && state.is(SeismicMineralTags.OSMIUM)) {
+                            type = SeismicAnomalyType.OSMIUM;
+                        } else if (detectFluorite && state.is(SeismicMineralTags.FLUORITE)) {
+                            type = SeismicAnomalyType.FLUORITE;
+                        } else if (detectInferium && state.is(SeismicMineralTags.INFERIUM)) {
+                            type = SeismicAnomalyType.INFERIUM;
+                        } else if (detectProsperity && state.is(SeismicMineralTags.PROSPERITY)) {
+                            type = SeismicAnomalyType.PROSPERITY;
+                        } else if (detectSoulium && state.is(SeismicMineralTags.SOULIUM)) {
+                            type = SeismicAnomalyType.SOULIUM;
+                        } else if (detectArcaneCrystal && state.is(SeismicMineralTags.ARCANE_CRYSTAL)) {
+                            type = SeismicAnomalyType.ARCANE_CRYSTAL;
+                        } else if (detectRune && state.is(SeismicMineralTags.RUNE)) {
+                            type = SeismicAnomalyType.RUNE;
+                        } else if (detectStellarite && state.is(SeismicMineralTags.STELLARITE)) {
+                            type = SeismicAnomalyType.STELLARITE;
+                        } else if (detectUraninite && state.is(SeismicMineralTags.URANINITE)) {
+                            type = SeismicAnomalyType.URANINITE;
+                        } else if (detectDraconium && state.is(SeismicMineralTags.DRACONIUM)) {
+                            type = SeismicAnomalyType.DRACONIUM;
+                        } else if (detectBlackQuartz && state.is(SeismicMineralTags.BLACK_QUARTZ)) {
+                            type = SeismicAnomalyType.BLACK_QUARTZ;
+                        } else if (detectSilver && state.is(SeismicMineralTags.SILVER)) {
+                            type = SeismicAnomalyType.SILVER;
+                        } else if (detectPlatinum && state.is(SeismicMineralTags.PLATINUM)) {
+                            type = SeismicAnomalyType.PLATINUM;
+                        } else if (detectCoal && state.is(BlockTags.COAL_ORES)) {
                             type = SeismicAnomalyType.COAL;
                         } else if (detectIron && state.is(BlockTags.IRON_ORES)) {
                             type = SeismicAnomalyType.IRON;
@@ -483,6 +613,32 @@ public final class SeismicScanQueue {
                             type = SeismicAnomalyType.OCHRUM;
                         } else if (detectVeridium && state.is(SeismicMineralTags.VERIDIUM)) {
                             type = SeismicAnomalyType.VERIDIUM;
+                        } else if (detectThorium && state.is(SeismicMineralTags.THORIUM)) {
+                            type = SeismicAnomalyType.THORIUM;
+                        } else if (detectMagnetite && state.is(SeismicMineralTags.MAGNETITE)) {
+                            type = SeismicAnomalyType.MAGNETITE;
+                        } else if (detectLead && state.is(SeismicMineralTags.LEAD)) {
+                            type = SeismicAnomalyType.LEAD;
+                        } else if (detectNickel && state.is(SeismicMineralTags.NICKEL)) {
+                            type = SeismicAnomalyType.NICKEL;
+                        } else if (detectLithium && state.is(SeismicMineralTags.LITHIUM)) {
+                            type = SeismicAnomalyType.LITHIUM;
+                        } else if (detectBauxite && state.is(SeismicMineralTags.BAUXITE)) {
+                            type = SeismicAnomalyType.BAUXITE;
+                        } else if (detectGalena && state.is(SeismicMineralTags.GALENA)) {
+                            type = SeismicAnomalyType.GALENA;
+                        } else if (detectLignite && state.is(SeismicMineralTags.LIGNITE)) {
+                            type = SeismicAnomalyType.LIGNITE;
+                        } else if (detectSulfur && state.is(SeismicMineralTags.SULFUR)) {
+                            type = SeismicAnomalyType.SULFUR;
+                        } else if (detectWolframite && state.is(SeismicMineralTags.WOLFRAMITE)) {
+                            type = SeismicAnomalyType.WOLFRAMITE;
+                        } else if (detectUranium && state.is(SeismicMineralTags.URANIUM)) {
+                            type = SeismicAnomalyType.URANIUM;
+                        } else if (detectAutunite && state.is(SeismicMineralTags.AUTUNITE)) {
+                            type = SeismicAnomalyType.AUTUNITE;
+                        } else if (detectNitrate && state.is(SeismicMineralTags.NITRATE)) {
+                            type = SeismicAnomalyType.NITRATE;
                         } else {
                             continue;
                         }
@@ -585,9 +741,6 @@ public final class SeismicScanQueue {
                 origin.getZ() + request.radius() + 1.0D
             );
             for (MinecartChest chestMinecart : request.level().getEntitiesOfClass(MinecartChest.class, bounds)) {
-                if (chestMinecart.blockPosition().getY() < 0 && !request.allowBelowZeroOres()) {
-                    continue;
-                }
                 int offsetX = Mth.floor(chestMinecart.getX()) - origin.getX();
                 int offsetZ = Mth.floor(chestMinecart.getZ()) - origin.getZ();
                 if (offsetX * offsetX + offsetZ * offsetZ > request.radius() * request.radius()) {
@@ -650,8 +803,15 @@ public final class SeismicScanQueue {
 
         private static boolean shouldTrackExactType(SeismicAnomalyType type) {
             return switch (type) {
-                case WATER, LAVA, COAL, IRON, COPPER, GOLD, REDSTONE, LAPIS, EMERALD, DIAMOND, ZINC,
-                    AMETHYST, CHEST, SPAWNER, CRIMSITE, ASURINE, OCHRUM, VERIDIUM -> true;
+                case WATER, LAVA, COAL, COAL_DEPOSIT, IRON, IRON_DEPOSIT, COPPER, COPPER_DEPOSIT, GOLD, GOLD_DEPOSIT,
+                    REDSTONE, REDSTONE_DEPOSIT, LAPIS, LAPIS_DEPOSIT, EMERALD, DIAMOND, ZINC, ZINC_DEPOSIT, AMETHYST,
+                    CHEST, SPAWNER, CRIMSITE, ASURINE, OCHRUM, VERIDIUM, THORIUM, THORIUM_DEPOSIT, MAGNETITE, LEAD,
+                    LEAD_DEPOSIT, NICKEL, NICKEL_DEPOSIT, LITHIUM, BAUXITE, GALENA, LIGNITE, SULFUR, CRUDE_OIL,
+                    WOLFRAMITE, WOLFRAMITE_DEPOSIT, URANIUM, URANIUM_DEPOSIT, AUTUNITE, NITRATE, TIN, TIN_DEPOSIT,
+                    SILVER, SILVER_DEPOSIT, PLATINUM, PLATINUM_DEPOSIT, OSMIUM, OSMIUM_DEPOSIT, QUARTZ, QUARTZ_DEPOSIT,
+                    COBALT, COBALT_DEPOSIT, ANCIENT_DEBRIS, FLUORITE, CERTUS_QUARTZ,
+                    INFERIUM, PROSPERITY, SOULIUM,
+                    ARCANE_CRYSTAL, RUNE, STELLARITE, URANINITE, DRACONIUM, BLACK_QUARTZ -> true;
                 default -> false;
             };
         }

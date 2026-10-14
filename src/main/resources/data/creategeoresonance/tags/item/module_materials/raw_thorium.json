@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "createnuclear:raw_thorium",
+      "required": false
+    },
+    {
+      "id": "create_new_age:thorium",
+      "required": false
+    }
+  ]
+}

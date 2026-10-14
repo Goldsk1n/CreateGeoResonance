@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "draconicevolution:overworld_draconium_ore",
+      "required": false
+    },
+    {
+      "id": "draconicevolution:deepslate_draconium_ore",
+      "required": false
+    },
+    {
+      "id": "draconicevolution:nether_draconium_ore",
+      "required": false
+    },
+    {
+      "id": "draconicevolution:end_draconium_ore",
+      "required": false
+    }
+  ]
+}

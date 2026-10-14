@@ -1,0 +1,31 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "tfmg"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SA",
+    "MI"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "M": {
+      "item": "tfmg:raw_lithium"
+    },
+    "I": {
+      "item": "tfmg:lithium_ingot"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:lithium_resonance_module"
+  }
+}
+

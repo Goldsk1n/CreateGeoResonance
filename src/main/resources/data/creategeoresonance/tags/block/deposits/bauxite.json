@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "tfmg:bauxite",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:ore_aluminum",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:deepslate_ore_aluminum",
+      "required": false
+    }
+  ]
+}
