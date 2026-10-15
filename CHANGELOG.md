@@ -29,6 +29,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Separate Crimsite, Asurine, Ochrum, and Veridium station modules with recipes, localized tooltips, and distinct scan and projection signals.
 
 ### Changed
+- Show confirmed-deposit hologram fill only behind rendered scenery, leaving exposed ore textures unobscured while retaining outlines, guide beams, and buried-surface fill for placed and train-mounted projectors.
 - Retire the Below Zero module: target detection works at all heights within scan range, without an extra module.
 - Preserve legacy Below Zero items and recover installed modules with Shift-RMB after extracting active modules; retired modules occupy no active slot and consume no SU.
 - Remove the Below Zero crafting recipe and Creative entry, and update English, Russian, Ukrainian, and Ponder guidance.

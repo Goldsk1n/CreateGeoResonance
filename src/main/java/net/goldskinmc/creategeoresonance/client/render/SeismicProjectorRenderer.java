@@ -55,6 +55,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -198,6 +199,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
         try {
             if (fillEnabled && fillAlpha > 0.0F) {
+                if (renderExact) {
+                    beginOccludedFill();
+                }
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
@@ -222,6 +226,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
 
+            endOccludedFill();
             RenderSystem.disableCull();
 
             if (edgeAlpha > 0.0F) {
@@ -273,12 +278,28 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
         } finally {
+            endOccludedFill();
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();
             RenderSystem.disableBlend();
             RenderSystem.defaultBlendFunc();
         }
+    }
+
+    private static void beginOccludedFill() {
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthFunc(GL11.GL_GREATER);
+        // Keep coplanar, directly visible ore faces out of the occluded fill pass.
+        RenderSystem.enablePolygonOffset();
+        RenderSystem.polygonOffset(-1.0F, -1.0F);
+    }
+
+    private static void endOccludedFill() {
+        RenderSystem.polygonOffset(0.0F, 0.0F);
+        RenderSystem.disablePolygonOffset();
+        RenderSystem.depthFunc(GL11.GL_LEQUAL);
+        RenderSystem.disableDepthTest();
     }
 
     private static void beginProjectionBlend() {
@@ -443,6 +464,9 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
         try {
             if (fillEnabled && fillAlpha > 0.0F) {
+                if (renderExact) {
+                    beginOccludedFill();
+                }
                 RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
@@ -471,6 +495,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
 
+            endOccludedFill();
             RenderSystem.disableCull();
 
             if (edgeAlpha > 0.0F) {
@@ -526,6 +551,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
             }
         } finally {
+            endOccludedFill();
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();
