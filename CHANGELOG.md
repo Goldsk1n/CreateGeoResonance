@@ -7,6 +7,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 ## [Unreleased]
 
 ### Added
+- Retrieve the last inserted projector seismogram with empty-hand Shift-RMB, including on trains and without power; preserve original map items, recover legacy survey-only saves, and drop remaining sheets when the projector is broken. Add English, Russian, and Ukrainian tooltip guidance.
 - Three client-side impact and confidence-dependent echo opacity settings shared by normal and low-pressure waves, all defaulting to 1.0.
 - Optional PneumaticCraft: Repressurized oil-lake detection through the existing Crude Oil module, with source/flowing fluid support, a guarded oil-sample-and-iron recipe, native oil icon fallback, and localized summaries.
 - Optional Draconic Evolution Draconium module with Overworld, deepslate, Nether, and End ore detection, a guarded dust-and-ingot recipe, native ingot icon, and localized summaries.

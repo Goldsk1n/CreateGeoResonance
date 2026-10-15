@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -42,7 +43,8 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         SeismicProjectorData.LoadResult result = projectorData.tryLoadSnapshot(
             level.dimension().location().toString(),
             worldPosition,
-            snapshot
+            snapshot,
+            held.copyWithCount(1).save(new CompoundTag())
         );
         if (!result.success()) {
             sendLoadFailure(player, result.status());
@@ -68,6 +70,25 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
                 .withStyle(ChatFormatting.AQUA), true);
         }
         return true;
+    }
+
+    public boolean tryTakeSeismogram(Player player, InteractionHand hand) {
+        if (!SeismicProjectorControllerLogic.tryTakeSeismogram(projectorData, player, hand)) {
+            return false;
+        }
+        syncClient();
+        updatePoweredState();
+        return true;
+    }
+
+    public void dropSeismograms() {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        while (projectorData.getLoadedNodeCount() > 0) {
+            Block.popResource(level, worldPosition, projectorData.takeLastSeismogram(serverLevel));
+        }
+        setChanged();
     }
 
     public List<SeismicProjectorData.TriangulatedCandidate> getTriangulatedCandidates() {

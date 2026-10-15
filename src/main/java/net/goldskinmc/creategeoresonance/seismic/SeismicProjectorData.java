@@ -5,6 +5,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +20,7 @@ import java.util.Set;
 
 public final class SeismicProjectorData {
     private static final String TAG_NODES = "Nodes";
+    private static final String TAG_SEISMOGRAM = "SeismogramItem";
     private static final String TAG_CENTER_X = "CenterX";
     private static final String TAG_CENTER_Y = "CenterY";
     private static final String TAG_CENTER_Z = "CenterZ";
@@ -50,6 +53,11 @@ public final class SeismicProjectorData {
 
     public LoadResult tryLoadSnapshot(String projectorDimension, BlockPos projectorPos,
                                       SeismogramMapService.MapSnapshot snapshot) {
+        return tryLoadSnapshot(projectorDimension, projectorPos, snapshot, null);
+    }
+
+    public LoadResult tryLoadSnapshot(String projectorDimension, BlockPos projectorPos,
+                                      SeismogramMapService.MapSnapshot snapshot, @Nullable Tag seismogram) {
         if (!projectorDimension.equals(snapshot.stationDimension())) {
             return new LoadResult(LoadStatus.DIMENSION_MISMATCH, nodes.size());
         }
@@ -66,9 +74,32 @@ public final class SeismicProjectorData {
             return new LoadResult(LoadStatus.FULL, nodes.size());
         }
 
-        nodes.add(NodeSnapshot.fromSnapshot(snapshot));
+        nodes.add(NodeSnapshot.fromSnapshot(snapshot, seismogram));
         invalidateComputedCaches();
         return new LoadResult(LoadStatus.SUCCESS, nodes.size());
+    }
+
+    public ItemStack takeLastSeismogram(ServerLevel level) {
+        if (nodes.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        NodeSnapshot node = nodes.get(nodes.size() - 1);
+        ItemStack stack;
+        if (node.seismogram() == null) {
+            // Older projectors saved only survey data, not the original map item.
+            stack = SeismogramMapService.restoreMap(level, node.toSnapshot());
+        } else {
+            if (!(node.seismogram() instanceof CompoundTag itemTag)) {
+                throw new IllegalStateException("Invalid stored projector seismogram");
+            }
+            stack = ItemStack.of(itemTag);
+            if (stack.getCount() != 1 || !SeismogramMapService.isSeismogramStack(stack)) {
+                throw new IllegalStateException("Invalid stored projector seismogram");
+            }
+        }
+        nodes.remove(nodes.size() - 1);
+        invalidateComputedCaches();
+        return stack;
     }
 
     public void writeToTag(CompoundTag tag) {
@@ -78,6 +109,9 @@ public final class SeismicProjectorData {
         ListTag list = new ListTag();
         for (NodeSnapshot node : nodes) {
             CompoundTag entry = new CompoundTag();
+            if (node.seismogram() != null) {
+                entry.put(TAG_SEISMOGRAM, node.seismogram().copy());
+            }
             entry.putInt(TAG_CENTER_X, node.center().getX());
             entry.putInt(TAG_CENTER_Y, node.center().getY());
             entry.putInt(TAG_CENTER_Z, node.center().getZ());
@@ -171,7 +205,9 @@ public final class SeismicProjectorData {
                 }
             }
 
-            nodes.add(new NodeSnapshot(center, stationPos, stationDimension, List.copyOf(signals), List.copyOf(exactClusters)));
+            Tag seismogram = entry.get(TAG_SEISMOGRAM);
+            nodes.add(new NodeSnapshot(center, stationPos, stationDimension, List.copyOf(signals),
+                List.copyOf(exactClusters), seismogram != null ? seismogram.copy() : null));
         }
         invalidateComputedCaches();
     }
@@ -532,14 +568,20 @@ public final class SeismicProjectorData {
 
     private record NodeSnapshot(BlockPos center, BlockPos stationPos, String stationDimension,
                                 List<SeismogramMapService.MapSignal> signals,
-                                List<SeismogramMapService.ExactCluster> exactClusters) {
-        private static NodeSnapshot fromSnapshot(SeismogramMapService.MapSnapshot snapshot) {
+                                List<SeismogramMapService.ExactCluster> exactClusters, @Nullable Tag seismogram) {
+        private SeismogramMapService.MapSnapshot toSnapshot() {
+            return new SeismogramMapService.MapSnapshot(center.getX(), center.getY(), center.getZ(),
+                stationPos, stationDimension, signals, exactClusters);
+        }
+
+        private static NodeSnapshot fromSnapshot(SeismogramMapService.MapSnapshot snapshot, @Nullable Tag seismogram) {
             return new NodeSnapshot(
                 new BlockPos(snapshot.centerX(), snapshot.centerY(), snapshot.centerZ()),
                 snapshot.stationPos().immutable(),
                 snapshot.stationDimension(),
                 List.copyOf(snapshot.signals()),
-                List.copyOf(snapshot.exactClusters())
+                List.copyOf(snapshot.exactClusters()),
+                seismogram != null ? seismogram.copy() : null
             );
         }
     }
