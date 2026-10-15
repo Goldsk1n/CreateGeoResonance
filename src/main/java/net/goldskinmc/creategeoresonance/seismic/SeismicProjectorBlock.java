@@ -76,6 +76,9 @@ public class SeismicProjectorBlock extends HorizontalKineticBlock implements IBE
         }
 
         if (level.getBlockEntity(pos) instanceof SeismicProjectorBlockEntity projector) {
+            if (projector.tryTakeSeismogram(player, hand)) {
+                return ItemInteractionResult.CONSUME;
+            }
             if (projector.tryLoadSeismogram(player, hand)) {
                 return ItemInteractionResult.CONSUME;
             }
@@ -85,6 +88,32 @@ public class SeismicProjectorBlock extends HorizontalKineticBlock implements IBE
             }
         }
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
+                                               Player player, BlockHitResult hit) {
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
+        if (level.getBlockEntity(pos) instanceof SeismicProjectorBlockEntity projector) {
+            if (!projector.tryTakeSeismogram(player, InteractionHand.MAIN_HAND)) {
+                projector.sendStatus(player);
+            }
+            return InteractionResult.CONSUME;
+        }
+        return InteractionResult.PASS;
+    }
+
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (state.is(newState.getBlock())) {
+            return;
+        }
+        if (!level.isClientSide && !isMoving) {
+            withBlockEntityDo(level, pos, SeismicProjectorBlockEntity::dropSeismograms);
+        }
+        IBE.onRemove(state, level, pos, newState);
     }
 
     @Override

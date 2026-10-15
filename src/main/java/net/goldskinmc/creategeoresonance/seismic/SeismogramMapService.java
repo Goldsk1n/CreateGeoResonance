@@ -4,6 +4,9 @@ import net.goldskinmc.creategeoresonance.ItemStackComponentData;
 import net.minecraft.core.component.DataComponents;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -75,6 +78,31 @@ public final class SeismogramMapService {
         mapStack.set(DataComponents.CUSTOM_NAME, Component.translatable("item.creategeoresonance.seismogram")
             .withStyle(style -> style.withItalic(false)));
         return mapStack;
+    }
+
+    public static ItemStack restoreMap(ServerLevel level, MapSnapshot snapshot) {
+        List<SeismicStationBlockEntity.MapEntry> entries = snapshot.signals().stream()
+            .map(signal -> new SeismicStationBlockEntity.MapEntry(signal.type(),
+                signal.worldX() - snapshot.stationPos().getX(),
+                signal.worldZ() - snapshot.stationPos().getZ(), signal.approxY()))
+            .toList();
+        CompoundTag geoTag = buildGeoTag(snapshot.centerX(), snapshot.centerZ(), snapshot.stationPos(),
+            snapshot.stationDimension(), entries, snapshot.exactClusters());
+        geoTag.putInt(TAG_CENTER_Y, snapshot.centerY());
+        var dimension = ResourceKey.create(Registries.DIMENSION,
+            ResourceLocation.parse(snapshot.stationDimension()));
+        MapItemSavedData mapData = MapItemSavedData.createFresh(snapshot.centerX(), snapshot.centerZ(),
+            (byte) 0, false, false, dimension);
+        var mapId = level.getFreeMapId();
+        level.setMapData(mapId, mapData);
+        ItemStack stack = new ItemStack(Items.FILLED_MAP);
+        stack.set(DataComponents.MAP_ID, mapId);
+        ItemStackComponentData.putCompound(stack, TAG_ROOT, geoTag);
+        renderStaticMap(mapData, geoTag);
+        MapItem.lockMap(level, stack);
+        stack.set(DataComponents.CUSTOM_NAME, Component.translatable("item.creategeoresonance.seismogram")
+            .withStyle(style -> style.withItalic(false)));
+        return stack;
     }
 
     public static void clear() {

@@ -47,13 +47,20 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
         SeismicProjectorData projectorData = new SeismicProjectorData();
         projectorData.readFromTag(context.blockEntityData);
 
+        if (SeismicProjectorControllerLogic.tryTakeSeismogram(projectorData, player, hand)) {
+            projectorData.writeToTag(context.blockEntityData);
+            syncActorData(contraptionEntity, localPos, actor, context);
+            return true;
+        }
+
         ItemStack held = player.getItemInHand(hand);
         SeismogramMapService.MapSnapshot snapshot = SeismogramMapService.readSnapshotWithExactData(held);
         if (snapshot != null) {
             SeismicProjectorData.LoadResult result = projectorData.tryLoadSnapshot(
                 contraptionEntity.level().dimension().location().toString(),
                 projectorPos,
-                snapshot
+                snapshot,
+                held.copyWithCount(1).save(contraptionEntity.level().registryAccess())
             );
             if (!result.success()) {
                 sendLoadFailure(player, result.status());
