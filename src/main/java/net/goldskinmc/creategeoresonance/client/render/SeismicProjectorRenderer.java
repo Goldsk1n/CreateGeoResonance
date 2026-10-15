@@ -1,5 +1,6 @@
 package net.goldskinmc.creategeoresonance.client.render;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -189,8 +190,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         RenderGeometryData geometry = resolveRenderGeometry(blockEntity, origin, visibleVeins, candidates, renderExact, exactBlockInset);
         Tesselator tesselator = Tesselator.getInstance();
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        beginProjectionBlend();
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         // Cull only filled surfaces; outlines and guide beams stay two-sided.
@@ -277,7 +277,19 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();
             RenderSystem.disableBlend();
+            RenderSystem.defaultBlendFunc();
         }
+    }
+
+    private static void beginProjectionBlend() {
+        RenderSystem.enableBlend();
+        // Blend hologram RGB without replacing scene alpha used by the menu blur.
+        RenderSystem.blendFuncSeparate(
+            GlStateManager.SourceFactor.SRC_ALPHA,
+            GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+            GlStateManager.SourceFactor.ZERO,
+            GlStateManager.DestFactor.ONE
+        );
     }
 
     private static void deferProjection(net.minecraft.world.level.Level level, Object key,
@@ -423,8 +435,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         context.contraption.entity.applyLocalTransforms(localRenderStack, partialTicks);
         localRenderStack.translate(context.localPos.getX(), context.localPos.getY(), context.localPos.getZ());
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        beginProjectionBlend();
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         // Cull only filled surfaces; outlines and guide beams stay two-sided.
@@ -519,6 +530,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();
             RenderSystem.disableBlend();
+            RenderSystem.defaultBlendFunc();
         }
     }
 
@@ -1242,8 +1254,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             );
             Matrix4f matrix = poseStack.last().pose();
 
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
+            beginProjectionBlend();
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
             // Cull only filled surfaces; outlines and guide beams stay two-sided.
@@ -1302,6 +1313,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 RenderSystem.enableDepthTest();
                 RenderSystem.enableCull();
                 RenderSystem.disableBlend();
+                RenderSystem.defaultBlendFunc();
             }
 
             poseStack.popPose();

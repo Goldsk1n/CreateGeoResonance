@@ -42,6 +42,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Preserve scene alpha when drawing projector holograms and beams to prevent dark silhouettes in the 1.21.1 pause-menu blur, while retaining visibility through water.
 - Rank visible holograms by their original surveyed centers so mining individual blocks does not hide a partially mined vein at the display limit, including on trains.
 - Draw projector holograms and beams after translucent scenery so water does not obscure them; preserve placed and train-mounted projection coordinates.
 - Prevent seismic impact and echo waves from hiding water by using alpha blending without depth writes instead of Flywheel's OIT material.
