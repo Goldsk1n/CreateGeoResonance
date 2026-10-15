@@ -84,6 +84,11 @@ tasks.configureEach {
 
 repositories {
     maven {
+        name = 'AntarcticGardens'
+        url = 'https://maven.idiotss.com/releases'
+        content { includeGroup 'org.antarcticgardens.esl' }
+    }
+    maven {
         url = "https://api.modrinth.com/maven"
         content { includeGroup "maven.modrinth" }
     }
@@ -101,7 +106,9 @@ dependencies {
     compileOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}"))
     runtimeOnly(fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"))
     implementation(fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}"))
-    // Integration testing in all dev profiles; New Age bundles its required ESL library.
+    // Remap ESL explicitly: ForgeGradle does not remap New Age's nested library jar.
+    runtimeOnly(fg.deobf("org.antarcticgardens.esl:esl-forge-${minecraft_version}:${esl_version}"))
+    // Integration testing in all dev profiles.
     runtimeOnly(fg.deobf("maven.modrinth:create-new-age:${new_age_version_id}"))
     runtimeOnly(fg.deobf("maven.modrinth:create-tfmg:${tfmg_version_id}"))
     runtimeOnly(fg.deobf("maven.modrinth:create-metallurgy:${metallurgy_version_id}"))
