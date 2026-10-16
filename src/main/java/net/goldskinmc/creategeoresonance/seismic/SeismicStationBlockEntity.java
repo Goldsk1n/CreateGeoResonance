@@ -39,9 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class SeismicStationBlockEntity extends KineticBlockEntity {
@@ -376,6 +374,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 serverLevel.getGameTime(),
                 false,
                 buildDetectableTypes(),
+                SeismicStationControllerLogic.buildModulePriorityMap(inventory),
                 (request, result) -> {
                     BlockEntity blockEntity = request.level().getBlockEntity(origin);
                     if (blockEntity instanceof SeismicStationBlockEntity station) {
@@ -397,7 +396,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     private void acceptScanResult(SeismicScanQueue.SeismicScanResult result) {
         queuedAnomalies.clear();
-        queuedAnomalies.addAll(prioritizeByModuleOrder(result.anomalies()));
+        queuedAnomalies.addAll(result.anomalies());
         queuedAnomalies.sort(Comparator.comparingInt(SeismicAnomaly::depth));
         exactClusters.clear();
         for (SeismicScanQueue.ExactCluster cluster : result.exactClusters()) {
@@ -411,81 +410,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         updateComparatorOutputIfNeeded();
     }
 
-    private List<SeismicAnomaly> prioritizeByModuleOrder(List<SeismicAnomaly> anomalies) {
-        if (anomalies.isEmpty()) {
-            return anomalies;
-        }
 
-        Map<SeismicAnomalyType, Integer> modulePriority = buildModulePriorityMap();
-        List<SeismicAnomaly> ordered = new ArrayList<>(anomalies);
-        ordered.sort((left, right) -> comparePriority(left, right, modulePriority));
-
-        int mergeDistance = Config.ECHO_MERGE_DISTANCE.get();
-        List<SeismicAnomaly> selected = new ArrayList<>();
-        for (SeismicAnomaly candidate : ordered) {
-            int overlapIndex = findOverlappingAnomaly(selected, candidate, mergeDistance);
-            if (overlapIndex < 0) {
-                selected.add(candidate);
-                continue;
-            }
-
-            SeismicAnomaly current = selected.get(overlapIndex);
-            if (comparePriority(candidate, current, modulePriority) < 0) {
-                selected.set(overlapIndex, candidate);
-            }
-        }
-        return selected;
-    }
-
-    private Map<SeismicAnomalyType, Integer> buildModulePriorityMap() {
-        Map<SeismicAnomalyType, Integer> priority = new HashMap<>();
-        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-            SeismicAnomalyType type = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
-            if (type != null) {
-                priority.put(type, slot);
-            }
-        }
-        return priority;
-    }
-
-    private static int comparePriority(SeismicAnomaly left, SeismicAnomaly right, Map<SeismicAnomalyType, Integer> modulePriority) {
-        int typeCompare = Integer.compare(typePriorityScore(left.type(), modulePriority), typePriorityScore(right.type(), modulePriority));
-        if (typeCompare != 0) {
-            return -typeCompare;
-        }
-        return -Double.compare(anomalyStrength(left), anomalyStrength(right));
-    }
-
-    private static int findOverlappingAnomaly(List<SeismicAnomaly> selected, SeismicAnomaly candidate, int mergeDistance) {
-        for (int i = 0; i < selected.size(); i++) {
-            SeismicAnomaly existing = selected.get(i);
-            int effectiveMergeDistance = Math.max(mergeDistance, (existing.radius() + candidate.radius()) / 2);
-            int dx = existing.offsetX() - candidate.offsetX();
-            int dz = existing.offsetZ() - candidate.offsetZ();
-            if (dx * dx + dz * dz <= effectiveMergeDistance * effectiveMergeDistance) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static int typePriorityScore(SeismicAnomalyType type, Map<SeismicAnomalyType, Integer> modulePriority) {
-        Integer slotPriority = modulePriority.get(type.mineralType());
-        if (slotPriority != null) {
-            return 1000 + slotPriority;
-        }
-
-        return switch (type) {
-            case LAVA -> 30;
-            case WATER -> 20;
-            case CAVE -> 10;
-            default -> 0;
-        };
-    }
-
-    private static double anomalyStrength(SeismicAnomaly anomaly) {
-        return anomaly.confidence() * (1.0D + anomaly.radius() * 0.2D);
-    }
 
     private void replayStrike() {
         if (!(level instanceof ServerLevel serverLevel)) {
