@@ -15,7 +15,9 @@ import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 public final class SeismicStationControllerLogic {
     private SeismicStationControllerLogic() {
@@ -163,6 +165,17 @@ public final class SeismicStationControllerLogic {
             }
         }
         return modules;
+    }
+
+    public static Map<SeismicAnomalyType, Integer> buildModulePriorityMap(ItemStackHandler inventory) {
+        Map<SeismicAnomalyType, Integer> priorities = new EnumMap<>(SeismicAnomalyType.class);
+        for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
+            SeismicAnomalyType type = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
+            if (type != null) {
+                priorities.put(type.mineralType(), slot);
+            }
+        }
+        return priorities;
     }
 
     public static boolean hasModuleInstalled(ItemStackHandler inventory, SeismicModuleType moduleType) {

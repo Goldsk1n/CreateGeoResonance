@@ -493,7 +493,7 @@ public final class GeoResonancePonderScenes {
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(50);
         scene.overlay().showText(120)
-            .text("Up to 8 module slots are available. Last modules signals are prioritized.")
+            .text("Up to 8 module slots are available. Target types take turns; last-installed modules go first.")
             .pointAt(util.vector().centerOf(stationUpperLeft))
             .placeNearTarget();
         scene.idle(140);

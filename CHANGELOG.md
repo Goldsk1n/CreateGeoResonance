@@ -30,6 +30,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Separate Crimsite, Asurine, Ochrum, and Veridium station modules with recipes, localized tooltips, and distinct scan and projection signals.
 
 ### Changed
+- Balance station echoes round-robin across installed target minerals, starting with the latest module and selecting strongest signals within each type. Share turns between ore/deposit variants, preserve overlapping different mineral types, redistribute unused turns, and use ambient signals only for remaining slots. Update English, Russian, Ukrainian, and Ponder guidance.
 - Show confirmed-deposit hologram fill only behind rendered scenery, leaving exposed ore textures unobscured while retaining outlines, guide beams, and buried-surface fill for placed and train-mounted projectors.
 - Retire the Below Zero module: target detection works at all heights within scan range, without an extra module.
 - Preserve legacy Below Zero items and recover installed modules with Shift-RMB after extracting active modules; retired modules occupy no active slot and consume no SU.
@@ -43,6 +44,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Apply station module priorities before merging and capping scan signals, so water and lava cannot crowd out installed mineral targets. Share selection between placed and train-mounted stations, retain last-module priority and Noise Cancellation, and keep hand-hammer selection unchanged.
 - Remap New Age's ESL library explicitly in the Forge dev runtime to prevent a world-entry Creative search crash triggered by Immersive Engineering's powerpack tooltip; release dependencies are unchanged.
 - Rank visible holograms by their original surveyed centers so mining individual blocks does not hide a partially mined vein at the display limit, including on trains.
 - Draw projector holograms and beams after translucent scenery so water does not obscure them; preserve placed and train-mounted projection coordinates.

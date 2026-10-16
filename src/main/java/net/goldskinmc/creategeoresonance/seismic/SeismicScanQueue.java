@@ -23,8 +23,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
@@ -92,49 +94,92 @@ public final class SeismicScanQueue {
     }
 
     static List<SeismicAnomaly> prioritizeAndLimitAnomalies(List<SeismicAnomaly> rawAnomalies, int mergeDistance, int maxEchoes) {
+        return prioritizeAndLimitAnomalies(rawAnomalies, mergeDistance, maxEchoes, Map.of());
+    }
+
+    static List<SeismicAnomaly> prioritizeAndLimitAnomalies(List<SeismicAnomaly> rawAnomalies, int mergeDistance,
+                                                          int maxEchoes, Map<SeismicAnomalyType, Integer> modulePriorities) {
         if (rawAnomalies.isEmpty()) {
             return rawAnomalies;
         }
 
-        rawAnomalies.sort((left, right) -> {
-            int priorityCompare = Integer.compare(typePriority(right.type()), typePriority(left.type()));
-            if (priorityCompare != 0) {
-                return priorityCompare;
-            }
-            return Double.compare(anomalyStrength(right), anomalyStrength(left));
-        });
+        Comparator<SeismicAnomaly> priority = (left, right) -> {
+            int priorityCompare = Integer.compare(priorityScore(right.type(), modulePriorities),
+                priorityScore(left.type(), modulePriorities));
+            return priorityCompare != 0 ? priorityCompare
+                : Double.compare(anomalyStrength(right), anomalyStrength(left));
+        };
+        // Apply module order before either merging signals or enforcing the echo cap.
+        rawAnomalies.sort(priority);
 
         List<SeismicAnomaly> selected = new ArrayList<>();
         for (SeismicAnomaly candidate : rawAnomalies) {
-            int overlapIndex = findOverlappingIndex(selected, candidate, mergeDistance);
+            int overlapIndex = findOverlappingIndex(selected, candidate, mergeDistance, modulePriorities);
             if (overlapIndex < 0) {
                 selected.add(candidate);
                 continue;
             }
 
             SeismicAnomaly current = selected.get(overlapIndex);
-            if (shouldReplace(current, candidate)) {
+            if (priority.compare(candidate, current) < 0) {
                 selected.set(overlapIndex, candidate);
             }
         }
 
-        selected.sort((left, right) -> {
-            int priorityCompare = Integer.compare(typePriority(right.type()), typePriority(left.type()));
-            if (priorityCompare != 0) {
-                return priorityCompare;
-            }
-            return Double.compare(anomalyStrength(right), anomalyStrength(left));
-        });
-
+        selected.sort(priority);
+        if (!modulePriorities.isEmpty()) {
+            return selectModuleSignalsRoundRobin(selected, maxEchoes, modulePriorities);
+        }
         if (selected.size() > maxEchoes) {
             return new ArrayList<>(selected.subList(0, maxEchoes));
         }
         return selected;
     }
 
-    private static int findOverlappingIndex(List<SeismicAnomaly> selected, SeismicAnomaly candidate, int mergeDistance) {
+    private static List<SeismicAnomaly> selectModuleSignalsRoundRobin(List<SeismicAnomaly> selected, int maxEchoes,
+                                                                     Map<SeismicAnomalyType, Integer> modulePriorities) {
+        // Input is ordered by module slot and strength, so each mineral's strongest signal goes first.
+        Map<SeismicAnomalyType, Deque<SeismicAnomaly>> targets = new LinkedHashMap<>();
+        List<SeismicAnomaly> ambient = new ArrayList<>();
+        for (SeismicAnomaly anomaly : selected) {
+            SeismicAnomalyType mineral = anomaly.type().mineralType();
+            if (modulePriorities.containsKey(mineral)) {
+                targets.computeIfAbsent(mineral, ignored -> new ArrayDeque<>()).addLast(anomaly);
+            } else {
+                ambient.add(anomaly);
+            }
+        }
+
+        List<SeismicAnomaly> balanced = new ArrayList<>();
+        while (!targets.isEmpty() && balanced.size() < maxEchoes) {
+            var groups = targets.values().iterator();
+            while (groups.hasNext() && balanced.size() < maxEchoes) {
+                Deque<SeismicAnomaly> group = groups.next();
+                balanced.add(group.removeFirst());
+                if (group.isEmpty()) {
+                    groups.remove();
+                }
+            }
+        }
+        for (SeismicAnomaly anomaly : ambient) {
+            if (balanced.size() >= maxEchoes) {
+                break;
+            }
+            balanced.add(anomaly);
+        }
+        return balanced;
+    }
+
+    private static int findOverlappingIndex(List<SeismicAnomaly> selected, SeismicAnomaly candidate, int mergeDistance,
+                                             Map<SeismicAnomalyType, Integer> modulePriorities) {
         for (int i = 0; i < selected.size(); i++) {
             SeismicAnomaly existing = selected.get(i);
+            SeismicAnomalyType existingMineral = existing.type().mineralType();
+            SeismicAnomalyType candidateMineral = candidate.type().mineralType();
+            if (existingMineral != candidateMineral && modulePriorities.containsKey(existingMineral)
+                && modulePriorities.containsKey(candidateMineral)) {
+                continue;
+            }
             int effectiveMergeDistance = Math.max(mergeDistance, (existing.radius() + candidate.radius()) / 2);
             int dx = existing.offsetX() - candidate.offsetX();
             int dz = existing.offsetZ() - candidate.offsetZ();
@@ -145,13 +190,9 @@ public final class SeismicScanQueue {
         return -1;
     }
 
-    private static boolean shouldReplace(SeismicAnomaly current, SeismicAnomaly candidate) {
-        int currentPriority = typePriority(current.type());
-        int candidatePriority = typePriority(candidate.type());
-        if (candidatePriority != currentPriority) {
-            return candidatePriority > currentPriority;
-        }
-        return anomalyStrength(candidate) > anomalyStrength(current);
+    private static int priorityScore(SeismicAnomalyType type, Map<SeismicAnomalyType, Integer> modulePriorities) {
+        Integer moduleSlot = modulePriorities.get(type.mineralType());
+        return moduleSlot != null ? 1000 + moduleSlot : typePriority(type);
     }
 
     private static double anomalyStrength(SeismicAnomaly anomaly) {
@@ -198,6 +239,7 @@ public final class SeismicScanQueue {
         long startTick,
         boolean lowPressure,
         Set<SeismicAnomalyType> detectableTypes,
+        Map<SeismicAnomalyType, Integer> modulePriorities,
         @Nullable ResultConsumer resultConsumer
     ) {
         private static final Set<SeismicAnomalyType> DEFAULT_DETECTABLE_TYPES = Set.of(
@@ -211,6 +253,23 @@ public final class SeismicScanQueue {
             detectableTypes = detectableTypes == null
                 ? DEFAULT_DETECTABLE_TYPES
                 : Set.copyOf(detectableTypes);
+            modulePriorities = Map.copyOf(modulePriorities);
+        }
+
+        public SeismicScanRequest(
+            ServerLevel level,
+            BlockPos origin,
+            int scannerEntityId,
+            int radius,
+            int depth,
+            float noise,
+            long startTick,
+            boolean lowPressure,
+            Set<SeismicAnomalyType> detectableTypes,
+            @Nullable ResultConsumer resultConsumer
+        ) {
+            this(level, origin, scannerEntityId, radius, depth, noise, startTick, lowPressure,
+                detectableTypes, Map.of(), resultConsumer);
         }
 
         public SeismicScanRequest(
@@ -739,7 +798,8 @@ public final class SeismicScanQueue {
             }
 
             appendChestMinecartAnomalies(rawAnomalies);
-            return prioritizeAndLimitAnomalies(rawAnomalies, Config.ECHO_MERGE_DISTANCE.get(), Config.MAX_ECHOES.get());
+            return prioritizeAndLimitAnomalies(rawAnomalies, Config.ECHO_MERGE_DISTANCE.get(),
+                Config.MAX_ECHOES.get(), request.modulePriorities());
         }
 
         private void appendChestMinecartAnomalies(List<SeismicAnomaly> rawAnomalies) {
