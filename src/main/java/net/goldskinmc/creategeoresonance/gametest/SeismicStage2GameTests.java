@@ -163,6 +163,20 @@ public final class SeismicStage2GameTests {
         inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 1, ItemStack.EMPTY);
         helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory).equals(ambient),
             "Removing all target modules must restore ambient scanning");
+
+        inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START,
+            new ItemStack(GeoResonanceItems.LAVA_MODULE.get()));
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory).equals(Set.of(SeismicAnomalyType.LAVA)),
+            "A Lava module must select lava without caves or water");
+        helper.assertTrue(SeismicStationControllerLogic.getInstalledModuleCount(inventory) == 1,
+            "A Lava module must occupy one active slot and contribute one module's stress");
+        inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 1,
+            new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory)
+            .equals(Set.of(SeismicAnomalyType.LAVA, SeismicAnomalyType.DIAMOND)),
+            "Lava must remain selectable alongside ore targets without other ambient types");
+        helper.assertTrue(SeismicStationControllerLogic.buildModulePriorityMap(inventory).containsKey(SeismicAnomalyType.LAVA),
+            "Lava must participate in balanced target selection");
         helper.succeed();
     }
 

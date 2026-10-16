@@ -20,6 +20,7 @@ public final class GeoResonanceItems {
     public static final ItemEntry<SeismicModuleItem> AMETHYST_MODULE = module(SeismicModuleType.AMETHYST);
     public static final ItemEntry<SeismicModuleItem> CHEST_MODULE = module(SeismicModuleType.CHEST);
     public static final ItemEntry<SeismicModuleItem> SPAWNER_MODULE = module(SeismicModuleType.SPAWNER);
+    public static final ItemEntry<SeismicModuleItem> LAVA_MODULE = module(SeismicModuleType.LAVA);
     public static final ItemEntry<SeismicModuleItem> COAL_RESONANCE_MODULE = module(SeismicModuleType.COAL);
     public static final ItemEntry<SeismicModuleItem> IRON_RESONANCE_MODULE = module(SeismicModuleType.IRON);
     public static final ItemEntry<SeismicModuleItem> COPPER_RESONANCE_MODULE = module(SeismicModuleType.COPPER);

@@ -10,6 +10,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SeismicScanQueueTest {
     @Test
+    void lavaAndOreModulesShareEchoSlotsAndPreserveOverlappingTargets() {
+        List<SeismicAnomaly> anomalies = new ArrayList<>(List.of(
+            new SeismicAnomaly(SeismicAnomalyType.LAVA, 0, 0, 10, 1, 0.9F),
+            new SeismicAnomaly(SeismicAnomalyType.LAVA, 10, 0, 10, 1, 0.8F),
+            new SeismicAnomaly(SeismicAnomalyType.LAVA, 20, 0, 10, 1, 0.7F),
+            new SeismicAnomaly(SeismicAnomalyType.DIAMOND, 0, 0, 20, 1, 0.2F),
+            new SeismicAnomaly(SeismicAnomalyType.DIAMOND, 10, 0, 20, 1, 0.1F)
+        ));
+
+        List<SeismicAnomaly> selected = SeismicScanQueue.prioritizeAndLimitAnomalies(
+            anomalies, 3, 4, Map.of(SeismicAnomalyType.DIAMOND, 3, SeismicAnomalyType.LAVA, 4));
+
+        assertEquals(List.of(SeismicAnomalyType.LAVA, SeismicAnomalyType.DIAMOND,
+            SeismicAnomalyType.LAVA, SeismicAnomalyType.DIAMOND),
+            selected.stream().map(SeismicAnomaly::type).toList());
+    }
+
+    @Test
     void balancesAbundantTargetsInsteadOfLettingTheLastModuleMonopolizeTheCap() {
         List<SeismicAnomaly> anomalies = abundantCopperAndDiamondSignals();
 
