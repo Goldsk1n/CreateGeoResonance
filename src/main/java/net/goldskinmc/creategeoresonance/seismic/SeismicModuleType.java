@@ -59,7 +59,8 @@ public enum SeismicModuleType {
     STELLARITE("stellarite_resonance_module", SeismicAnomalyType.STELLARITE),
     XPETRIFIED("xpetrified_resonance_module", SeismicAnomalyType.XPETRIFIED),
     URANINITE("uraninite_resonance_module", SeismicAnomalyType.URANINITE),
-    DRACONIUM("draconium_resonance_module", SeismicAnomalyType.DRACONIUM);
+    DRACONIUM("draconium_resonance_module", SeismicAnomalyType.DRACONIUM),
+    LAVA("lava_module", SeismicAnomalyType.LAVA);
 
     private final String itemName;
     @Nullable

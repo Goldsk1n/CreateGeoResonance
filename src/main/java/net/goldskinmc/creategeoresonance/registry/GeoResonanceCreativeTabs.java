@@ -23,6 +23,7 @@ public final class GeoResonanceCreativeTabs {
             output.accept(GeoResonanceItems.AMETHYST_MODULE.get());
             output.accept(GeoResonanceItems.CHEST_MODULE.get());
             output.accept(GeoResonanceItems.SPAWNER_MODULE.get());
+            output.accept(GeoResonanceItems.LAVA_MODULE.get());
             output.accept(GeoResonanceItems.COAL_RESONANCE_MODULE.get());
             output.accept(GeoResonanceItems.IRON_RESONANCE_MODULE.get());
             output.accept(GeoResonanceItems.COPPER_RESONANCE_MODULE.get());
