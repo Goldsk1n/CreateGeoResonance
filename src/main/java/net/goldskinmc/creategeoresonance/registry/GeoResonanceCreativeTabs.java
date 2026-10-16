@@ -20,7 +20,6 @@ public final class GeoResonanceCreativeTabs {
         .icon(GeoResonanceCreativeTabs::createCreativeTabIconStack)
         .displayItems((parameters, output) -> {
             output.accept(createFilledHammerStack());
-            output.accept(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get());
             output.accept(GeoResonanceItems.AMETHYST_MODULE.get());
             output.accept(GeoResonanceItems.CHEST_MODULE.get());
             output.accept(GeoResonanceItems.SPAWNER_MODULE.get());

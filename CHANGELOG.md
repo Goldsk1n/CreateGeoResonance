@@ -30,7 +30,9 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Separate Crimsite, Asurine, Ochrum, and Veridium station modules with recipes, localized tooltips, and distinct scan and projection signals.
 
 ### Changed
-- Balance station echoes round-robin across installed target minerals, starting with the latest module and selecting strongest signals within each type. Share turns between ore/deposit variants, preserve overlapping different mineral types, redistribute unused turns, and use ambient signals only for remaining slots. Update English, Russian, Ukrainian, and Ponder guidance.
+- Retire Noise Cancellation: module-free stations report caves, water, and lava; target modules automatically restrict surveys to their targets, with empty results when none are found. Apply the same rules to parked trains.
+- Preserve legacy Noise Cancellation items and recover installed modules after active modules via Shift-RMB or when breaking the station, without active-slot or SU costs. Remove recipes and Creative/JEI entries; update EN/RU/UK tooltips and Ponder.
+- Balance station echoes round-robin across installed target minerals, starting with the latest module and selecting strongest signals within each type. Share turns between ore/deposit variants, preserve overlapping different mineral types, redistribute unused turns. Update English, Russian, Ukrainian, and Ponder guidance.
 - Show confirmed-deposit hologram fill only behind rendered scenery, leaving exposed ore textures unobscured while retaining outlines, guide beams, and buried-surface fill for placed and train-mounted projectors.
 - Retire the Below Zero module: target detection works at all heights within scan range, without an extra module.
 - Preserve legacy Below Zero items and recover installed modules with Shift-RMB after extracting active modules; retired modules occupy no active slot and consume no SU.

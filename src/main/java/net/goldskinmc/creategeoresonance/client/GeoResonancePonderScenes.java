@@ -434,14 +434,8 @@ public final class GeoResonancePonderScenes {
         scene.idle(90);
 
         scene.addKeyframe();
-        scene.overlay().showControls(util.vector().blockSurface(stationUpperLeft, Direction.UP), Pointing.DOWN, 55)
-            .rightClick()
-            .withItem(new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
-        scene.idle(20);
-        setStationPonderModules(scene, impact,
-            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
         scene.overlay().showText(78)
-            .text("Noise Cancellation removes cave, water, and lava signals.")
+            .text("Without target modules, the station reports caves, water, and lava.")
             .pointAt(util.vector().centerOf(waterPatch.get(3)))
             .placeNearTarget();
         scene.idle(88);
@@ -459,10 +453,9 @@ public final class GeoResonancePonderScenes {
             .withItem(new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(18);
         setStationPonderModules(scene, impact,
-            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.overlay().showText(64)
-            .text("Target modules add specific signatures, like redstone.")
+            .text("With target modules installed, only their target signals are reported.")
             .pointAt(util.vector().centerOf(redstonePatch.get(1)).add(0.0D, -0.5D, 0.0D))
             .placeNearTarget();
         scene.idle(74);
@@ -471,7 +464,6 @@ public final class GeoResonancePonderScenes {
             .withItem(new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
         scene.idle(18);
         setStationPonderModules(scene, impact,
-            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()),
             new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
         scene.overlay().showText(64)
@@ -489,7 +481,6 @@ public final class GeoResonancePonderScenes {
             .rightClick();
         scene.idle(40);
         setStationPonderModules(scene, impact,
-            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()),
             new ItemStack(GeoResonanceItems.REDSTONE_RESONANCE_MODULE.get()));
         scene.idle(50);
         scene.overlay().showText(120)
