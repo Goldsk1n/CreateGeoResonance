@@ -28,9 +28,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 public final class SeismicStationMountedRuntime {
     private SeismicStationMountedRuntime() {
@@ -101,7 +99,7 @@ public final class SeismicStationMountedRuntime {
             Config.STATION_NOISE.get().floatValue(),
             serverLevel.getGameTime(),
             false,
-            buildDetectableTypes(stationData.inventory()),
+            SeismicStationControllerLogic.buildDetectableTypes(stationData.inventory()),
             SeismicStationControllerLogic.buildModulePriorityMap(stationData.inventory()),
             (request, result) -> acceptScanResult(contraptionEntity.getId(), controllerLocalPos, request.level(), result)
         ));
@@ -439,22 +437,6 @@ public final class SeismicStationMountedRuntime {
             return fallback;
         }
         return tag.getFloat("Speed");
-    }
-
-    private static Set<SeismicAnomalyType> buildDetectableTypes(net.neoforged.neoforge.items.ItemStackHandler inventory) {
-        EnumSet<SeismicAnomalyType> detectable = EnumSet.noneOf(SeismicAnomalyType.class);
-        if (!SeismicStationControllerLogic.hasModuleInstalled(inventory, SeismicModuleType.NOISE_CANCELLATION)) {
-            detectable.add(SeismicAnomalyType.CAVE);
-            detectable.add(SeismicAnomalyType.WATER);
-            detectable.add(SeismicAnomalyType.LAVA);
-        }
-        for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
-            SeismicAnomalyType detects = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
-            if (detects != null) {
-                detectable.add(detects);
-            }
-        }
-        return detectable;
     }
 
 

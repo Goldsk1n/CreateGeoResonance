@@ -16,8 +16,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class SeismicStationControllerLogic {
     private SeismicStationControllerLogic() {
@@ -165,6 +167,22 @@ public final class SeismicStationControllerLogic {
             }
         }
         return modules;
+    }
+
+    public static Set<SeismicAnomalyType> buildDetectableTypes(ItemStackHandler inventory) {
+        EnumSet<SeismicAnomalyType> detectable = EnumSet.noneOf(SeismicAnomalyType.class);
+        for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
+            SeismicAnomalyType type = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
+            if (type != null) {
+                detectable.add(type);
+            }
+        }
+        if (detectable.isEmpty()) {
+            detectable.add(SeismicAnomalyType.CAVE);
+            detectable.add(SeismicAnomalyType.WATER);
+            detectable.add(SeismicAnomalyType.LAVA);
+        }
+        return detectable;
     }
 
     public static Map<SeismicAnomalyType, Integer> buildModulePriorityMap(ItemStackHandler inventory) {

@@ -38,9 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 public class SeismicStationBlockEntity extends KineticBlockEntity {
     private static final String INVENTORY_TAG = "Inventory";
@@ -195,10 +193,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
 
     public List<ItemStack> getInstalledModuleStacks() {
         return SeismicStationControllerLogic.getInstalledModuleStacks(inventory);
-    }
-
-    public boolean hasNoiseCancellationModule() {
-        return hasModuleInstalled(SeismicModuleType.NOISE_CANCELLATION);
     }
 
     public boolean tryInsertModule(Player player, InteractionHand hand) {
@@ -373,7 +367,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 Config.STATION_NOISE.get().floatValue(),
                 serverLevel.getGameTime(),
                 false,
-                buildDetectableTypes(),
+                SeismicStationControllerLogic.buildDetectableTypes(inventory),
                 SeismicStationControllerLogic.buildModulePriorityMap(inventory),
                 (request, result) -> {
                     BlockEntity blockEntity = request.level().getBlockEntity(origin);
@@ -752,28 +746,8 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
     }
 
-    private Set<SeismicAnomalyType> buildDetectableTypes() {
-        EnumSet<SeismicAnomalyType> detectable = EnumSet.noneOf(SeismicAnomalyType.class);
-        if (!hasNoiseCancellationModule()) {
-            detectable.add(SeismicAnomalyType.CAVE);
-            detectable.add(SeismicAnomalyType.WATER);
-            detectable.add(SeismicAnomalyType.LAVA);
-        }
-        for (int slot = SLOT_MODULE_START; slot <= SLOT_MODULE_END; slot++) {
-            SeismicAnomalyType detects = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
-            if (detects != null) {
-                detectable.add(detects);
-            }
-        }
-        return detectable;
-    }
-
     private boolean hasInstalledModules() {
         return getInstalledModuleCount() > 0;
-    }
-
-    private boolean hasModuleInstalled(SeismicModuleType moduleType) {
-        return SeismicStationControllerLogic.hasModuleInstalled(inventory, moduleType);
     }
 
     private int getInstalledModuleCount() {

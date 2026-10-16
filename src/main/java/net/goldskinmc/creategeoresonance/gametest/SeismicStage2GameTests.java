@@ -2,14 +2,18 @@ package net.goldskinmc.creategeoresonance.gametest;
 
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.registry.GeoResonanceBlocks;
+import net.goldskinmc.creategeoresonance.registry.GeoResonanceItems;
 import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
+import net.goldskinmc.creategeoresonance.seismic.SeismicStationControllerLogic;
+import net.goldskinmc.creategeoresonance.seismic.SeismicModuleType;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -32,6 +36,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 
 import java.util.List;
+import java.util.Set;
 
 @GameTestHolder(CreateGeoResonanceMod.MODID)
 @EventBusSubscriber(modid = CreateGeoResonanceMod.MODID)
@@ -132,6 +137,78 @@ public final class SeismicStage2GameTests {
         helper.assertTrue(snapshot.signals().get(0).approxY() == stationWorldPos.getY() - 18, "Approximate Y should roundtrip");
         helper.assertTrue(snapshot.exactClusters().size() == 1, "Expected one exact cluster");
         helper.assertTrue(snapshot.exactClusters().get(0).blocks().size() == 2, "Exact cluster should preserve block set");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void stationAutomaticallySelectsAmbientOrTargetOnlySurvey(GameTestHelper helper) {
+        StationFixture fixture = placeStation(helper, new BlockPos(2, 1, 2));
+        SeismicStationBlockEntity station = (SeismicStationBlockEntity) helper.getBlockEntity(fixture.controller());
+        ItemStackHandler inventory = station.getInventory();
+        Set<SeismicAnomalyType> ambient = Set.of(SeismicAnomalyType.CAVE, SeismicAnomalyType.WATER, SeismicAnomalyType.LAVA);
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory).equals(ambient),
+            "A module-free station must detect only ambient targets");
+
+        inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START,
+            new ItemStack(GeoResonanceItems.COPPER_RESONANCE_MODULE.get()));
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory).equals(Set.of(SeismicAnomalyType.COPPER)),
+            "A Copper module must exclude ambient signals, even when no Copper is found");
+        inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 1,
+            new ItemStack(GeoResonanceItems.DIAMOND_RESONANCE_MODULE.get()));
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory)
+            .equals(Set.of(SeismicAnomalyType.COPPER, SeismicAnomalyType.DIAMOND)),
+            "Multiple modules must include only their selected target types");
+
+        inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START, ItemStack.EMPTY);
+        inventory.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 1, ItemStack.EMPTY);
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory).equals(ambient),
+            "Removing all target modules must restore ambient scanning");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void retiredModulesSurviveMigrationWithoutSlotsOrStress(GameTestHelper helper) {
+        StationFixture fixture = placeStation(helper, new BlockPos(2, 1, 2));
+        SeismicStationBlockEntity station = (SeismicStationBlockEntity) helper.getBlockEntity(fixture.controller());
+        ItemStackHandler inventory = station.getInventory();
+        ItemStackHandler legacy = new ItemStackHandler(SeismicStationBlockEntity.SLOT_MODULE_START + 16);
+        legacy.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
+        legacy.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 1,
+            new ItemStack(GeoResonanceItems.COPPER_RESONANCE_MODULE.get()));
+        legacy.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 14,
+            new ItemStack(GeoResonanceItems.BELOW_ZERO_MODULE.get()));
+        legacy.setStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START + 15,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get()));
+        inventory.deserializeNBT(helper.getLevel().registryAccess(), legacy.serializeNBT(helper.getLevel().registryAccess()));
+        helper.assertTrue(inventory.getStackInSlot(SeismicStationBlockEntity.SLOT_MODULE_START).isEmpty(),
+            "Retired modules must free their active slots");
+        helper.assertTrue(SeismicStationControllerLogic.getInstalledModuleCount(inventory) == 1,
+            "Only the active Copper module may contribute to module stress");
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory).equals(Set.of(SeismicAnomalyType.COPPER)),
+            "Recovered modules must not change active survey targets");
+        helper.assertTrue(!inventory.isItemValid(SeismicStationBlockEntity.SLOT_MODULE_START,
+            new ItemStack(GeoResonanceItems.NOISE_CANCELLATION_MODULE.get())), "Retired modules cannot be reinstalled");
+        helper.assertTrue(SeismicModuleType.NOISE_CANCELLATION.isRetired()
+            && !SeismicModuleType.NOISE_CANCELLATION.isAvailable(), "Noise Cancellation must be unavailable");
+
+        // Roundtrip the recovery bank, as world reloads and train assembly do.
+        inventory.deserializeNBT(helper.getLevel().registryAccess(), inventory.serializeNBT(helper.getLevel().registryAccess()));
+        FakePlayer player = FakePlayerFactory.getMinecraft(helper.getLevel());
+        player.setShiftKeyDown(true);
+        for (var expected : List.of(GeoResonanceItems.COPPER_RESONANCE_MODULE.get(),
+            GeoResonanceItems.NOISE_CANCELLATION_MODULE.get(), GeoResonanceItems.BELOW_ZERO_MODULE.get(),
+            GeoResonanceItems.NOISE_CANCELLATION_MODULE.get())) {
+            player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            helper.assertTrue(station.tryExtractModule(player, InteractionHand.MAIN_HAND), "Expected a recoverable module");
+            helper.assertTrue(player.getMainHandItem().is(expected), "Active modules must be extracted before recovered modules");
+        }
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        helper.assertFalse(station.tryExtractModule(player, InteractionHand.MAIN_HAND), "Recovery must not duplicate retired items");
+        player.setShiftKeyDown(false);
+        helper.assertTrue(SeismicStationControllerLogic.buildDetectableTypes(inventory)
+            .equals(Set.of(SeismicAnomalyType.CAVE, SeismicAnomalyType.WATER, SeismicAnomalyType.LAVA)),
+            "An empty recovery bank and no active modules must restore ambient scanning");
         helper.succeed();
     }
 

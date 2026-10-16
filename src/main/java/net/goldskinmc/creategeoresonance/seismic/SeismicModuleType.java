@@ -6,7 +6,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
 public enum SeismicModuleType {
-    BELOW_ZERO("below_zero_module", null), // Retained for saved items and enum ordinal compatibility.
+    // Retained for saved items and enum ordinal compatibility.
+    BELOW_ZERO("below_zero_module", null),
     NOISE_CANCELLATION("noise_cancellation_module", null),
     AMETHYST("amethyst_module", SeismicAnomalyType.AMETHYST),
     CHEST("chest_module", SeismicAnomalyType.CHEST),
@@ -68,7 +69,7 @@ public enum SeismicModuleType {
 
     public boolean isAvailable() {
         return switch (this) {
-            case BELOW_ZERO -> false;
+            case BELOW_ZERO, NOISE_CANCELLATION -> false;
             case THORIUM -> hasAddonItems("create_new_age", "thorium", "radioactive_thorium")
                 || hasAddonItems("createnuclear", "raw_thorium", "thorium_dust");
             case MAGNETITE -> ModList.get().isLoaded("create_new_age");
@@ -132,7 +133,7 @@ public enum SeismicModuleType {
     }
 
     public boolean isRetired() {
-        return this == BELOW_ZERO;
+        return this == BELOW_ZERO || this == NOISE_CANCELLATION;
     }
 
     @Nullable
