@@ -47,6 +47,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Preserve the station hammer's animation phase when paper, ink, or other inventory updates sync mid-strike; identify new cycles by replay/reveal transitions, and reconstruct late-loaded animations using the full cycle duration rather than the remaining countdown.
 - Apply station module priorities before merging and capping scan signals, so water and lava cannot crowd out installed mineral targets. Share selection between placed and train-mounted stations, retain last-module priority and Noise Cancellation, and keep hand-hammer selection unchanged.
 - Remap New Age's ESL library explicitly in the Forge dev runtime to prevent a world-entry Creative search crash triggered by Immersive Engineering's powerpack tooltip; release dependencies are unchanged.
 - Rank visible holograms by their original surveyed centers so mining individual blocks does not hide a partially mined vein at the display limit, including on trains.

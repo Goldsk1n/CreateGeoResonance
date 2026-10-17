@@ -85,6 +85,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private int comparatorOutputCache = -1;
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
+    private boolean clientStrikeAnimationSynced;
     private float clientSwingProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientSwingDurationTicks = 1;
 
@@ -568,6 +569,9 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     }
 
     private void tickClientStrikeAnimation() {
+        if (!clientStrikeAnimationSynced) {
+            syncClientStrikeAnimation(scanRunning, awaitingScanResult, revealIndex);
+        }
         if (clientStrikeProgressTicks >= 0.0F) {
             clientStrikeProgressTicks++;
             if (clientStrikeProgressTicks >= Math.max(1, clientStrikeIntervalTicks)) {
@@ -585,6 +589,22 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private void startClientStrikeCycle(int intervalTicks) {
         clientStrikeIntervalTicks = Math.max(1, intervalTicks);
         clientStrikeProgressTicks = 0.0F;
+    }
+
+    private void syncClientStrikeAnimation(boolean previousScanRunning, boolean previousAwaitingResult, int previousRevealIndex) {
+        if (!scanRunning || awaitingScanResult) {
+            clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
+        } else {
+            // Inventory packets advance the countdown without starting a new strike.
+            boolean newCycle = !clientStrikeAnimationSynced || !previousScanRunning
+                || previousAwaitingResult || revealIndex != previousRevealIndex;
+            if (newCycle && strikeTimer > 0) {
+                startClientStrikeCycle(getCurrentStrikeIntervalTicks());
+                clientStrikeProgressTicks = clientStrikeIntervalTicks
+                    - Mth.clamp(strikeTimer, 0, clientStrikeIntervalTicks);
+            }
+        }
+        clientStrikeAnimationSynced = true;
     }
 
     private void startClientSwingCycle(int durationTicks) {
@@ -713,7 +733,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         boolean previousScanRunning = scanRunning;
         boolean previousAwaitingResult = awaitingScanResult;
         int previousRevealIndex = revealIndex;
-        int previousStrikeTimer = strikeTimer;
 
         inventory.deserializeNBT(compound.getCompound(INVENTORY_TAG));
         scanRunning = compound.getBoolean(SCAN_RUNNING_TAG);
@@ -749,15 +768,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
 
         if (clientPacket && level != null && level.isClientSide) {
-            if (scanRunning && !awaitingScanResult && strikeTimer > 0) {
-                boolean enteredReplay = !previousScanRunning || previousAwaitingResult;
-                boolean strikeWindowChanged = revealIndex != previousRevealIndex || strikeTimer != previousStrikeTimer;
-                if (enteredReplay || strikeWindowChanged) {
-                    startClientStrikeCycle(strikeTimer);
-                }
-            } else {
-                clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
-            }
+            syncClientStrikeAnimation(previousScanRunning, previousAwaitingResult, previousRevealIndex);
         } else if (!clientPacket) {
             comparatorOutputCache = -1;
             updateComparatorOutputIfNeeded();
