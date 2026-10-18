@@ -73,18 +73,8 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
             projectorData.writeToTag(context.blockEntityData);
             syncActorData(contraptionEntity, localPos, actor, context);
 
-            player.displayClientMessage(Component.translatable(
-                    "block.creategeoresonance.seismic_projector.node_loaded",
-                    result.loadedNodeCount(),
-                    SeismicProjectorData.MAX_NODES)
-                .withStyle(ChatFormatting.GREEN), true);
-            if (projectorData.hasExactNodes()) {
-                player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.exact_ready")
-                    .withStyle(ChatFormatting.GOLD), true);
-            } else if (projectorData.hasPreviewNodes()) {
-                player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.ready")
-                    .withStyle(ChatFormatting.AQUA), true);
-            }
+            // Assembled projectors have no live RPM gate, matching their projection renderer.
+            SeismicProjectorControllerLogic.sendLoadFeedback(player, result.loadedNodeCount(), true);
             return true;
         }
 

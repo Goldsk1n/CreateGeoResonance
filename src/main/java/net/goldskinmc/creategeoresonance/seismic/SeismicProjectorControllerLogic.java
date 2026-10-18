@@ -13,6 +13,20 @@ public final class SeismicProjectorControllerLogic {
     private SeismicProjectorControllerLogic() {
     }
 
+    public static void sendLoadFeedback(Player player, int loadedNodeCount, boolean powered) {
+        if (loadedNodeCount < SeismicProjectorData.MAX_NODES) {
+            player.displayClientMessage(Component.translatable(
+                    "block.creategeoresonance.seismic_projector.node_loaded",
+                    loadedNodeCount, SeismicProjectorData.MAX_NODES)
+                .withStyle(ChatFormatting.GREEN), true);
+            return;
+        }
+        player.displayClientMessage(Component.translatable(powered
+                ? "block.creategeoresonance.seismic_projector.ready"
+                : "block.creategeoresonance.seismic_projector.awaiting_power")
+            .withStyle(powered ? ChatFormatting.GOLD : ChatFormatting.YELLOW), true);
+    }
+
     public static boolean tryTakeSeismogram(SeismicProjectorData data, Player player, InteractionHand hand) {
         if (!player.isShiftKeyDown() || !player.getItemInHand(hand).isEmpty()
             || !(player.level() instanceof ServerLevel level)) {
