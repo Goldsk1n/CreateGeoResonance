@@ -10,8 +10,7 @@ public final class SeismicStationMountedVisualState {
 
     private long strikeCycleStartTick = NO_CYCLE;
     private int strikeIntervalTicks = 1;
-    private long swingCycleStartTick = NO_CYCLE;
-    private int swingDurationTicks = 1;
+    private final SeismicStationPenSpring penSpring = new SeismicStationPenSpring();
 
     public static SeismicStationMountedVisualState getOrCreate(MovementContext context) {
         if (context.temporaryData instanceof SeismicStationMountedVisualState state) {
@@ -46,12 +45,11 @@ public final class SeismicStationMountedVisualState {
     public void onStrikeImpact(long gameTime) {
         int interval = SeismicStationMountedRuntime.calculateStrikeIntervalTicks();
         startStrikeCycle(gameTime, interval);
-        startSwingCycle(gameTime, clientSwingDurationFor(interval));
+        penSpring.onStrike(gameTime);
     }
 
     public void onEchoArrival(long gameTime) {
-        int interval = SeismicStationMountedRuntime.calculateStrikeIntervalTicks();
-        startSwingCycle(gameTime, clientSwingDurationFor(interval));
+        penSpring.onEcho(gameTime);
     }
 
     public void ensureCountdownBootstrapped(SeismicStationData stationData, long gameTime) {
@@ -78,15 +76,8 @@ public final class SeismicStationMountedVisualState {
         return Mth.clamp(progress, 0.0F, 1.0F);
     }
 
-    public float swingPhase(long gameTime, float partialTicks) {
-        if (swingCycleStartTick == NO_CYCLE) {
-            return 0.0F;
-        }
-        float progress = (float) ((gameTime + partialTicks - swingCycleStartTick) / (double) Math.max(1, swingDurationTicks));
-        if (progress >= 1.0F || progress < 0.0F) {
-            return 0.0F;
-        }
-        return Mth.clamp(progress, 0.0F, 1.0F);
+    public float swingAngle(long gameTime, float partialTicks) {
+        return penSpring.angleRadians(gameTime, partialTicks);
     }
 
     private void startStrikeCycle(long gameTime, int intervalTicks) {
@@ -94,12 +85,4 @@ public final class SeismicStationMountedVisualState {
         strikeCycleStartTick = gameTime;
     }
 
-    private void startSwingCycle(long gameTime, int durationTicks) {
-        swingDurationTicks = Math.max(1, durationTicks);
-        swingCycleStartTick = gameTime;
-    }
-
-    private static int clientSwingDurationFor(int strikeIntervalTicks) {
-        return Mth.clamp(Math.round(strikeIntervalTicks * 0.8F), 8, 20);
-    }
 }

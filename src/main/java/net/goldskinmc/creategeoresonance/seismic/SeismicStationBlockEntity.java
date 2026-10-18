@@ -84,8 +84,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
     private float clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
     private int clientStrikeIntervalTicks = 1;
     private boolean clientStrikeAnimationSynced;
-    private float clientSwingProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
-    private int clientSwingDurationTicks = 1;
+    private final SeismicStationPenSpring clientPenSpring = new SeismicStationPenSpring();
 
     public SeismicStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -278,14 +277,14 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             return;
         }
         onClientStrikeCycleStart();
-        startClientSwingCycle(clientSwingDurationFor(getCurrentStrikeIntervalTicks()));
+        clientPenSpring.onStrike(level.getGameTime());
     }
 
     public void onClientEchoArrival() {
         if (level == null || !level.isClientSide) {
             return;
         }
-        startClientSwingCycle(clientSwingDurationFor(getCurrentStrikeIntervalTicks()));
+        clientPenSpring.onEcho(level.getGameTime());
     }
 
     public float getClientStrikeAnimationPhase(float partialTicks) {
@@ -304,16 +303,11 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         return Math.max(1, clientStrikeIntervalTicks);
     }
 
-    public float getClientSwingAnimationPhase(float partialTicks) {
-        if (level == null || !level.isClientSide || clientSwingProgressTicks < 0.0F) {
+    public float getClientSwingAngle(float partialTicks) {
+        if (level == null || !level.isClientSide) {
             return 0.0F;
         }
-        float duration = Math.max(1.0F, clientSwingDurationTicks);
-        float progress = (clientSwingProgressTicks + partialTicks) / duration;
-        if (progress >= 1.0F) {
-            return 0.0F;
-        }
-        return Mth.clamp(progress, 0.0F, 1.0F);
+        return clientPenSpring.angleRadians(level.getGameTime(), partialTicks);
     }
 
     public boolean tryStartScan(ServerPlayer player) {
@@ -576,12 +570,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
                 clientStrikeProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
             }
         }
-        if (clientSwingProgressTicks >= 0.0F) {
-            clientSwingProgressTicks++;
-            if (clientSwingProgressTicks >= Math.max(1, clientSwingDurationTicks)) {
-                clientSwingProgressTicks = NO_CLIENT_STRIKE_PROGRESS;
-            }
-        }
     }
 
     private void startClientStrikeCycle(int intervalTicks) {
@@ -603,15 +591,6 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
             }
         }
         clientStrikeAnimationSynced = true;
-    }
-
-    private void startClientSwingCycle(int durationTicks) {
-        clientSwingDurationTicks = Math.max(1, durationTicks);
-        clientSwingProgressTicks = 0.0F;
-    }
-
-    private static int clientSwingDurationFor(int strikeIntervalTicks) {
-        return Mth.clamp(Math.round(strikeIntervalTicks * 0.8F), 8, 20);
     }
 
     public SeismicStationBoundingBlockEntity getInputNode() {

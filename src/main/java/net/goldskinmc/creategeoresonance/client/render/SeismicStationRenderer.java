@@ -56,7 +56,6 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     private static final float SWING_PIVOT_X = -8.0F;
     private static final float SWING_PIVOT_Y = 29.75F;
     private static final float SWING_PIVOT_Z = 8.0F;
-    private static final float SWING_MAX_ANGLE_DEGREES = 5.0F;
     private static final float PISTON_TRAVEL_BLOCKS = 1.0F;
     private static final float MAX_SPEED_RISE_PORTION = 0.75F;
     private static final int MODULES_PER_ROW = 4;
@@ -345,14 +344,7 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     }
 
     private static float swingingAngleFor(SeismicStationBlockEntity blockEntity, float partialTicks) {
-        float phase = blockEntity.getClientSwingAnimationPhase(partialTicks);
-        if (phase <= 0.0F) {
-            return 0.0F;
-        }
-
-        float smoothPhase = phase * phase * (3.0F - 2.0F * phase);
-        float swingDegrees = SWING_MAX_ANGLE_DEGREES * (float) Math.sin(smoothPhase * ((float) Math.PI * 2.0F));
-        return swingDegrees * ((float) Math.PI / 180.0F);
+        return blockEntity.getClientSwingAngle(partialTicks);
     }
 
     private static float mountedPistonTravel(SeismicStationMountedVisualState visualState, MovementContext context) {
@@ -364,13 +356,7 @@ public class SeismicStationRenderer extends KineticBlockEntityRenderer<SeismicSt
     }
 
     private static float mountedSwingingAngle(SeismicStationMountedVisualState visualState, MovementContext context) {
-        float phase = visualState.swingPhase(context.world.getGameTime(), AnimationTickHolder.getPartialTicks());
-        if (phase <= 0.0F) {
-            return 0.0F;
-        }
-        float smoothPhase = phase * phase * (3.0F - 2.0F * phase);
-        float swingDegrees = SWING_MAX_ANGLE_DEGREES * (float) Math.sin(smoothPhase * ((float) Math.PI * 2.0F));
-        return swingDegrees * ((float) Math.PI / 180.0F);
+        return visualState.swingAngle(context.world.getGameTime(), AnimationTickHolder.getPartialTicks());
     }
 
     private static float mountedContinuousAngle(MovementContext context, Direction facing, float speedMultiplier) {
