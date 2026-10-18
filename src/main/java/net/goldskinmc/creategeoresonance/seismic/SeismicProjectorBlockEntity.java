@@ -57,18 +57,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         syncClient();
         updatePoweredState();
 
-        player.displayClientMessage(Component.translatable(
-                "block.creategeoresonance.seismic_projector.node_loaded",
-                result.loadedNodeCount(),
-                SeismicProjectorData.MAX_NODES)
-            .withStyle(ChatFormatting.GREEN), true);
-        if (projectorData.hasExactNodes()) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.exact_ready")
-                .withStyle(ChatFormatting.GOLD), true);
-        } else if (projectorData.hasPreviewNodes()) {
-            player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_projector.ready")
-                .withStyle(ChatFormatting.AQUA), true);
-        }
+        SeismicProjectorControllerLogic.sendLoadFeedback(player, result.loadedNodeCount(), hasRequiredSpeed());
         return true;
     }
 
