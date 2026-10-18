@@ -29,6 +29,7 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicFluidTags;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorData;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorVeinSelector;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -64,7 +65,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Comparator;
 import java.util.function.Consumer;
 
 public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<SeismicProjectorBlockEntity> {
@@ -639,26 +639,11 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private static List<RenderableVein> limitVisibleVeins(BlockPos origin, List<RenderableVein> veins, int maxVisible) {
-        if (veins.isEmpty() || maxVisible <= 0) {
-            return List.of();
-        }
-        if (veins.size() <= maxVisible) {
-            return veins;
-        }
-        List<RenderableVeinDistance> ranked = new ArrayList<>(veins.size());
-        for (RenderableVein vein : veins) {
+        return SeismicProjectorVeinSelector.select(veins, maxVisible, RenderableVein::type, vein -> {
             // Mining must shrink the hologram without changing its distance priority.
             float[] centroid = veinCentroid(origin, vein.surveyedBlocks());
-            float distSq = centroid[0] * centroid[0] + centroid[1] * centroid[1] + centroid[2] * centroid[2];
-            ranked.add(new RenderableVeinDistance(vein, distSq));
-        }
-        ranked.sort(Comparator.comparingDouble(RenderableVeinDistance::distanceSq));
-
-        List<RenderableVein> limited = new ArrayList<>(maxVisible);
-        for (int i = 0; i < maxVisible; i++) {
-            limited.add(ranked.get(i).vein());
-        }
-        return limited;
+            return centroid[0] * centroid[0] + centroid[1] * centroid[1] + centroid[2] * centroid[2];
+        });
     }
 
     private static boolean matchesType(BlockState state, SeismicAnomalyType type) {
@@ -1316,9 +1301,6 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         private RenderableVein(SeismicAnomalyType type, List<BlockPos> blocks) {
             this(type, blocks, blocks);
         }
-    }
-
-    private record RenderableVeinDistance(RenderableVein vein, float distanceSq) {
     }
 
     private record ExactVeinGeometry(SeismicAnomalyType type, List<FaceQuad> faces, List<LineSegment> edges,
