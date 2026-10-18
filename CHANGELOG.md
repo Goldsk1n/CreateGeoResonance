@@ -48,6 +48,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Measure active projector render distance from the full projection bounds, including deep deposits and guide beams, rather than only the projector block. Retain the 128-block distance limit outside those bounds and normal inactive-projector culling; cache bounds per projector position and invalidate them with survey data changes, without force-loading chunks or changing power/station-range rules.
 - Clarify projector loading feedback: two loaded seismograms prompt for rear-shaft power when a placed projector cannot run, rather than claiming exact veins are ready. Preserve unpowered loading and mounted-projector behavior; update EN/RU/UK messages.
 - Blend station pen/weight reactions with a shared damped spring instead of restarting the shake on every strike or echo. Preserve the interpolated pose during overlap, use a weaker echo impulse, increase both reactions by 1.5x with a 7.5-degree swing limit, and settle correctly off-screen for placed and train-mounted stations.
 - Preserve the station hammer's animation phase when paper, ink, or other inventory updates sync mid-strike; identify new cycles by replay/reveal transitions, and reconstruct late-loaded animations using the full cycle duration rather than the remaining countdown.

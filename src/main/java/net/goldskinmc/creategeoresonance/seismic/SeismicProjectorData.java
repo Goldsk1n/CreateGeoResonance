@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -50,6 +51,10 @@ public final class SeismicProjectorData {
     private boolean exactVeinsDirty = true;
     private List<TriangulatedCandidate> cachedTriangulatedCandidates = List.of();
     private List<ExactVein> cachedExactVeins = List.of();
+    @Nullable
+    private AABB cachedRenderBounds;
+    @Nullable
+    private BlockPos cachedRenderOrigin;
 
     public LoadResult tryLoadSnapshot(String projectorDimension, BlockPos projectorPos,
                                       SeismogramMapService.MapSnapshot snapshot) {
@@ -254,7 +259,23 @@ public final class SeismicProjectorData {
     }
 
     public AABB getRenderBoundingBox(BlockPos projectorPos, boolean projecting) {
-        List<ExactVein> exactVeins = projecting ? getConfirmedVeins() : List.of();
+        if (!projecting) {
+            return new AABB(projectorPos).inflate(1.0D);
+        }
+        if (cachedRenderBounds == null || !projectorPos.equals(cachedRenderOrigin)) {
+            cachedRenderBounds = computeRenderBoundingBox(projectorPos);
+            cachedRenderOrigin = projectorPos.immutable();
+        }
+        return cachedRenderBounds;
+    }
+
+    public boolean isWithinProjectionRenderDistance(BlockPos projectorPos, boolean projecting, Vec3 camera, int viewDistance) {
+        return projecting && getRenderBoundingBox(projectorPos, true).distanceToSqr(camera)
+            < (double) viewDistance * viewDistance;
+    }
+
+    private AABB computeRenderBoundingBox(BlockPos projectorPos) {
+        List<ExactVein> exactVeins = getConfirmedVeins();
         if (!exactVeins.isEmpty()) {
             int minX = projectorPos.getX();
             int minY = projectorPos.getY();
@@ -544,6 +565,8 @@ public final class SeismicProjectorData {
         exactVeinsDirty = true;
         cachedTriangulatedCandidates = List.of();
         cachedExactVeins = List.of();
+        cachedRenderBounds = null;
+        cachedRenderOrigin = null;
     }
 
     public enum LoadStatus {

@@ -183,7 +183,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
         return projectorData;
     }
 
-    private boolean isProjecting() {
+    public boolean isProjecting() {
         return projectorData.canProjectFrom(worldPosition, hasRequiredSpeed());
     }
 

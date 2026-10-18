@@ -566,6 +566,14 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     @Override
+    public boolean shouldRender(SeismicProjectorBlockEntity blockEntity, Vec3 camera) {
+        // Keep deep holograms visible when their projector is above the camera's normal render radius.
+        return super.shouldRender(blockEntity, camera)
+            || blockEntity.getProjectorData().isWithinProjectionRenderDistance(
+                blockEntity.getBlockPos(), blockEntity.isProjecting(), camera, getViewDistance());
+    }
+
+    @Override
     public int getViewDistance() {
         return 128;
     }
