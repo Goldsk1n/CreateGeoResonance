@@ -31,6 +31,7 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Separate Crimsite, Asurine, Ochrum, and Veridium station modules with recipes, localized tooltips, and distinct scan and projection signals.
 
 ### Changed
+- Balance visible projector veins round-robin across resource types instead of letting nearby abundant deposits monopolize the display limit. Prioritize nearest surveyed centers within each type, share turns between ore/deposit variants, redistribute unused slots, and use deterministic nearest-type ordering for placed and mounted projectors. Keep the default limit at 10.
 - Retire Noise Cancellation: module-free stations report caves, water, and lava; target modules automatically restrict surveys to their targets, with empty results when none are found. Apply the same rules to parked trains.
 - Preserve legacy Noise Cancellation items and recover installed modules after active modules via Shift-RMB or when breaking the station, without active-slot or SU costs. Remove recipes and Creative/JEI entries; update EN/RU/UK tooltips and Ponder.
 - Balance station echoes round-robin across installed target minerals, starting with the latest module and selecting strongest signals within each type. Share turns between ore/deposit variants, preserve overlapping different mineral types, redistribute unused turns. Update English, Russian, Ukrainian, and Ponder guidance.

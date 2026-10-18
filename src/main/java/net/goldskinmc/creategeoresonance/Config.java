@@ -171,7 +171,7 @@ public class Config {
             .comment("In-world projector dashed guide line thickness.")
             .defineInRange("guideLineWidth", 0.5D, 0.2D, 1.0D);
         PROJECTOR_VISIBLE_VEINS_MAX = CLIENT_BUILDER
-            .comment("Maximum number of exact veins displayed at once. Closest veins are prioritized.")
+            .comment("Maximum number of exact veins displayed at once. Resource types take turns, starting with their closest veins; nearer types receive extra slots.")
             .defineInRange("visibleVeinsMax", 10, 0, 256);
         PROJECTOR_PONDER_BLOCK_EDGE_INSET = CLIENT_BUILDER
             .comment("Ponder-only hologram face offset from block borders. Negative expands, positive shrinks.")
