@@ -139,6 +139,8 @@ dependencies {
     // Startup compatibility regression mods, included in all dev profiles.
     runtimeOnly(fg.deobf("maven.modrinth:moonlight:${moonlight_version_id}"))
     runtimeOnly(fg.deobf("maven.modrinth:supplementaries:${supplementaries_version_id}"))
+    // Dev-only profiling in all profiles; not bundled with the published mod.
+    runtimeOnly(fg.deobf("maven.modrinth:spark:${spark_version_id}"))
     // Dev-only comfort/debug mods. runtimeOnly keeps them out of the final published jar.
     // Omitted in fastDev profile to reduce startup/world-load overhead.
     if (!fastDev) {
