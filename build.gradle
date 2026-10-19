@@ -126,6 +126,8 @@ dependencies {
     // Startup compatibility regression mods, included in all dev profiles.
     runtimeOnly "maven.modrinth:moonlight:${moonlight_version_id}"
     runtimeOnly "maven.modrinth:supplementaries:${supplementaries_version_id}"
+    // Dev-only profiling in all profiles; not bundled with the published mod.
+    runtimeOnly "maven.modrinth:spark:${spark_version_id}"
     // Dev-only physics runtime; disable with -PpropulsionDev=false. Not a release requirement.
     if (propulsionDev) {
         runtimeOnly "maven.modrinth:create-propulsion-simulated:${propulsion_version_id}"

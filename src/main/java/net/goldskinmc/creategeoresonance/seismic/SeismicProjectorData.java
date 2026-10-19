@@ -36,10 +36,6 @@ public final class SeismicProjectorData {
     private static final String TAG_SIGNAL_Y = "Y";
     private static final String TAG_EXACT_CLUSTERS = "ExactClusters";
     private static final String TAG_CLUSTER_TYPE = "ClusterType";
-    private static final String TAG_CLUSTER_BLOCKS = "Blocks";
-    private static final String TAG_CLUSTER_BLOCK_X = "BlockX";
-    private static final String TAG_CLUSTER_BLOCK_Y = "BlockY";
-    private static final String TAG_CLUSTER_BLOCK_Z = "BlockZ";
 
     public static final int MAX_NODES = 2;
     public static final int PREVIEW_REQUIRED_NODES = 2;
@@ -100,19 +96,24 @@ public final class SeismicProjectorData {
                 throw new IllegalStateException("Invalid stored projector seismogram");
             }
         }
+        SeismogramMapService.compactLegacyMap(stack);
         nodes.remove(nodes.size() - 1);
         invalidateComputedCaches();
         return stack;
     }
 
     public void writeToTag(CompoundTag tag) {
+        writeToTag(tag, false);
+    }
+
+    public void writeToTag(CompoundTag tag, boolean clientPacket) {
         if (tag == null) {
             return;
         }
         ListTag list = new ListTag();
         for (NodeSnapshot node : nodes) {
             CompoundTag entry = new CompoundTag();
-            if (node.seismogram() != null) {
+            if (!clientPacket && node.seismogram() != null) {
                 entry.put(TAG_SEISMOGRAM, node.seismogram().copy());
             }
             entry.putInt(TAG_CENTER_X, node.center().getX());
@@ -138,15 +139,7 @@ public final class SeismicProjectorData {
             for (SeismogramMapService.ExactCluster cluster : node.exactClusters()) {
                 CompoundTag clusterTag = new CompoundTag();
                 clusterTag.putString(TAG_CLUSTER_TYPE, cluster.type().name());
-                ListTag blockList = new ListTag();
-                for (BlockPos blockPos : cluster.blocks()) {
-                    CompoundTag blockTag = new CompoundTag();
-                    blockTag.putInt(TAG_CLUSTER_BLOCK_X, blockPos.getX());
-                    blockTag.putInt(TAG_CLUSTER_BLOCK_Y, blockPos.getY());
-                    blockTag.putInt(TAG_CLUSTER_BLOCK_Z, blockPos.getZ());
-                    blockList.add(blockTag);
-                }
-                clusterTag.put(TAG_CLUSTER_BLOCKS, blockList);
+                SeismicSurveyNbt.writeBlocks(clusterTag, cluster.blocks());
                 exactClustersTag.add(clusterTag);
             }
             entry.put(TAG_EXACT_CLUSTERS, exactClustersTag);
@@ -193,16 +186,7 @@ public final class SeismicProjectorData {
                 if (type == null) {
                     continue;
                 }
-                ListTag blockList = clusterTag.getList(TAG_CLUSTER_BLOCKS, Tag.TAG_COMPOUND);
-                List<BlockPos> blocks = new ArrayList<>(blockList.size());
-                for (Tag blockRaw : blockList) {
-                    CompoundTag blockTag = (CompoundTag) blockRaw;
-                    blocks.add(new BlockPos(
-                        blockTag.getInt(TAG_CLUSTER_BLOCK_X),
-                        blockTag.getInt(TAG_CLUSTER_BLOCK_Y),
-                        blockTag.getInt(TAG_CLUSTER_BLOCK_Z)
-                    ));
-                }
+                List<BlockPos> blocks = SeismicSurveyNbt.readBlocks(clusterTag, "BlockX", "BlockY", "BlockZ");
                 if (!blocks.isEmpty()) {
                     exactClusters.add(new SeismogramMapService.ExactCluster(type, List.copyOf(blocks)));
                 }
@@ -210,7 +194,7 @@ public final class SeismicProjectorData {
 
             Tag seismogram = entry.get(TAG_SEISMOGRAM);
             nodes.add(new NodeSnapshot(center, stationPos, stationDimension, List.copyOf(signals),
-                List.copyOf(exactClusters), seismogram != null ? seismogram.copy() : null));
+                List.copyOf(exactClusters), seismogram != null ? SeismogramMapService.compactSerializedMap(seismogram) : null));
         }
         invalidateComputedCaches();
     }
@@ -599,7 +583,7 @@ public final class SeismicProjectorData {
                 snapshot.stationDimension(),
                 List.copyOf(snapshot.signals()),
                 List.copyOf(snapshot.exactClusters()),
-                seismogram != null ? seismogram.copy() : null
+                seismogram != null ? SeismogramMapService.compactSerializedMap(seismogram) : null
             );
         }
     }

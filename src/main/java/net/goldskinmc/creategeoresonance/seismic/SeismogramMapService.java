@@ -1,5 +1,7 @@
 package net.goldskinmc.creategeoresonance.seismic;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import net.goldskinmc.creategeoresonance.ItemStackComponentData;
 import net.minecraft.core.component.DataComponents;
 import net.goldskinmc.creategeoresonance.network.GeoResonancePackets;
@@ -17,6 +19,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.saveddata.maps.MapId;
@@ -45,16 +48,17 @@ public final class SeismogramMapService {
     private static final String TAG_STATION_DIMENSION = "StationDimension";
     private static final String TAG_EXACT_CLUSTERS = "ExactClusters";
     private static final String TAG_CLUSTER_TYPE = "ClusterType";
-    private static final String TAG_CLUSTER_BLOCKS = "Blocks";
-    private static final String TAG_CLUSTER_BLOCK_X = "X";
-    private static final String TAG_CLUSTER_BLOCK_Y = "Y";
-    private static final String TAG_CLUSTER_BLOCK_Z = "Z";
 
     private static final int WINDOW_HALF_BLOCKS = 24;
     private static final int WINDOW_DIAMETER_BLOCKS = WINDOW_HALF_BLOCKS * 2;
     private static final int MAP_SIZE = 128;
     private static final int SIGNAL_DOT_RADIUS = 2;
     private static final Map<MarkerKey, MarkerState> LAST_MARKERS = new HashMap<>();
+    // Weak keys use identity, avoiding deep NBT hashing and retaining no discarded item data.
+    private static final Cache<CustomData, CachedSeismogram> SNAPSHOTS = CacheBuilder.newBuilder()
+        .weakKeys()
+        .maximumSize(128)
+        .build();
 
     private SeismogramMapService() {
     }
@@ -107,24 +111,46 @@ public final class SeismogramMapService {
 
     public static void clear() {
         LAST_MARKERS.clear();
+        SNAPSHOTS.invalidateAll();
     }
 
     @Nullable
     public static MapSnapshot readSnapshot(ItemStack stack) {
-        return readSnapshotInternal(stack, false);
+        CachedSeismogram cached = getCachedSeismogram(stack);
+        return cached != null ? cached.snapshot() : null;
     }
 
     @Nullable
     public static MapSnapshot readSnapshotWithExactData(ItemStack stack) {
-        return readSnapshotInternal(stack, true);
+        CompoundTag geoTag = readGeoTag(stack);
+        return geoTag != null ? readSnapshotInternal(geoTag, true) : null;
     }
 
     @Nullable
-    private static MapSnapshot readSnapshotInternal(ItemStack stack, boolean includeExactClusters) {
+    private static CachedSeismogram getCachedSeismogram(ItemStack stack) {
+        if (!stack.is(Items.FILLED_MAP)) {
+            return null;
+        }
+        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
+        if (customData == null) {
+            return null;
+        }
+        CachedSeismogram cached = SNAPSHOTS.getIfPresent(customData);
+        if (cached != null) {
+            return cached;
+        }
         CompoundTag geoTag = readGeoTag(stack);
         if (geoTag == null) {
             return null;
         }
+        cached = new CachedSeismogram(geoTag.getInt(TAG_CENTER_X), geoTag.getInt(TAG_CENTER_Z),
+            readSnapshotInternal(geoTag, false));
+        SNAPSHOTS.put(customData, cached);
+        return cached;
+    }
+
+    @Nullable
+    private static MapSnapshot readSnapshotInternal(CompoundTag geoTag, boolean includeExactClusters) {
         if (!geoTag.contains(TAG_STATION_X, Tag.TAG_INT)
             || !geoTag.contains(TAG_STATION_Y, Tag.TAG_INT)
             || !geoTag.contains(TAG_STATION_Z, Tag.TAG_INT)
@@ -162,16 +188,7 @@ public final class SeismogramMapService {
                 if (type == null) {
                     continue;
                 }
-                ListTag blockList = clusterTag.getList(TAG_CLUSTER_BLOCKS, Tag.TAG_COMPOUND);
-                List<BlockPos> blocks = new ArrayList<>(blockList.size());
-                for (Tag rawBlock : blockList) {
-                    CompoundTag blockTag = (CompoundTag) rawBlock;
-                    blocks.add(new BlockPos(
-                        blockTag.getInt(TAG_CLUSTER_BLOCK_X),
-                        blockTag.getInt(TAG_CLUSTER_BLOCK_Y),
-                        blockTag.getInt(TAG_CLUSTER_BLOCK_Z)
-                    ));
-                }
+                List<BlockPos> blocks = SeismicSurveyNbt.readBlocks(clusterTag, "X", "Y", "Z");
                 if (!blocks.isEmpty()) {
                     exactClusters.add(new ExactCluster(type, List.copyOf(blocks)));
                 }
@@ -198,8 +215,8 @@ public final class SeismogramMapService {
     }
 
     private static void updateHeldMap(ServerPlayer player, ItemStack stack) {
-        CompoundTag geoTag = readGeoTag(stack);
-        if (geoTag == null) {
+        CachedSeismogram cached = getCachedSeismogram(stack);
+        if (cached == null) {
             return;
         }
 
@@ -208,10 +225,8 @@ public final class SeismogramMapService {
             return;
         }
 
-        int centerX = geoTag.getInt(TAG_CENTER_X);
-        int centerZ = geoTag.getInt(TAG_CENTER_Z);
-        byte markerX = projectToMarker(player.getX(), centerX);
-        byte markerZ = projectToMarker(player.getZ(), centerZ);
+        byte markerX = projectToMarker(player.getX(), cached.centerX());
+        byte markerZ = projectToMarker(player.getZ(), cached.centerZ());
         byte markerRot = (byte) Math.floorMod(Mth.floor(player.getYRot() * 16.0F / 360.0F), 16);
         MarkerState markerState = new MarkerState(markerX, markerZ, markerRot);
         MarkerKey markerKey = new MarkerKey(player.getUUID(), mapId.id());
@@ -261,19 +276,35 @@ public final class SeismogramMapService {
             }
             CompoundTag clusterTag = new CompoundTag();
             clusterTag.putString(TAG_CLUSTER_TYPE, cluster.type().name());
-            ListTag blockList = new ListTag();
-            for (BlockPos blockPos : cluster.blocks()) {
-                CompoundTag blockTag = new CompoundTag();
-                blockTag.putInt(TAG_CLUSTER_BLOCK_X, blockPos.getX());
-                blockTag.putInt(TAG_CLUSTER_BLOCK_Y, blockPos.getY());
-                blockTag.putInt(TAG_CLUSTER_BLOCK_Z, blockPos.getZ());
-                blockList.add(blockTag);
-            }
-            clusterTag.put(TAG_CLUSTER_BLOCKS, blockList);
+            SeismicSurveyNbt.writeBlocks(clusterTag, cluster.blocks());
             clusterList.add(clusterTag);
         }
         tag.put(TAG_EXACT_CLUSTERS, clusterList);
         return tag;
+    }
+
+    public static Tag compactSerializedMap(Tag serializedItem) {
+        Tag copy = serializedItem.copy();
+        if (copy instanceof CompoundTag item) {
+            CompoundTag survey = item.getCompound("components").getCompound("minecraft:custom_data").getCompound(TAG_ROOT);
+            SeismicSurveyNbt.compactLegacyClusters(survey.getList(TAG_EXACT_CLUSTERS, Tag.TAG_COMPOUND));
+        }
+        return copy;
+    }
+
+    public static void compactLegacyMap(ItemStack stack) {
+        CompoundTag survey = readGeoTag(stack);
+        if (survey == null) {
+            return;
+        }
+        ListTag clusters = survey.getList(TAG_EXACT_CLUSTERS, Tag.TAG_COMPOUND);
+        for (Tag raw : clusters) {
+            if (((CompoundTag) raw).contains("Blocks", Tag.TAG_LIST)) {
+                CustomData.update(DataComponents.CUSTOM_DATA, stack, tag ->
+                    SeismicSurveyNbt.compactLegacyClusters(tag.getCompound(TAG_ROOT).getList(TAG_EXACT_CLUSTERS, Tag.TAG_COMPOUND)));
+                return;
+            }
+        }
     }
 
     private static void renderStaticMap(MapItemSavedData mapData, CompoundTag geoTag) {
@@ -396,11 +427,19 @@ public final class SeismogramMapService {
         };
     }
 
+    @Nullable
+    @SuppressWarnings("deprecation")
     private static CompoundTag readGeoTag(ItemStack stack) {
         if (!stack.is(Items.FILLED_MAP)) {
             return null;
         }
-        return ItemStackComponentData.getCompound(stack, TAG_ROOT);
+        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
+        if (customData == null) {
+            return null;
+        }
+        // Read only: never mutate or expose this tag; returned snapshots contain immutable values.
+        CompoundTag root = customData.getUnsafe();
+        return root.contains(TAG_ROOT, Tag.TAG_COMPOUND) ? root.getCompound(TAG_ROOT) : null;
     }
 
     private static SeismicAnomalyType parseType(String raw) {
@@ -477,6 +516,9 @@ public final class SeismogramMapService {
             case "SOLID" -> SeismicAnomalyType.SOLID;
             default -> null;
         };
+    }
+
+    private record CachedSeismogram(int centerX, int centerZ, @Nullable MapSnapshot snapshot) {
     }
 
     private record MarkerKey(UUID playerId, int mapId) {

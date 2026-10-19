@@ -148,7 +148,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
     @Override
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
-        projectorData.writeToTag(tag);
+        projectorData.writeToTag(tag, clientPacket);
     }
 
     @Override

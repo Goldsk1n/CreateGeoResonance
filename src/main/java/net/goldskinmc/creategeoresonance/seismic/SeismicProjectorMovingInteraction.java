@@ -49,7 +49,7 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
 
         if (SeismicProjectorControllerLogic.tryTakeSeismogram(projectorData, player, hand)) {
             projectorData.writeToTag(context.blockEntityData);
-            syncActorData(contraptionEntity, localPos, actor, context);
+            syncActorData(contraptionEntity, localPos, actor, context, projectorData);
             return true;
         }
 
@@ -71,7 +71,7 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
                 held.shrink(1);
             }
             projectorData.writeToTag(context.blockEntityData);
-            syncActorData(contraptionEntity, localPos, actor, context);
+            syncActorData(contraptionEntity, localPos, actor, context, projectorData);
 
             // Assembled projectors have no live RPM gate, matching their projection renderer.
             SeismicProjectorControllerLogic.sendLoadFeedback(player, result.loadedNodeCount(), true);
@@ -134,10 +134,10 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
 
     private void syncActorData(AbstractContraptionEntity contraptionEntity, BlockPos localPos,
                                MutablePair<StructureTemplate.StructureBlockInfo, MovementContext> actor,
-                               MovementContext context) {
+                               MovementContext context, SeismicProjectorData projectorData) {
         StructureTemplate.StructureBlockInfo updatedInfo = new StructureTemplate.StructureBlockInfo(
             localPos,
-            actor.getLeft().state().setValue(SeismicProjectorBlock.ACTIVE, projectorDataState(context, localPos, contraptionEntity, actor)),
+            actor.getLeft().state().setValue(SeismicProjectorBlock.ACTIVE, projectorDataState(context, localPos, contraptionEntity, projectorData)),
             context.blockEntityData.copy()
         );
         int actorIndex = contraptionEntity.getContraption().getActors().indexOf(actor);
@@ -145,13 +145,13 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
             setContraptionActorData(contraptionEntity, actorIndex, updatedInfo, context);
         }
         setContraptionBlockData(contraptionEntity, localPos, updatedInfo);
-        GeoResonancePackets.sendMountedProjectorState(contraptionEntity, localPos, context.blockEntityData);
+        CompoundTag clientTag = context.blockEntityData.copy();
+        projectorData.writeToTag(clientTag, true);
+        GeoResonancePackets.sendMountedProjectorState(contraptionEntity, localPos, clientTag);
     }
 
     private boolean projectorDataState(MovementContext context, BlockPos localPos, AbstractContraptionEntity contraptionEntity,
-                                       MutablePair<StructureTemplate.StructureBlockInfo, MovementContext> actor) {
-        SeismicProjectorData projectorData = new SeismicProjectorData();
-        projectorData.readFromTag(context.blockEntityData);
+                                       SeismicProjectorData projectorData) {
         BlockPos projectorPos = context.position != null
             ? BlockPos.containing(context.position)
             : BlockPos.containing(contraptionEntity.toGlobalVector(Vec3.atCenterOf(localPos), 1.0F));

@@ -670,19 +670,15 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         }
         compound.put(MAP_ENTRIES_TAG, entriesTag);
 
+        if (clientPacket) {
+            compound.remove(EXACT_CLUSTERS_TAG);
+            return;
+        }
         ListTag exactTag = new ListTag();
         for (SeismogramMapService.ExactCluster cluster : exactClusters) {
             CompoundTag clusterTag = new CompoundTag();
             clusterTag.putString("Type", cluster.type().name());
-            ListTag blockList = new ListTag();
-            for (BlockPos blockPos : cluster.blocks()) {
-                CompoundTag blockTag = new CompoundTag();
-                blockTag.putInt("X", blockPos.getX());
-                blockTag.putInt("Y", blockPos.getY());
-                blockTag.putInt("Z", blockPos.getZ());
-                blockList.add(blockTag);
-            }
-            clusterTag.put("Blocks", blockList);
+            SeismicSurveyNbt.writeBlocks(clusterTag, cluster.blocks());
             exactTag.add(clusterTag);
         }
         compound.put(EXACT_CLUSTERS_TAG, exactTag);
@@ -717,12 +713,7 @@ public class SeismicStationBlockEntity extends KineticBlockEntity {
         for (Tag rawCluster : exactTag) {
             CompoundTag clusterTag = (CompoundTag) rawCluster;
             SeismicAnomalyType type = SeismicAnomalyType.valueOf(clusterTag.getString("Type"));
-            ListTag blockList = clusterTag.getList("Blocks", Tag.TAG_COMPOUND);
-            List<BlockPos> blocks = new ArrayList<>(blockList.size());
-            for (Tag rawBlock : blockList) {
-                CompoundTag blockTag = (CompoundTag) rawBlock;
-                blocks.add(new BlockPos(blockTag.getInt("X"), blockTag.getInt("Y"), blockTag.getInt("Z")));
-            }
+            List<BlockPos> blocks = SeismicSurveyNbt.readBlocks(clusterTag, "X", "Y", "Z");
             if (!blocks.isEmpty()) {
                 exactClusters.add(new SeismogramMapService.ExactCluster(type, List.copyOf(blocks)));
             }

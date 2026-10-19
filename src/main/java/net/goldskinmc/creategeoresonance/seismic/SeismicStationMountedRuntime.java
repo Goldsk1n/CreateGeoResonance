@@ -345,7 +345,9 @@ public final class SeismicStationMountedRuntime {
         }
         contraptionEntity.setBlock(controllerLocalPos, updatedInfo);
         if (syncClients) {
-            GeoResonancePackets.sendMountedStationState(contraptionEntity, controllerLocalPos, updatedTag);
+            CompoundTag clientTag = new CompoundTag();
+            stationData.writeToTag(contraptionEntity.level().registryAccess(), clientTag, true);
+            GeoResonancePackets.sendMountedStationState(contraptionEntity, controllerLocalPos, clientTag);
         }
     }
 
