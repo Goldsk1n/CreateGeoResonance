@@ -218,6 +218,11 @@ public class Config {
         CLIENT_SPEC = CLIENT_BUILDER.build();
     }
 
+    public static int getTooltipValue(ForgeConfigSpec.IntValue value) {
+        // Inventory viewers may request tooltips before the common config has loaded.
+        return SPEC.isLoaded() ? value.get() : value.getDefault();
+    }
+
     private Config() {
     }
 }

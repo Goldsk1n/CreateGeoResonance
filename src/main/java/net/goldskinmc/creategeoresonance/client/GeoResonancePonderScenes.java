@@ -162,7 +162,7 @@ public final class GeoResonancePonderScenes {
 
         scene.addKeyframe();
         scene.overlay().showText(86)
-            .text("Gray return marks cave. Deeper objects echoes take longer to return.")
+            .text("Gray echoes indicate caves. Echoes from deeper objects take longer to return.")
             .pointAt(util.vector().topOf(caveEcho))
             .placeNearTarget();
         emitWaveEcho(scene, util, caveEcho, 0xB7B7B7, 1.0F, 0.15F, 16, 2.2F,
@@ -256,7 +256,7 @@ public final class GeoResonancePonderScenes {
 
         scene.addKeyframe();
         scene.overlay().showText(72)
-            .text("Power the rear shaft input of station.")
+            .text("Power the station's rear shaft.")
             .pointAt(util.vector().centerOf(shaft))
             .placeNearTarget();
         scene.idle(36);
@@ -271,7 +271,7 @@ public final class GeoResonancePonderScenes {
 
         scene.addKeyframe();
         scene.overlay().showText(78)
-            .text("Load paper and ink sac on the table side.")
+            .text("Load paper and an ink sac on the table side.")
             .pointAt(util.vector().centerOf(ioSide))
             .placeNearTarget();
         scene.overlay().showControls(util.vector().blockSurface(ioSide, Direction.NORTH), Pointing.RIGHT, 50)
@@ -289,7 +289,7 @@ public final class GeoResonancePonderScenes {
         scene.addKeyframe();
         scene.idle(10);
         scene.overlay().showText(84)
-            .text("Right-click the station to start scanning. Each strike returns one echo.")
+            .text("Right-click the station to start scanning. Detected targets return echoes.")
             .pointAt(util.vector().topOf(impact))
             .placeNearTarget();
         scene.overlay().showControls(util.vector().blockSurface(impact, Direction.UP), Pointing.DOWN, 80)
@@ -595,7 +595,7 @@ public final class GeoResonancePonderScenes {
             .rightClick()
             .withItem(createPonderSeismogramStack());
         scene.overlay().showText(100)
-            .text("Load the second seismogram. Measurements must be taken at least 8 blocks apart.")
+            .text("Load the second seismogram. By default, stations must be at least 8 blocks apart.")
             .pointAt(seismogramPoint)
             .placeNearTarget();
         scene.idle(16);
@@ -626,7 +626,7 @@ public final class GeoResonancePonderScenes {
         scene.idle(20);
         scene.idle(45);
         scene.overlay().showText(100)
-            .text("With two valid records, intersection holograms appear at estimated depth.")
+            .text("With two valid records, holograms reveal the matching underground deposits.")
             .pointAt(redstoneCenter)
             .placeNearTarget();
         scene.idle(120);
