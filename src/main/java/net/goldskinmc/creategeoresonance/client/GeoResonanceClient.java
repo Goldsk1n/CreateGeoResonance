@@ -32,6 +32,7 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicStationMountedVisualStat
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.gui.GuiGraphics;
@@ -679,7 +680,7 @@ public final class GeoResonanceClient {
         if (SeismogramMapService.isSeismogramStack(stack)) {
             event.getToolTip().removeIf(GeoResonanceClient::isLockedMapTooltipLine);
 
-            ItemDescription description = ItemDescription.create("item.creategeoresonance.seismogram.tooltip", Palette.STANDARD_CREATE);
+            ItemDescription description = createItemDescription("item.creategeoresonance.seismogram.tooltip");
             if (description != null) {
                 event.getToolTip().addAll(description.getCurrentLines());
             }
@@ -687,7 +688,7 @@ public final class GeoResonanceClient {
         }
 
         if (stack.is(GeoResonanceBlocks.SEISMIC_PROJECTOR.get().asItem())) {
-            ItemDescription description = ItemDescription.create("item.creategeoresonance.seismic_projector.tooltip", Palette.STANDARD_CREATE);
+            ItemDescription description = createItemDescription("item.creategeoresonance.seismic_projector.tooltip");
             if (description != null) {
                 event.getToolTip().addAll(description.getCurrentLines());
             }
@@ -695,11 +696,37 @@ public final class GeoResonanceClient {
         }
 
         if (stack.is(GeoResonanceBlocks.SEISMIC_STATION.get().asItem())) {
-            ItemDescription description = ItemDescription.create("item.creategeoresonance.seismic_station.tooltip", Palette.STANDARD_CREATE);
+            ItemDescription description = createItemDescription("item.creategeoresonance.seismic_station.tooltip");
             if (description != null) {
                 event.getToolTip().addAll(description.getCurrentLines());
             }
         }
+    }
+
+    @Nullable
+    private static ItemDescription createItemDescription(String key) {
+        if (!ItemDescription.canFillBuilder(key + ".summary")) {
+            return null;
+        }
+        ItemDescription.Builder builder = new ItemDescription.Builder(Palette.STANDARD_CREATE);
+        builder.addSummary(I18n.get(key + ".summary"));
+        for (int i = 1; i < 100 && I18n.exists(key + ".condition" + i); i++) {
+            String behaviourKey = key + ".behaviour" + i;
+            Object[] arguments = switch (behaviourKey) {
+                case "item.creategeoresonance.seismogram.tooltip.behaviour2" ->
+                    new Object[]{Config.getTooltipValue(Config.PROJECTOR_MIN_NODE_DISTANCE_BLOCKS)};
+                case "item.creategeoresonance.seismic_projector.tooltip.behaviour2" ->
+                    new Object[]{Config.getTooltipValue(Config.PROJECTOR_MIN_SPEED)};
+                case "item.creategeoresonance.seismic_station.tooltip.behaviour1" ->
+                    new Object[]{Config.getTooltipValue(Config.STATION_MIN_SPEED)};
+                default -> new Object[0];
+            };
+            builder.addBehaviour(I18n.get(key + ".condition" + i), I18n.get(behaviourKey, arguments));
+        }
+        for (int i = 1; i < 100 && I18n.exists(key + ".control" + i); i++) {
+            builder.addAction(I18n.get(key + ".control" + i), I18n.get(key + ".action" + i));
+        }
+        return builder.build();
     }
 
     private static boolean isLockedMapTooltipLine(Component line) {
