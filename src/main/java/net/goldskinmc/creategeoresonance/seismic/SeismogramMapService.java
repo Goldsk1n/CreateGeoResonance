@@ -371,7 +371,7 @@ public final class SeismogramMapService {
     }
 
     private static MapColor colorFor(SeismicAnomalyType type) {
-        return switch (type) {
+        return switch (type.kind()) {
             case CAVE -> MapColor.COLOR_LIGHT_GRAY;
             case WATER -> MapColor.WATER;
             case LAVA -> MapColor.COLOR_ORANGE;
@@ -424,6 +424,7 @@ public final class SeismogramMapService {
             case CHEST -> MapColor.WOOD;
             case SPAWNER -> MapColor.COLOR_BLACK;
             case SOLID -> MapColor.STONE;
+            case CUSTOM -> SeismicCustomModules.mapColor(type);
         };
     }
 
@@ -443,6 +444,10 @@ public final class SeismogramMapService {
     }
 
     private static SeismicAnomalyType parseType(String raw) {
+        if (raw.indexOf(':') >= 0) {
+            net.minecraft.resources.ResourceLocation id = net.minecraft.resources.ResourceLocation.tryParse(raw);
+            return id != null ? SeismicAnomalyType.custom(id) : null;
+        }
         return switch (raw) {
             case "CAVE" -> SeismicAnomalyType.CAVE;
             case "WATER" -> SeismicAnomalyType.WATER;

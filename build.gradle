@@ -134,6 +134,8 @@ dependencies {
         runtimeOnly "maven.modrinth:sable:${sable_version_id}"
         runtimeOnly "maven.modrinth:create-aeronautics:${aeronautics_version_id}"
     }
+    // Optional JEI plugin API; compile-only does not make JEI a release dependency.
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     runtimeOnly "curse.maven:the-one-probe-245211:${top_file_id}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'

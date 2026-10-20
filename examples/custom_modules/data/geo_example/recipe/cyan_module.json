@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SA",
+    "DC"
+  ],
+  "key": {
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "D": {
+      "item": "minecraft:cyan_dye"
+    },
+    "C": {
+      "item": "minecraft:cyan_concrete"
+    }
+  },
+  "result": {
+    "id": "creategeoresonance:custom_module",
+    "count": 1,
+    "components": {
+      "minecraft:custom_data": {
+        "GeoModule": "geo_example:cyan"
+      }
+    }
+  }
+}

@@ -276,5 +276,10 @@
   "creategeoresonance.ponder.seismic_projector/triangulation.text_3": "Load the second seismogram. By default, stations must be at least 8 blocks apart.",
   "creategeoresonance.ponder.seismic_projector/triangulation.text_4": "Power the rear shaft input to start projection.",
   "creategeoresonance.ponder.seismic_projector/triangulation.text_5": "With two valid records, holograms reveal the matching underground deposits.",
-  "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams"
+  "subtitles.creategeoresonance.seismic_hammer_hit": "Seismic hammer slams",
+  "item.creategeoresonance.custom_module": "Custom Module",
+  "item.creategeoresonance.custom_module.detects": "Detects: %s",
+  "item.creategeoresonance.custom_module.missing": "Module definition is missing or invalid.",
+  "item.creategeoresonance.custom_module.unavailable": "Missing Module: %s",
+  "item.creategeoresonance.custom_module.tooltip.summary": "Detects the _configured mineral blocks_. Adds _64 SU_ to the station's stress requirement."
 }

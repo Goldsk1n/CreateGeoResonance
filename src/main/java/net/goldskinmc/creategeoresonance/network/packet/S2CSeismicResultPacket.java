@@ -26,7 +26,7 @@ public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boole
         buffer.writeVarInt(packet.maxDepth);
         buffer.writeVarInt(packet.anomalies.size());
         for (SeismicAnomaly anomaly : packet.anomalies) {
-            buffer.writeEnum(anomaly.type());
+            buffer.writeUtf(anomaly.type().name(), 160);
             buffer.writeVarInt(anomaly.offsetX());
             buffer.writeVarInt(anomaly.offsetZ());
             buffer.writeVarInt(anomaly.depth());
@@ -43,7 +43,7 @@ public record S2CSeismicResultPacket(BlockPos origin, int scannerEntityId, boole
         int count = buffer.readVarInt();
         List<SeismicAnomaly> anomalies = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            SeismicAnomalyType type = buffer.readEnum(SeismicAnomalyType.class);
+            SeismicAnomalyType type = SeismicAnomalyType.valueOf(buffer.readUtf(160));
             int offsetX = buffer.readVarInt();
             int offsetZ = buffer.readVarInt();
             int depth = buffer.readVarInt();

@@ -5,6 +5,7 @@ import net.createmod.catnip.net.base.CatnipPacketRegistry;
 import net.createmod.catnip.platform.CatnipServices;
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
+import net.goldskinmc.creategeoresonance.network.packet.S2CCustomModulesPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CMountedStationStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CMountedProjectorStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
@@ -22,7 +23,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.List;
 
 public final class GeoResonancePackets {
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
     private static final double BROADCAST_RADIUS = 48.0D;
     private static final CatnipPacketRegistry REGISTRY = new CatnipPacketRegistry(CreateGeoResonanceMod.MODID, PROTOCOL_VERSION);
 
@@ -52,6 +53,9 @@ public final class GeoResonancePackets {
         S2CMountedStationStatePacket.STREAM_CODEC
     );
 
+    public static final CatnipPacketRegistry.PacketType<S2CCustomModulesPacket> CUSTOM_MODULES = register(
+        "custom_modules", S2CCustomModulesPacket.class, S2CCustomModulesPacket.STREAM_CODEC);
+
     private GeoResonancePackets() {
     }
 
@@ -68,6 +72,10 @@ public final class GeoResonancePackets {
                                          List<SeismicAnomaly> anomalies) {
         S2CSeismicResultPacket packet = new S2CSeismicResultPacket(origin, scannerEntityId, lowPressure, maxDepth, anomalies);
         sendToNearby(level, origin, packet);
+    }
+
+    public static void sendCustomModules(ServerPlayer player, CompoundTag data) {
+        CatnipServices.NETWORK.sendToClient(player, new S2CCustomModulesPacket(data));
     }
 
     public static void sendSeismogramMarker(ServerPlayer player, int mapId, byte markerX, byte markerZ, byte markerRot) {

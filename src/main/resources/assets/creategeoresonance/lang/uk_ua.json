@@ -276,5 +276,10 @@
   "creategeoresonance.ponder.seismic_projector/triangulation.text_3": "Завантажте другу сейсмограму. Типово станції мають бути на відстані щонайменше 8 блоків одна від одної.",
   "creategeoresonance.ponder.seismic_projector/triangulation.text_4": "Подайте обертання на задній вал, щоб почати проєкцію.",
   "creategeoresonance.ponder.seismic_projector/triangulation.text_5": "Дві сумісні сейсмограми показують спільні підземні поклади у вигляді голограм.",
-  "subtitles.creategeoresonance.seismic_hammer_hit": "Сейсмомолот вдаряє"
+  "subtitles.creategeoresonance.seismic_hammer_hit": "Сейсмомолот вдаряє",
+  "item.creategeoresonance.custom_module": "Налаштовуваний модуль",
+  "item.creategeoresonance.custom_module.detects": "Виявляє: %s",
+  "item.creategeoresonance.custom_module.missing": "Визначення модуля відсутнє або недійсне.",
+  "item.creategeoresonance.custom_module.unavailable": "Відсутній модуль: %s",
+  "item.creategeoresonance.custom_module.tooltip.summary": "Виявляє _задані мінеральні блоки_. Збільшує навантаження станції на _64 он_."
 }

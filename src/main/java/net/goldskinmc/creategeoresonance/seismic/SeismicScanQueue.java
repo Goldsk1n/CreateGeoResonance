@@ -200,7 +200,7 @@ public final class SeismicScanQueue {
     }
 
     private static int typePriority(SeismicAnomalyType type) {
-        return switch (type) {
+        return switch (type.kind()) {
             case LAVA -> 5;
             case WATER -> 4;
             case COAL, COAL_DEPOSIT, IRON, IRON_DEPOSIT, COPPER, COPPER_DEPOSIT, GOLD, GOLD_DEPOSIT, REDSTONE,
@@ -215,6 +215,7 @@ public final class SeismicScanQueue {
             case CHEST, SPAWNER -> 2;
             case CAVE -> 2;
             case SOLID -> 0;
+            case CUSTOM -> 3;
         };
     }
 
@@ -362,6 +363,7 @@ public final class SeismicScanQueue {
         private final boolean detectSilver;
         private final boolean detectPlatinum;
         private final Map<Block, SeismicAnomalyType> rockStoneTargets;
+        private final Map<Block, SeismicAnomalyType> customTargets;
         private final boolean detectAnyOre;
         private final boolean detectAnySolidTarget;
         private final int[] horizontalDxByIndex;
@@ -431,6 +433,7 @@ public final class SeismicScanQueue {
             this.detectSilver = request.canDetect(SeismicAnomalyType.SILVER);
             this.detectPlatinum = request.canDetect(SeismicAnomalyType.PLATINUM);
             this.rockStoneTargets = SeismicRockStoneDeposits.detectableBlocks(request.detectableTypes());
+            this.customTargets = SeismicCustomModules.detectableBlocks(request.detectableTypes(), request.modulePriorities());
             this.detectAnyOre = detectCoal
                 || detectIron
                 || detectCopper
@@ -479,7 +482,8 @@ public final class SeismicScanQueue {
                 || detectSpawner
                 || detectChest
                 || detectAnyOre
-                || detectCrudeOil;
+                || detectCrudeOil
+                || !customTargets.isEmpty();
             this.horizontalDxByIndex = new int[width * width];
             this.horizontalDzByIndex = new int[width * width];
             this.cellXByHorizontalIndex = new int[width * width];
@@ -596,7 +600,10 @@ public final class SeismicScanQueue {
                         continue;
                     }
                     SeismicAnomalyType depositType = rockStoneTargets.get(state.getBlock());
-                    if (depositType != null) {
+                    SeismicAnomalyType customType = customTargets.get(state.getBlock());
+                    if (customType != null) {
+                        type = customType;
+                    } else if (depositType != null) {
                         type = depositType;
                     } else if (detectCrudeOil && state.is(SeismicMineralTags.CRUDE_OIL)) {
                         type = SeismicAnomalyType.CRUDE_OIL;
@@ -862,7 +869,7 @@ public final class SeismicScanQueue {
         }
 
         private static boolean shouldTrackExactType(SeismicAnomalyType type) {
-            return switch (type) {
+            return switch (type.kind()) {
                 case WATER, LAVA, COAL, COAL_DEPOSIT, IRON, IRON_DEPOSIT, COPPER, COPPER_DEPOSIT, GOLD, GOLD_DEPOSIT,
                     REDSTONE, REDSTONE_DEPOSIT, LAPIS, LAPIS_DEPOSIT, EMERALD, DIAMOND, ZINC, ZINC_DEPOSIT, AMETHYST,
                     CHEST, SPAWNER, CRIMSITE, ASURINE, OCHRUM, VERIDIUM, THORIUM, THORIUM_DEPOSIT, MAGNETITE, LEAD,
@@ -872,6 +879,7 @@ public final class SeismicScanQueue {
                     COBALT, COBALT_DEPOSIT, ANCIENT_DEBRIS, FLUORITE, CERTUS_QUARTZ,
                     INFERIUM, PROSPERITY, SOULIUM,
                     ARCANE_CRYSTAL, RUNE, STELLARITE, URANINITE, DRACONIUM, BLACK_QUARTZ -> true;
+                case CUSTOM -> true;
                 default -> false;
             };
         }

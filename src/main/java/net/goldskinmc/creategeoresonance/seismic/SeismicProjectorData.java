@@ -310,8 +310,13 @@ public final class SeismicProjectorData {
         return nodes.get(0).stationPos().immutable();
     }
 
+    public static net.minecraft.network.chat.Component signalName(SeismicAnomalyType type) {
+        return type.isCustom() ? SeismicCustomModules.signalName(type)
+            : net.minecraft.network.chat.Component.translatable(signalNameKey(type));
+    }
+
     public static String signalNameKey(SeismicAnomalyType type) {
-        return switch (type) {
+        return switch (type.kind()) {
             case CAVE -> "item.creategeoresonance.seismogram.signal.cave";
             case WATER -> "item.creategeoresonance.seismogram.signal.water";
             case LAVA -> "item.creategeoresonance.seismogram.signal.lava";
@@ -382,6 +387,7 @@ public final class SeismicProjectorData {
             case CHEST -> "item.creategeoresonance.seismogram.signal.chest";
             case SPAWNER -> "item.creategeoresonance.seismogram.signal.spawner";
             case SOLID -> "item.creategeoresonance.seismogram.signal.solid";
+            case CUSTOM -> type.name();
         };
     }
 

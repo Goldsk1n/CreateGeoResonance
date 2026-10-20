@@ -15,8 +15,8 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +36,14 @@ public final class SeismicStationControllerLogic {
                 .withStyle(ChatFormatting.RED), true);
             return false;
         }
-        if (hasModuleInstalled(host.inventory(), moduleType)) {
+        if (held.getItem() instanceof SeismicCustomModuleItem && !SeismicCustomModuleItem.isConfigured(held)) {
+            player.displayClientMessage(Component.translatable("item.creategeoresonance.custom_module.missing")
+                .withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+        if (moduleType == SeismicModuleType.CUSTOM
+            ? buildDetectableTypes(host.inventory()).contains(SeismicModuleItem.getDetectsType(held))
+            : hasModuleInstalled(host.inventory(), moduleType)) {
             player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.module_duplicate")
                 .withStyle(ChatFormatting.RED), true);
             return false;
@@ -170,7 +177,7 @@ public final class SeismicStationControllerLogic {
     }
 
     public static Set<SeismicAnomalyType> buildDetectableTypes(ItemStackHandler inventory) {
-        EnumSet<SeismicAnomalyType> detectable = EnumSet.noneOf(SeismicAnomalyType.class);
+        Set<SeismicAnomalyType> detectable = new HashSet<>();
         for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
             SeismicAnomalyType type = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
             if (type != null) {
@@ -186,7 +193,7 @@ public final class SeismicStationControllerLogic {
     }
 
     public static Map<SeismicAnomalyType, Integer> buildModulePriorityMap(ItemStackHandler inventory) {
-        Map<SeismicAnomalyType, Integer> priorities = new EnumMap<>(SeismicAnomalyType.class);
+        Map<SeismicAnomalyType, Integer> priorities = new HashMap<>();
         for (int slot = SeismicStationBlockEntity.SLOT_MODULE_START; slot <= SeismicStationBlockEntity.SLOT_MODULE_END; slot++) {
             SeismicAnomalyType type = SeismicModuleItem.getDetectsType(inventory.getStackInSlot(slot));
             if (type != null) {

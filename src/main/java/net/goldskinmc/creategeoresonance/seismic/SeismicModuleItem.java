@@ -40,6 +40,9 @@ public class SeismicModuleItem extends Item {
 
     @Nullable
     public static SeismicAnomalyType getDetectsType(ItemStack stack) {
+        if (stack.getItem() instanceof SeismicCustomModuleItem) {
+            return SeismicCustomModuleItem.target(stack);
+        }
         if (stack.getItem() instanceof SeismicModuleItem moduleItem) {
             return moduleItem.detectsType();
         }

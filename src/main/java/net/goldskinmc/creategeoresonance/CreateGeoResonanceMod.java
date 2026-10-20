@@ -12,6 +12,8 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleItem;
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovingInteraction;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovementBehaviour;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
@@ -55,6 +57,7 @@ public class CreateGeoResonanceMod {
         GeoResonanceCreativeTabs.register(modEventBus);
         GeoResonanceSoundEvents.register();
         GeoResonancePackets.register();
+        SeismicCustomModules.register(NeoForge.EVENT_BUS);
         registerContraptionMovementRestrictions();
 
         NeoForge.EVENT_BUS.addListener(SeismicScanQueue::onServerTick);
@@ -77,8 +80,18 @@ public class CreateGeoResonanceMod {
         List<ItemStack> entries = new ArrayList<>(event.getParentEntries());
         entries.addAll(event.getSearchEntries());
         for (ItemStack stack : entries) {
-            if (stack.getItem() instanceof SeismicModuleItem module && !module.moduleType().isAvailable()) {
+            if (stack.getItem() instanceof SeismicModuleItem module && (!module.moduleType().isAvailable()
+                    || module instanceof SeismicCustomModuleItem && !SeismicCustomModuleItem.isConfigured(stack))) {
                 event.remove(stack, CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            }
+        }
+        if (event.getTabKey().equals(GeoResonanceCreativeTabs.MAIN.getKey())
+            || event.getTabKey() == CreativeModeTabs.SEARCH) {
+            for (var definition : SeismicCustomModules.definitions()) {
+                var target = net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType.custom(definition.id());
+                if (entries.stream().noneMatch(stack -> SeismicCustomModuleItem.target(stack) == target)) {
+                    event.accept(SeismicCustomModuleItem.create(definition.id()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+                }
             }
         }
         if (event.getTabKey() == CreativeModeTabs.SEARCH) {

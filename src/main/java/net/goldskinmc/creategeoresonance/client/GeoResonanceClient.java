@@ -1,5 +1,7 @@
 package net.goldskinmc.creategeoresonance.client;
 
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -108,6 +110,7 @@ public final class GeoResonanceClient {
             ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "seismogram"),
             (stack, level, entity, seed) -> SeismogramMapService.isSeismogramStack(stack) ? 1.0F : 0.0F);
         GeoResonancePartialModels.init();
+        GeoResonanceCustomModuleModels.register(modEventBus);
         GeoResonanceNuclearModels.register(modEventBus);
         GeoResonanceRockStoneModels.register(modEventBus);
         GeoResonanceMekanismModels.register(modEventBus);
@@ -211,6 +214,10 @@ public final class GeoResonanceClient {
             return;
         }
 
+        if (GeoResonanceCustomModuleModels.refreshCreativeContents()) {
+            SEISMOGRAM_SIDEBAR = null;
+        }
+
         long now = level.getGameTime();
         if (PREWARMED_LEVEL != level) {
             SEISMOGRAM_SIDEBAR = null;
@@ -270,7 +277,7 @@ public final class GeoResonanceClient {
         if (scheduled.lowPressure()) {
             blur = Math.max(blur, 0.6F);
         }
-        int color = scheduled.lowPressure() ? 0x8A8A8A : switch (anomaly.type()) {
+        int color = scheduled.lowPressure() ? 0x8A8A8A : switch (anomaly.type().kind()) {
             case CAVE -> 0xB0B0B0;
             case WATER -> 0x3EA4F2;
             case LAVA -> 0xFF8A33;
@@ -323,6 +330,7 @@ public final class GeoResonanceClient {
             case CHEST -> 0xB9864A;
             case SPAWNER -> 0x8A8A8A;
             case SOLID -> 0x8E8378;
+            case CUSTOM -> SeismicCustomModules.color(anomaly.type());
         };
         float lowConfidenceOpacity = Config.WAVE_ECHO_LOW_CONFIDENCE_OPACITY.get().floatValue();
         float highConfidenceOpacity = Config.WAVE_ECHO_HIGH_CONFIDENCE_OPACITY.get().floatValue();
@@ -331,7 +339,7 @@ public final class GeoResonanceClient {
         spawnWave(level, center, color, opacity, blur, 12, radius);
 
         float depthRatio = scheduled.maxDepth() > 0 ? anomaly.depth() / (float) scheduled.maxDepth() : 1.0F;
-        SoundEvent echoSound = scheduled.lowPressure() ? SoundEvents.NOTE_BLOCK_HAT.value() : switch (anomaly.type()) {
+        SoundEvent echoSound = scheduled.lowPressure() ? SoundEvents.NOTE_BLOCK_HAT.value() : switch (anomaly.type().kind()) {
             case CAVE -> SoundEvents.BELL_BLOCK;
             case WATER -> SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT;
             case LAVA -> SoundEvents.LAVA_POP;
@@ -366,8 +374,9 @@ public final class GeoResonanceClient {
             case CHEST -> SoundEvents.CHEST_OPEN;
             case SPAWNER -> SoundEvents.CAVE_VINES_STEP;
             case SOLID -> SoundEvents.NOTE_BLOCK_BASS.value();
+            case CUSTOM -> SoundEvents.AMETHYST_BLOCK_CHIME;
         };
-        float basePitch = scheduled.lowPressure() ? 0.9F : switch (anomaly.type()) {
+        float basePitch = scheduled.lowPressure() ? 0.9F : switch (anomaly.type().kind()) {
             case CAVE -> 1.12F;
             case WATER -> 0.84F;
             case LAVA -> 0.66F;
@@ -420,6 +429,7 @@ public final class GeoResonanceClient {
             case CHEST -> 0.85F;
             case SPAWNER -> 0.7F;
             case SOLID -> 0.56F;
+            case CUSTOM -> 1.0F;
         };
         float pitch = Mth.clamp(basePitch - depthRatio * 0.22F, 0.25F, 2.0F);
         if (scheduled.lowPressure()) {
@@ -904,7 +914,7 @@ public final class GeoResonanceClient {
             .limit(maxSignals)
             .map(signal -> new SeismogramSidebarLine(Component.translatable(
                 "item.creategeoresonance.seismogram.sidebar.line",
-                Component.translatable(signalTypeKey(signal.type())),
+                SeismicProjectorData.signalName(signal.type()),
                 signal.horizontalDistance(), verticalDistanceText(signal.verticalDelta())), signalTypeColor(signal.type())))
             .toList();
         SEISMOGRAM_SIDEBAR = new SeismogramSidebarState(level, snapshot, maxSignals, playerX, playerY, playerZ, now, lines);
@@ -948,7 +958,7 @@ public final class GeoResonanceClient {
     }
 
     private static int signalTypeColor(SeismicAnomalyType type) {
-        return switch (type) {
+        return switch (type.kind()) {
             case CAVE -> 0xCFCFCF;
             case WATER -> 0x7FC6FF;
             case LAVA -> 0xFFB061;
@@ -1001,11 +1011,8 @@ public final class GeoResonanceClient {
             case CHEST -> 0xD5A26B;
             case SPAWNER -> 0xB6B6B6;
             case SOLID -> 0xA19485;
+            case CUSTOM -> SeismicCustomModules.color(type);
         };
-    }
-
-    private static String signalTypeKey(SeismicAnomalyType type) {
-        return SeismicProjectorData.signalNameKey(type);
     }
 
     private static void addBlockedAreaBoundary(BufferBuilder builder, Matrix4f matrix,

@@ -5,6 +5,7 @@ import com.tterrag.registrate.util.entry.ItemEntry;
 import net.goldskinmc.creategeoresonance.GeoResonanceRegistrate;
 import net.goldskinmc.creategeoresonance.seismic.SeismicHammerItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleItem;
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleType;
 
 public final class GeoResonanceItems {
@@ -66,6 +67,11 @@ public final class GeoResonanceItems {
     public static final ItemEntry<SeismicModuleItem> DRACONIUM_RESONANCE_MODULE = module(SeismicModuleType.DRACONIUM);
     public static final ItemEntry<SeismicModuleItem> BLACK_QUARTZ_RESONANCE_MODULE = module(SeismicModuleType.BLACK_QUARTZ);
     public static final ItemEntry<SeismicModuleItem> COBALT_RESONANCE_MODULE = module(SeismicModuleType.COBALT);
+
+    public static final ItemEntry<SeismicCustomModuleItem> CUSTOM_MODULE = REGISTRATE
+        .item("custom_module", SeismicCustomModuleItem::new)
+        .properties(properties -> properties.stacksTo(1))
+        .register();
 
     private GeoResonanceItems() {
     }
