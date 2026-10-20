@@ -12,6 +12,8 @@ import net.goldskinmc.creategeoresonance.registry.GeoResonanceSoundEvents;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
 import net.goldskinmc.creategeoresonance.seismic.SeismicPressureStorage;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleItem;
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovingInteraction;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorMovementBehaviour;
 import net.goldskinmc.creategeoresonance.seismic.SeismicScanQueue;
@@ -53,6 +55,7 @@ public class CreateGeoResonanceMod {
         GeoResonanceCreativeTabs.register(modEventBus);
         GeoResonanceSoundEvents.register();
         GeoResonancePackets.register();
+        SeismicCustomModules.register(MinecraftForge.EVENT_BUS);
         registerContraptionMovementRestrictions();
 
         MinecraftForge.EVENT_BUS.addListener(SeismicScanQueue::onServerTick);
@@ -73,9 +76,27 @@ public class CreateGeoResonanceMod {
     private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         Iterator<Map.Entry<ItemStack, CreativeModeTab.TabVisibility>> modules = event.getEntries().iterator();
         while (modules.hasNext()) {
-            if (modules.next().getKey().getItem() instanceof SeismicModuleItem module
-                && !module.moduleType().isAvailable()) {
+            ItemStack moduleStack = modules.next().getKey();
+            if (moduleStack.getItem() instanceof SeismicModuleItem module
+                && (!module.moduleType().isAvailable()
+                    || module instanceof SeismicCustomModuleItem && !SeismicCustomModuleItem.isConfigured(moduleStack))) {
                 modules.remove();
+            }
+        }
+        if (event.getTabKey().equals(GeoResonanceCreativeTabs.MAIN.getKey())
+            || event.getTabKey() == CreativeModeTabs.SEARCH) {
+            for (var definition : SeismicCustomModules.definitions()) {
+                var target = net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType.custom(definition.id());
+                boolean present = false;
+                for (var existing = event.getEntries().iterator(); existing.hasNext();) {
+                    if (SeismicCustomModuleItem.target(existing.next().getKey()) == target) {
+                        present = true;
+                        break;
+                    }
+                }
+                if (!present) {
+                    event.accept(SeismicCustomModuleItem.create(definition.id()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+                }
             }
         }
         if (event.getTabKey() == CreativeModeTabs.SEARCH) {

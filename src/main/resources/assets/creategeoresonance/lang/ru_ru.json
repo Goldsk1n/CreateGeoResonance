@@ -285,5 +285,10 @@
   "creategeoresonance.ponder.seismic_projector/triangulation.text_3": "Загрузите вторую сейсмограмму. По умолчанию станции должны находиться минимум в 8 блоках друг от друга.",
   "creategeoresonance.ponder.seismic_projector/triangulation.text_4": "Подайте вращение на задний вал, чтобы начать проекцию.",
   "creategeoresonance.ponder.seismic_projector/triangulation.text_5": "Две подходящие сейсмограммы позволяют показать общие подземные залежи в виде голограмм.",
-  "subtitles.creategeoresonance.seismic_hammer_hit": "Сейсмомолот ударяет"
+  "subtitles.creategeoresonance.seismic_hammer_hit": "Сейсмомолот ударяет",
+  "item.creategeoresonance.custom_module": "Настраиваемый модуль",
+  "item.creategeoresonance.custom_module.detects": "Обнаруживает: %s",
+  "item.creategeoresonance.custom_module.missing": "Определение модуля отсутствует или недействительно.",
+  "item.creategeoresonance.custom_module.unavailable": "Отсутствующий модуль: %s",
+  "item.creategeoresonance.custom_module.tooltip.summary": "Обнаруживает _заданные минеральные блоки_. Увеличивает нагрузку станции на _64 ен_."
 }

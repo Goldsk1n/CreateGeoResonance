@@ -5,6 +5,7 @@ import com.tterrag.registrate.util.entry.ItemEntry;
 import net.goldskinmc.creategeoresonance.GeoResonanceRegistrate;
 import net.goldskinmc.creategeoresonance.seismic.SeismicHammerItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleItem;
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleType;
 
 public final class GeoResonanceItems {
@@ -70,6 +71,11 @@ public final class GeoResonanceItems {
     public static final ItemEntry<SeismicModuleItem> APATITE_RESONANCE_MODULE = module(SeismicModuleType.APATITE);
     public static final ItemEntry<SeismicModuleItem> CINNABAR_RESONANCE_MODULE = module(SeismicModuleType.CINNABAR);
     public static final ItemEntry<SeismicModuleItem> NITER_RESONANCE_MODULE = module(SeismicModuleType.NITER);
+
+    public static final ItemEntry<SeismicCustomModuleItem> CUSTOM_MODULE = REGISTRATE
+        .item("custom_module", SeismicCustomModuleItem::new)
+        .properties(properties -> properties.stacksTo(1))
+        .register();
 
     private GeoResonanceItems() {
     }

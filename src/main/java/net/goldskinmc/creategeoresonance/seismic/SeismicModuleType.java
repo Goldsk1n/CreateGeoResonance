@@ -60,7 +60,8 @@ public enum SeismicModuleType {
     XPETRIFIED("xpetrified_resonance_module", SeismicAnomalyType.XPETRIFIED),
     URANINITE("uraninite_resonance_module", SeismicAnomalyType.URANINITE),
     DRACONIUM("draconium_resonance_module", SeismicAnomalyType.DRACONIUM),
-    LAVA("lava_module", SeismicAnomalyType.LAVA);
+    LAVA("lava_module", SeismicAnomalyType.LAVA),
+    CUSTOM("custom_module", null);
 
     private final String itemName;
     @Nullable

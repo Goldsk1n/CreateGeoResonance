@@ -142,6 +142,8 @@ dependencies {
     // Dev-only profiling in all profiles; not bundled with the published mod.
     runtimeOnly(fg.deobf("maven.modrinth:spark:${spark_version_id}"))
     // Dev-only comfort/debug mods. runtimeOnly keeps them out of the final published jar.
+    // Optional JEI plugin API; compile-only does not make JEI a release dependency.
+    compileOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))
     // Omitted in fastDev profile to reduce startup/world-load overhead.
     if (!fastDev) {
         runtimeOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))

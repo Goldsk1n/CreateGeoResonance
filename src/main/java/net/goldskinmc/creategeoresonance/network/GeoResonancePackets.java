@@ -2,6 +2,7 @@ package net.goldskinmc.creategeoresonance.network;
 
 import net.goldskinmc.creategeoresonance.CreateGeoResonanceMod;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicImpactPacket;
+import net.goldskinmc.creategeoresonance.network.packet.S2CCustomModulesPacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CMountedStationStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CMountedProjectorStatePacket;
 import net.goldskinmc.creategeoresonance.network.packet.S2CSeismicResultPacket;
@@ -20,7 +21,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.List;
 
 public final class GeoResonancePackets {
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
     private static final double BROADCAST_RADIUS = 48.0D;
     private static int packetIndex = 0;
 
@@ -35,6 +36,10 @@ public final class GeoResonancePackets {
     }
 
     public static void register() {
+        CHANNEL.messageBuilder(S2CCustomModulesPacket.class, packetIndex++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(S2CCustomModulesPacket::encode).decoder(S2CCustomModulesPacket::decode)
+            .consumerMainThread(S2CCustomModulesPacket::handle).add();
+
         CHANNEL.messageBuilder(S2CSeismicImpactPacket.class, packetIndex++, NetworkDirection.PLAY_TO_CLIENT)
             .encoder(S2CSeismicImpactPacket::encode)
             .decoder(S2CSeismicImpactPacket::decode)
@@ -75,6 +80,10 @@ public final class GeoResonancePackets {
                                          List<SeismicAnomaly> anomalies) {
         S2CSeismicResultPacket packet = new S2CSeismicResultPacket(origin, scannerEntityId, lowPressure, maxDepth, anomalies);
         sendToNearby(level, origin, packet);
+    }
+
+    public static void sendCustomModules(ServerPlayer player, CompoundTag data) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CCustomModulesPacket(data));
     }
 
     public static void sendSeismogramMarker(ServerPlayer player, int mapId, byte markerX, byte markerZ, byte markerRot) {

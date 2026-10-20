@@ -111,7 +111,7 @@ public class SeismicProjectorMovingInteraction extends MovingInteractionBehaviou
             SeismicProjectorData.TriangulatedCandidate candidate = candidates.get(i);
             player.displayClientMessage(Component.translatable(
                     "block.creategeoresonance.seismic_projector.match_line",
-                    Component.translatable(SeismicProjectorData.signalNameKey(candidate.type())),
+                    SeismicProjectorData.signalName(candidate.type()),
                     candidate.worldX(),
                     candidate.worldZ(),
                     candidate.approxY(),

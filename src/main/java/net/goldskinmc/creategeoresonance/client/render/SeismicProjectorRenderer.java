@@ -1,5 +1,7 @@
 package net.goldskinmc.creategeoresonance.client.render;
 
+import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -647,7 +649,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private static boolean matchesType(BlockState state, SeismicAnomalyType type) {
-        return switch (type) {
+        return switch (type.kind()) {
             case CAVE -> state.isAir();
             case WATER -> state.getFluidState().is(FluidTags.WATER);
             case LAVA -> state.getFluidState().is(FluidTags.LAVA);
@@ -711,6 +713,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 || state.is(Blocks.SMALL_AMETHYST_BUD);
             case CHEST -> state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST);
             case SPAWNER -> state.is(Blocks.SPAWNER);
+            case CUSTOM -> SeismicCustomModules.matches(state, type);
             default -> false;
         };
     }
@@ -1181,7 +1184,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private static float[] colorFor(SeismicAnomalyType type) {
-        return switch (type) {
+        return switch (type.kind()) {
             case WATER -> rgb(80, 170, 255);
             case LAVA -> rgb(255, 120, 40);
             case CAVE -> rgb(180, 200, 220);
@@ -1237,6 +1240,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             case CHEST -> rgb(171, 119, 66);
             case SPAWNER -> rgb(96, 168, 198);
             case SOLID -> rgb(160, 160, 160);
+            case CUSTOM -> rgb(SeismicCustomModules.color(type) >> 16 & 255, SeismicCustomModules.color(type) >> 8 & 255, SeismicCustomModules.color(type) & 255);
         };
     }
 

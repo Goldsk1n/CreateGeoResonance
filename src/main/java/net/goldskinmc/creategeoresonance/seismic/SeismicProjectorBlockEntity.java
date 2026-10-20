@@ -120,7 +120,7 @@ public class SeismicProjectorBlockEntity extends KineticBlockEntity {
             SeismicProjectorData.TriangulatedCandidate candidate = candidates.get(i);
             player.displayClientMessage(Component.translatable(
                     "block.creategeoresonance.seismic_projector.match_line",
-                    Component.translatable(SeismicProjectorData.signalNameKey(candidate.type())),
+                    SeismicProjectorData.signalName(candidate.type()),
                     candidate.worldX(),
                     candidate.worldZ(),
                     candidate.approxY(),

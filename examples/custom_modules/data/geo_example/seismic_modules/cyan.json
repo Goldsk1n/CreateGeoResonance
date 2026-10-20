@@ -1,0 +1,8 @@
+{
+  "name": "Cyan Test Module",
+  "signal_name": "Cyan Deposit",
+  "icon": "minecraft:cyan_dye",
+  "icon_size": "small",
+  "block_tag": "geo_example:cyan_deposits",
+  "color": "#45C7D9"
+}

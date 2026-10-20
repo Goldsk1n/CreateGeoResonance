@@ -29,7 +29,8 @@ class SeismicStationInventory extends ItemStackHandler {
         }
         if (SeismicStationControllerLogic.isModuleSlot(slot)) {
             SeismicModuleType type = SeismicModuleItem.getModuleType(stack);
-            return type != null && !type.isRetired();
+            return type != null && !type.isRetired()
+                && (!(stack.getItem() instanceof SeismicCustomModuleItem) || SeismicCustomModuleItem.isConfigured(stack));
         }
         return false;
     }

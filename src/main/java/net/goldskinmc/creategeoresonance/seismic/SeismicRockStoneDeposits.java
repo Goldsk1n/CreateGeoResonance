@@ -11,7 +11,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -24,7 +23,7 @@ public final class SeismicRockStoneDeposits {
     }
 
     private static Map<SeismicAnomalyType, TagKey<Block>> createTags() {
-        Map<SeismicAnomalyType, TagKey<Block>> tags = new EnumMap<>(SeismicAnomalyType.class);
+        Map<SeismicAnomalyType, TagKey<Block>> tags = new HashMap<>();
         for (SeismicAnomalyType type : SeismicAnomalyType.values()) {
             if (type.isRockStoneDeposit()) {
                 String mineral = type.mineralType().name().toLowerCase(Locale.ROOT);
