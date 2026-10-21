@@ -212,10 +212,33 @@ public final class SeismicCustomModuleGameTests {
         }
         helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.IRON) == 0xD7D7D7,
             "Iron must use one silver-gray identity");
-        helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.SPAWNER) == 0x52C4B5,
-            "Spawner must use one teal identity");
+        helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.SPAWNER) == 0xD457C8,
+            "Spawner must use one magenta identity distinct from Diamond");
         helper.assertTrue(SeismicSignalProfiles.echoSound(SeismicAnomalyType.SPAWNER)
             == net.minecraft.sounds.SoundEvents.SCULK_CLICKING, "Spawner needs a distinctive sensor pulse");
+        helper.assertTrue(SeismicSignalProfiles.mapColor(SeismicAnomalyType.DIAMOND)
+            == net.minecraft.world.level.material.MapColor.DIAMOND
+            && SeismicSignalProfiles.mapColor(SeismicAnomalyType.EMERALD)
+            == net.minecraft.world.level.material.MapColor.EMERALD
+            && SeismicSignalProfiles.mapColor(SeismicAnomalyType.ZINC)
+            == net.minecraft.world.level.material.MapColor.GLOW_LICHEN,
+            "Common resources must retain their revised readable map palette");
+        helper.assertTrue(SeismicSignalProfiles.mapColor(SeismicAnomalyType.DIAMOND)
+            != SeismicSignalProfiles.mapColor(SeismicAnomalyType.ASURINE)
+            && SeismicSignalProfiles.mapColor(SeismicAnomalyType.EMERALD)
+            != SeismicSignalProfiles.mapColor(SeismicAnomalyType.URANIUM)
+            && SeismicSignalProfiles.mapColor(SeismicAnomalyType.ZINC)
+            != SeismicSignalProfiles.mapColor(SeismicAnomalyType.COAL)
+            && SeismicSignalProfiles.mapColor(SeismicAnomalyType.SPAWNER)
+            != SeismicSignalProfiles.mapColor(SeismicAnomalyType.TIN),
+            "Revised resource markers must not retain their previous exact palette collisions");
+        helper.assertTrue(SeismicSignalProfiles.echoSound(SeismicAnomalyType.CAVE)
+            == net.minecraft.sounds.SoundEvents.NOTE_BLOCK_XYLOPHONE.value()
+            && SeismicSignalProfiles.basePitch(SeismicAnomalyType.CAVE) == 1.0F,
+            "Cave echoes must not reuse the station completion bell");
+        helper.assertTrue(SeismicSignalProfiles.basePitch(SeismicAnomalyType.COAL) == 0.84F
+            && SeismicSignalProfiles.basePitch(SeismicAnomalyType.LIGNITE) == 0.74F,
+            "Coal and Lignite echoes must stay separated from the strike's 0.58 bass layer");
         helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.COAL) == 0x8A8A8A
             && SeismicSignalProfiles.color(SeismicAnomalyType.CRUDE_OIL) == 0xA76C8E,
             "Dark signals must retain the brighter revised palette");

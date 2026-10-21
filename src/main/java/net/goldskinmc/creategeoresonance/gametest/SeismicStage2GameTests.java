@@ -8,6 +8,7 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicStationBoundingBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationControllerLogic;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleType;
+import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorBlock;
 import net.goldskinmc.creategeoresonance.seismic.SeismicProjectorData;
 import net.goldskinmc.creategeoresonance.seismic.SeismicSurveyNbt;
 import net.goldskinmc.creategeoresonance.seismic.SeismogramMapService;
@@ -30,6 +31,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -129,6 +131,34 @@ public final class SeismicStage2GameTests {
         int centerPixelIndex = (64 * 128) + 64;
         byte expectedBackground = MapColor.SAND.getPackedId(MapColor.Brightness.LOWEST);
         helper.assertTrue(data.colors[centerPixelIndex] == expectedBackground, "Center pixel should remain background color");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void seismogramMarkersUseBrightThreeByThreeCores(GameTestHelper helper) {
+        BlockPos station = helper.absolutePos(new BlockPos(1, 2, 1));
+        int centerX = Math.floorDiv(station.getX(), 16) * 16 + 8;
+        int centerZ = Math.floorDiv(station.getZ(), 16) * 16 + 8;
+        for (SeismicAnomalyType type : List.of(SeismicAnomalyType.DIAMOND, SeismicAnomalyType.EMERALD,
+            SeismicAnomalyType.ZINC, SeismicAnomalyType.COAL, SeismicAnomalyType.SPAWNER)) {
+            ItemStack map = SeismogramMapService.createMap(helper.getLevel(), station,
+                List.of(new SeismicStationBlockEntity.MapEntry(type,
+                    centerX - station.getX(), centerZ - station.getZ(), station.getY() - 8)), List.of());
+            MapItemSavedData data = MapItem.getSavedData(map, helper.getLevel());
+            helper.assertTrue(data != null, "New survey needs map pixels");
+            MapColor color = net.goldskinmc.creategeoresonance.seismic.SeismicSignalProfiles.mapColor(type);
+            for (int dz = -3; dz <= 3; dz++) {
+                for (int dx = -3; dx <= 3; dx++) {
+                    boolean inMarker = Math.abs(dx) <= 2 && Math.abs(dz) <= 2;
+                    boolean inCore = Math.abs(dx) <= 1 && Math.abs(dz) <= 1;
+                    byte expected = inMarker
+                        ? color.getPackedId(inCore ? MapColor.Brightness.HIGH : MapColor.Brightness.NORMAL)
+                        : MapColor.SAND.getPackedId(MapColor.Brightness.LOWEST);
+                    helper.assertTrue(data.colors[(64 + dz) * 128 + 64 + dx] == expected,
+                        "Marker brightness/footprint mismatch for " + type + " at " + dx + "," + dz);
+                }
+            }
+        }
         helper.succeed();
     }
 
@@ -436,6 +466,40 @@ public final class SeismicStage2GameTests {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         NbtIo.writeAnyTag(tag, new DataOutputStream(bytes));
         NbtIo.readAnyTag(new DataInputStream(new ByteArrayInputStream(bytes.toByteArray())), NbtAccounter.create(2097152));
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void projectorShiftPlacementReversesShaft(GameTestHelper helper) {
+        FakePlayer player = FakePlayerFactory.getMinecraft(helper.getLevel());
+        float oldYaw = player.getYRot();
+        boolean oldShift = player.isShiftKeyDown();
+        ItemStack oldStack = player.getMainHandItem();
+        var projector = GeoResonanceBlocks.SEISMIC_PROJECTOR.get();
+        BlockPos basePos = helper.absolutePos(new BlockPos(2, 0, 2));
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(basePos), Direction.UP, basePos, false);
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(projector));
+        try {
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                player.setYRot(direction.toYRot());
+                for (boolean shifted : new boolean[] { false, true }) {
+                    player.setShiftKeyDown(shifted);
+                    BlockPlaceContext context = new BlockPlaceContext(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+                    BlockState state = projector.getStateForPlacement(context);
+                    Direction expectedShaft = shifted ? direction : direction.getOpposite();
+                    helper.assertTrue(state.getValue(SeismicProjectorBlock.HORIZONTAL_FACING) == expectedShaft.getOpposite(),
+                        "Shift placement must reverse projector facing for " + direction);
+                    for (Direction face : Direction.values()) {
+                        helper.assertTrue(projector.hasShaftTowards(helper.getLevel(), context.getClickedPos(), state, face)
+                            == (face == expectedShaft), "Projector shaft must use the expected side");
+                    }
+                }
+            }
+        } finally {
+            player.setYRot(oldYaw);
+            player.setShiftKeyDown(oldShift);
+            player.setItemInHand(InteractionHand.MAIN_HAND, oldStack);
+        }
+        helper.succeed();
     }
 
     private static StationFixture placeStation(GameTestHelper helper, BlockPos basePos) {
