@@ -15,7 +15,7 @@ No palette can make every resource reliably distinguishable by color alone.
 
 Existing saved map pixels are not recolored automatically. Make fresh surveys to compare the new palette.
 Existing projector records and stored mineral IDs remain valid; projections use the current profiles.
-Opacity defaults and rendering/compositing behavior are unchanged.
+Default hologram border/fill alpha is now 200/70. Exposed opaque ore masks hologram fragments behind it without fading front outlines; see [Hologram Visibility](HOLOGRAM_VISIBILITY.md). Existing saved client config values are not overwritten.
 
 ## Audio
 

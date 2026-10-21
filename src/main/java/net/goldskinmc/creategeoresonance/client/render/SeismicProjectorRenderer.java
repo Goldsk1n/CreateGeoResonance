@@ -68,7 +68,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<SeismicProjectorBlockEntity> {
     private static final float BOX_SIZE = 0.45F;
@@ -132,17 +131,17 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             rightSeismogram.light(seismogramLight).renderInto(poseStack, vertexConsumer);
         }
         if (ponderLevel) {
-            renderProjection(blockEntity, poseStack);
-        } else {
-            deferProjection(blockEntity.getLevel(), blockEntity, poseStack, deferredStack -> {
+            renderProjection(blockEntity, poseStack, false);
+        } else if (state.hasProperty(SeismicProjectorBlock.ACTIVE) && state.getValue(SeismicProjectorBlock.ACTIVE)) {
+            deferProjection(blockEntity.getLevel(), blockEntity, poseStack, (deferredStack, maskPass) -> {
                 if (!blockEntity.isRemoved()) {
-                    renderProjection(blockEntity, deferredStack);
+                    renderProjection(blockEntity, deferredStack, maskPass);
                 }
             });
         }
     }
 
-    private static void renderProjection(SeismicProjectorBlockEntity blockEntity, PoseStack poseStack) {
+    private static void renderProjection(SeismicProjectorBlockEntity blockEntity, PoseStack poseStack, boolean maskPass) {
         boolean ponderLevel = blockEntity.getLevel() instanceof PonderLevel;
         Direction facing = blockEntity.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         if (!blockEntity.getBlockState().hasProperty(SeismicProjectorBlock.ACTIVE)
@@ -191,6 +190,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
         BlockPos origin = blockEntity.getBlockPos();
         RenderGeometryData geometry = resolveRenderGeometry(blockEntity, origin, visibleVeins, candidates, renderExact, exactBlockInset);
+        if (maskPass) {
+            if (renderExact) {
+                drawOccluderMask(geometry, blockEntity.getLevel(), poseStack, null);
+            }
+            return;
+        }
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
 
@@ -206,7 +211,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 if (renderExact) {
                     beginOccludedFill();
                 }
-                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                RenderSystem.setShader(SeismicProjectorOcclusion::shader);
                 bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
@@ -234,7 +239,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             RenderSystem.disableCull();
 
             if (edgeAlpha > 0.0F) {
-                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                RenderSystem.setShader(SeismicProjectorOcclusion::shader);
                 bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
@@ -257,7 +262,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
                 float guideHalfWidth = guideLineHalfWidth(projectorGuideLineWidth());
-                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                RenderSystem.setShader(SeismicProjectorOcclusion::shader);
                 bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 float[] guideStart = guideStartForFacing(facing);
                 float startX = guideStart[0];
@@ -290,6 +295,39 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         }
     }
 
+    private static void drawOccluderMask(RenderGeometryData geometry, net.minecraft.world.level.Level level,
+                                         PoseStack poseStack, MovementContext mounted) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        boolean hasVertices = false;
+        for (ExactVeinGeometry vein : geometry.exactVeins()) {
+            BlockPos previous = null;
+            boolean opaque = false;
+            for (FaceQuad face : vein.occluderFaces()) {
+                if (!face.block().equals(previous)) {
+                    previous = face.block();
+                    // Cuboid masks must not fill the gaps in chests, crystals, fluids or cutout models.
+                    opaque = level.hasChunkAt(previous) && level.getBlockState(previous).isSolidRender(level, previous);
+                }
+                if (!opaque) {
+                    continue;
+                }
+                addQuad(builder, poseStack.last().pose(),
+                    face.x1(), face.y1(), face.z1(), face.x2(), face.y2(), face.z2(),
+                    face.x3(), face.y3(), face.z3(), face.x4(), face.y4(), face.z4(),
+                    1.0F, 1.0F, 1.0F, 1.0F);
+                hasVertices = true;
+            }
+        }
+        var mesh = builder.end();
+        if (hasVertices) {
+            BufferUploader.drawWithShader(mesh);
+        } else {
+            mesh.release();
+        }
+    }
+
     private static void beginOccludedFill() {
         RenderSystem.enableDepthTest();
         RenderSystem.depthFunc(GL11.GL_GREATER);
@@ -306,7 +344,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private static void deferProjection(net.minecraft.world.level.Level level, Object key,
-                                        PoseStack poseStack, Consumer<PoseStack> render) {
+                                        PoseStack poseStack, ProjectionRender render) {
         // Preserve the original view transform; the final pass has different matrices on each loader.
         PoseStack deferredStack = new PoseStack();
         deferredStack.last().pose().set(RenderSystem.getModelViewMatrix()).mul(poseStack.last().pose());
@@ -322,12 +360,20 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         modelView.setIdentity();
         RenderSystem.applyModelViewMatrix();
         try {
+            SeismicProjectorOcclusion.beginMask();
             for (DeferredProjection projection : DEFERRED_PROJECTIONS.values()) {
                 if (projection.level() == level) {
-                    projection.render().accept(projection.poseStack());
+                    projection.render().render(projection.poseStack(), true);
+                }
+            }
+            SeismicProjectorOcclusion.finishMask();
+            for (DeferredProjection projection : DEFERRED_PROJECTIONS.values()) {
+                if (projection.level() == level) {
+                    projection.render().render(projection.poseStack(), false);
                 }
             }
         } finally {
+            SeismicProjectorOcclusion.endFrame();
             DEFERRED_PROJECTIONS.clear();
             modelView.popPose();
             RenderSystem.applyModelViewMatrix();
@@ -336,10 +382,16 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
     public static void clearDeferredProjectionOverlays() {
         DEFERRED_PROJECTIONS.clear();
+        SeismicProjectorOcclusion.release();
+    }
+
+    @FunctionalInterface
+    private interface ProjectionRender {
+        void render(PoseStack poseStack, boolean maskPass);
     }
 
     private record DeferredProjection(net.minecraft.world.level.Level level, PoseStack poseStack,
-                                      Consumer<PoseStack> render) {
+                                      ProjectionRender render) {
     }
 
     public static void renderInContraption(MovementContext context, VirtualRenderWorld renderWorld,
@@ -396,11 +448,11 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         ContraptionMatrices.transform(projectedStack, matrices.getViewProjection());
         ContraptionMatrices.transform(projectedStack, matrices.getModel());
         deferProjection(context.world, context, projectedStack,
-            deferredStack -> renderMountedProjection(context, projectorPos, deferredStack));
+            (deferredStack, maskPass) -> renderMountedProjection(context, projectorPos, deferredStack, maskPass));
     }
 
     private static void renderMountedProjection(MovementContext context, BlockPos projectorPos,
-                                                PoseStack projectedStack) {
+                                                PoseStack projectedStack, boolean maskPass) {
         SeismicProjectorData projectorData = new SeismicProjectorData();
         projectorData.readFromTag(context.blockEntityData);
         Direction facing = context.state.getValue(HorizontalDirectionalBlock.FACING);
@@ -430,6 +482,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
         float exactBlockInset = projectorBlockInset();
         RenderGeometryData geometry = resolveRenderGeometry(context, projectorPos, visibleVeins, candidates, renderExact, exactBlockInset);
+        if (maskPass) {
+            if (renderExact) {
+                drawOccluderMask(geometry, context.world, projectedStack, null);
+            }
+            return;
+        }
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
 
@@ -445,7 +503,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 if (renderExact) {
                     beginOccludedFill();
                 }
-                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                RenderSystem.setShader(SeismicProjectorOcclusion::shader);
                 bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
@@ -472,7 +530,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
             RenderSystem.disableCull();
 
             if (edgeAlpha > 0.0F) {
-                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                RenderSystem.setShader(SeismicProjectorOcclusion::shader);
                 bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
                 if (renderExact) {
                     for (ExactVeinGeometry vein : geometry.exactVeins()) {
@@ -494,7 +552,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
 
             if (guideLinesEnabled && edgeAlpha > 0.0F) {
                 float guideHalfWidth = guideLineHalfWidth(projectorGuideLineWidth());
-                RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                RenderSystem.setShader(SeismicProjectorOcclusion::shader);
                 bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 float[] guideStart = guideStartForFacing(facing);
                 if (renderExact) {
@@ -765,13 +823,13 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 if (occupied.contains(pos.relative(direction))) {
                     continue;
                 }
-                addFaceQuad(faces, x, y, z, direction, inset);
+                addFaceQuad(faces, pos, x, y, z, direction, inset);
             }
         }
         return faces;
     }
 
-    private static void addFaceQuad(List<FaceQuad> faces, int x, int y, int z, Direction direction, float inset) {
+    private static void addFaceQuad(List<FaceQuad> faces, BlockPos block, int x, int y, int z, Direction direction, float inset) {
         float minX = x + inset;
         float minY = y + inset;
         float minZ = z + inset;
@@ -780,12 +838,12 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
         float maxZ = z + 1.0F - inset;
 
         switch (direction) {
-            case DOWN -> faces.add(new FaceQuad(Direction.DOWN, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ));
-            case UP -> faces.add(new FaceQuad(Direction.UP, minX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
-            case NORTH -> faces.add(new FaceQuad(Direction.NORTH, minX, minY, minZ, minX, maxY, minZ, maxX, maxY, minZ, maxX, minY, minZ));
-            case SOUTH -> faces.add(new FaceQuad(Direction.SOUTH, minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ));
-            case WEST -> faces.add(new FaceQuad(Direction.WEST, minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ));
-            case EAST -> faces.add(new FaceQuad(Direction.EAST, maxX, minY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, maxX, minY, maxZ));
+            case DOWN -> faces.add(new FaceQuad(Direction.DOWN, block, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ));
+            case UP -> faces.add(new FaceQuad(Direction.UP, block, minX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ));
+            case NORTH -> faces.add(new FaceQuad(Direction.NORTH, block, minX, minY, minZ, minX, maxY, minZ, maxX, maxY, minZ, maxX, minY, minZ));
+            case SOUTH -> faces.add(new FaceQuad(Direction.SOUTH, block, minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ));
+            case WEST -> faces.add(new FaceQuad(Direction.WEST, block, minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ));
+            case EAST -> faces.add(new FaceQuad(Direction.EAST, block, maxX, minY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, maxX, minY, maxZ));
         }
     }
 
@@ -1026,6 +1084,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
                 List<LineSegment> edges = buildJoinedEdges(faces);
                 float[] centroid = veinCentroid(origin, vein.blocks());
                 built.add(new ExactVeinGeometry(vein.type(), List.copyOf(faces), List.copyOf(edges),
+                    List.copyOf(buildSurfaceFaces(vein.blocks(), origin, 0.0F)),
                     centroid[0], centroid[1], centroid[2]));
             }
             exactGeometries = List.copyOf(built);
@@ -1239,7 +1298,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private record FaceQuad(
-        Direction normal,
+        Direction normal, BlockPos block,
         float x1, float y1, float z1,
         float x2, float y2, float z2,
         float x3, float y3, float z3,
@@ -1253,6 +1312,7 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private record ExactVeinGeometry(SeismicAnomalyType type, List<FaceQuad> faces, List<LineSegment> edges,
+                                     List<FaceQuad> occluderFaces,
                                      float centroidX, float centroidY, float centroidZ) {
     }
 

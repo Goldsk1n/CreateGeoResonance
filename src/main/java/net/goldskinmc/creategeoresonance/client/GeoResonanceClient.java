@@ -98,6 +98,7 @@ public final class GeoResonanceClient {
 
     public static void register(IEventBus modEventBus) {
         modEventBus.addListener(GeoResonanceClient::onClientSetup);
+        modEventBus.addListener(net.goldskinmc.creategeoresonance.client.render.SeismicProjectorOcclusion::registerShaders);
         ItemProperties.register(Items.FILLED_MAP,
             ResourceLocation.fromNamespaceAndPath(CreateGeoResonanceMod.MODID, "seismogram"),
             (stack, level, entity, seed) -> SeismogramMapService.isSeismogramStack(stack) ? 1.0F : 0.0F);

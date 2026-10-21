@@ -157,10 +157,10 @@ public class Config {
             .define("fillEnabled", true);
         PROJECTOR_FILL_ALPHA = CLIENT_BUILDER
             .comment("Fill alpha channel (0-255).")
-            .defineInRange("fillAlpha", 38, 0, 255);
+            .defineInRange("fillAlpha", 70, 0, 255);
         PROJECTOR_EDGE_ALPHA = CLIENT_BUILDER
             .comment("Outline alpha channel (0-255).")
-            .defineInRange("edgeAlpha", 166, 0, 255);
+            .defineInRange("edgeAlpha", 200, 0, 255);
         PROJECTOR_BLOCK_EDGE_INSET = CLIENT_BUILDER
             .comment("World hologram face offset from block borders. Negative expands, positive shrinks.")
             .defineInRange("blockEdgeInset", 0.0D, -0.45D, 0.45D);
