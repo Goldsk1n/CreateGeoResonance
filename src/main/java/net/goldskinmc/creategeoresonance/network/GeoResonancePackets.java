@@ -21,7 +21,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.List;
 
 public final class GeoResonancePackets {
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
     private static final double BROADCAST_RADIUS = 48.0D;
     private static int packetIndex = 0;
 

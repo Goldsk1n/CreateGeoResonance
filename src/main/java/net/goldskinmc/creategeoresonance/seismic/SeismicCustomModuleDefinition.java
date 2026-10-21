@@ -13,8 +13,10 @@ import net.minecraft.world.level.block.Block;
 import java.util.Set;
 
 public record SeismicCustomModuleDefinition(ResourceLocation id, String name, String signalName,
-                                             ResourceLocation icon, TagKey<Block> blockTag, int color, IconSize iconSize) {
-    private static final Set<String> FIELDS = Set.of("name", "signal_name", "icon", "block_tag", "color", "icon_size");
+                                             ResourceLocation icon, TagKey<Block> blockTag, int color, IconSize iconSize,
+                                             SeismicSoundFamily soundFamily, float basePitch) {
+    private static final Set<String> FIELDS = Set.of("name", "signal_name", "icon", "block_tag", "color", "icon_size",
+        "sound_family", "base_pitch");
 
     public enum IconSize {
         STANDARD("standard"),
@@ -57,8 +59,13 @@ public record SeismicCustomModuleDefinition(ResourceLocation id, String name, St
             case "small" -> IconSize.SMALL;
             default -> throw new JsonParseException(id + ": icon_size must be 'standard' or 'small'");
         };
+        SeismicSoundFamily soundFamily = SeismicSoundFamily.parse(id, GsonHelper.getAsString(json, "sound_family", "crystal"));
+        float basePitch = GsonHelper.getAsFloat(json, "base_pitch", 1.0F);
+        if (!Float.isFinite(basePitch) || basePitch < 0.5F || basePitch > 2.0F) {
+            throw new JsonParseException(id + ": base_pitch must be a finite number between 0.5 and 2.0");
+        }
         return new SeismicCustomModuleDefinition(id, name, signal, icon, BlockTags.create(tag),
-            Integer.parseInt(hex.substring(1), 16), iconSize);
+            Integer.parseInt(hex.substring(1), 16), iconSize, soundFamily, basePitch);
     }
 
     private static String text(JsonObject json, String field) {
@@ -96,6 +103,8 @@ public record SeismicCustomModuleDefinition(ResourceLocation id, String name, St
         json.addProperty("signal_name", signalName);
         json.addProperty("icon", icon.toString());
         json.addProperty("icon_size", iconSize.serializedName());
+        json.addProperty("sound_family", soundFamily.serializedName());
+        json.addProperty("base_pitch", basePitch);
         json.addProperty("block_tag", blockTag.location().toString());
         json.addProperty("color", String.format(java.util.Locale.ROOT, "#%06X", color));
         return json;

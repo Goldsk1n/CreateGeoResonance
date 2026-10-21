@@ -7,6 +7,8 @@ import net.goldskinmc.creategeoresonance.seismic.SeismicAnomalyType;
 import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModuleDefinition;
 import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+import net.goldskinmc.creategeoresonance.seismic.SeismicSignalProfiles;
+import net.goldskinmc.creategeoresonance.seismic.SeismicSoundFamily;
 import net.goldskinmc.creategeoresonance.seismic.SeismicModuleItem;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationData;
 import net.goldskinmc.creategeoresonance.seismic.SeismicStationBlockEntity;
@@ -190,6 +192,107 @@ public final class SeismicCustomModuleGameTests {
         }
         helper.assertTrue(rejected, "Unsupported icon sizes must not silently fall back to standard");
         helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void signalProfilesCoverBuiltinsAndPreserveDepositIdentity(GameTestHelper helper) {
+        for (SeismicAnomalyType type : SeismicAnomalyType.values()) {
+            int color = SeismicSignalProfiles.color(type);
+            helper.assertTrue(color >= 0 && color <= 0xFFFFFF, "Signal needs a valid RGB color: " + type);
+            helper.assertTrue(SeismicSignalProfiles.mapColor(type) != net.minecraft.world.level.material.MapColor.NONE,
+                "Signal needs a visible map color: " + type);
+            helper.assertTrue(SeismicSignalProfiles.echoSound(type) != null, "Signal needs an echo sound: " + type);
+            helper.assertTrue(SeismicSignalProfiles.basePitch(type) >= 0.5F && SeismicSignalProfiles.basePitch(type) <= 2.0F,
+                "Signal needs a valid base pitch: " + type);
+            if (type.isRockStoneDeposit()) {
+                helper.assertTrue(color == SeismicSignalProfiles.color(type.mineralType())
+                    && SeismicSignalProfiles.echoSound(type) == SeismicSignalProfiles.echoSound(type.mineralType()),
+                    "Ore and deposit variants must retain the same identity: " + type);
+            }
+        }
+        helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.IRON) == 0xD7D7D7,
+            "Iron must use one silver-gray identity");
+        helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.SPAWNER) == 0x52C4B5,
+            "Spawner must use one teal identity");
+        helper.assertTrue(SeismicSignalProfiles.echoSound(SeismicAnomalyType.SPAWNER)
+            == net.minecraft.sounds.SoundEvents.SCULK_CLICKING, "Spawner needs a distinctive sensor pulse");
+        helper.assertTrue(SeismicSignalProfiles.color(SeismicAnomalyType.COAL) == 0x8A8A8A
+            && SeismicSignalProfiles.color(SeismicAnomalyType.CRUDE_OIL) == 0xA76C8E,
+            "Dark signals must retain the brighter revised palette");
+        helper.assertTrue(SeismicSignalProfiles.soundFamily(SeismicAnomalyType.LEAD) == SeismicSoundFamily.METAL
+            && SeismicSignalProfiles.soundFamily(SeismicAnomalyType.CRIMSITE) == SeismicSoundFamily.STONE
+            && SeismicSignalProfiles.soundFamily(SeismicAnomalyType.QUARTZ) == SeismicSoundFamily.CRYSTAL,
+            "Metals, mineral stones and crystals need coherent sound families");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void depthPitchVariationIsSmallAndBounded(GameTestHelper helper) {
+        float shallow = SeismicSignalProfiles.adjustedPitch(1.0F, 0, 100);
+        float deep = SeismicSignalProfiles.adjustedPitch(1.0F, 100, 100);
+        helper.assertTrue(Math.abs(shallow - 1.0F) < 0.0001F && Math.abs(deep - 0.94F) < 0.0001F,
+            "Depth should change pitch by at most 0.06, not 0.22");
+        helper.assertTrue(Math.abs(SeismicSignalProfiles.adjustedPitch(1.0F, 500, 100) - deep) < 0.0001F
+            && Math.abs(SeismicSignalProfiles.adjustedPitch(1.0F, -100, 100) - shallow) < 0.0001F,
+            "Unexpected depth values must not extend pitch variation");
+        helper.assertTrue(SeismicSignalProfiles.adjustedPitch(0.5F, 100, 100) == 0.5F
+            && SeismicSignalProfiles.adjustedPitch(2.0F, 0, 100) == 2.0F,
+            "Playback pitch must stay inside 0.5-2.0");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 120)
+    public static void customSoundFamiliesDefaultAndSynchronize(GameTestHelper helper) {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath("geo_test", "sound");
+        JsonObject json = definitionJson("Sound", "#123456");
+        var defaults = SeismicCustomModuleDefinition.parse(id, json);
+        helper.assertTrue(defaults.soundFamily() == SeismicSoundFamily.CRYSTAL && defaults.basePitch() == 1.0F,
+            "Existing definitions must retain crystal / 1.0 defaults");
+        CompoundTag previous = SeismicCustomModules.writeDefinitions();
+        ItemStack existing = SeismicCustomModuleItem.create(id);
+        try {
+            for (SeismicSoundFamily family : SeismicSoundFamily.values()) {
+                json.addProperty("sound_family", family.serializedName());
+                json.addProperty("base_pitch", 1.25F);
+                var configured = SeismicCustomModuleDefinition.parse(id, json);
+                helper.assertTrue(SeismicCustomModuleDefinition.parse(id, configured.toJson()).equals(configured),
+                    "Custom audio must survive JSON round-trip");
+                CompoundTag entry = new CompoundTag();
+                entry.putString("Id", id.toString());
+                entry.putString("Json", configured.toJson().toString());
+                ListTag entries = new ListTag();
+                entries.add(entry);
+                CompoundTag data = new CompoundTag();
+                data.put("Definitions", entries);
+                SeismicCustomModules.readDefinitions(data);
+                SeismicCustomModules.readDefinitions(SeismicCustomModules.writeDefinitions());
+                var type = SeismicModuleItem.getDetectsType(existing);
+                helper.assertTrue(SeismicSignalProfiles.soundFamily(type) == family
+                    && SeismicSignalProfiles.echoSound(type) == family.sound()
+                    && SeismicSignalProfiles.basePitch(type) == 1.25F,
+                    "Existing module items must use synchronized/reloaded audio: " + family);
+            }
+        } finally {
+            SeismicCustomModules.readDefinitions(previous);
+        }
+        json.addProperty("sound_family", "unsupported");
+        assertInvalidAudio(helper, id, json, "Unsupported family must be rejected");
+        json.addProperty("sound_family", "crystal");
+        for (float pitch : new float[] {0.49F, 2.01F, Float.NaN, Float.POSITIVE_INFINITY}) {
+            json.addProperty("base_pitch", pitch);
+            assertInvalidAudio(helper, id, json, "Invalid pitch must be rejected: " + pitch);
+        }
+        helper.succeed();
+    }
+
+    private static void assertInvalidAudio(GameTestHelper helper, ResourceLocation id, JsonObject json, String message) {
+        boolean rejected = false;
+        try {
+            SeismicCustomModuleDefinition.parse(id, json);
+        } catch (JsonParseException expected) {
+            rejected = true;
+        }
+        helper.assertTrue(rejected, message);
     }
 
     private static CompoundTag definitionTag(ResourceLocation id, String name, String color) {
