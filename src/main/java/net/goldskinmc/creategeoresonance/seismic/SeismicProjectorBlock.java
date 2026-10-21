@@ -35,7 +35,11 @@ public class SeismicProjectorBlock extends HorizontalKineticBlock implements IBE
     @Override
     @Nullable
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(HORIZONTAL_FACING, context.getHorizontalDirection());
+        Direction facing = context.getHorizontalDirection();
+        if (context.getPlayer() != null && context.getPlayer().isShiftKeyDown()) {
+            facing = facing.getOpposite();
+        }
+        return defaultBlockState().setValue(HORIZONTAL_FACING, facing);
     }
 
     @Override

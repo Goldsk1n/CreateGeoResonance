@@ -313,7 +313,7 @@ public final class SeismogramMapService {
                 if (x < 0 || x >= MAP_SIZE || z < 0 || z >= MAP_SIZE) {
                     continue;
                 }
-                mapData.setColor(x, z, (dx == 0 && dz == 0) ? core : edge);
+                mapData.setColor(x, z, (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) ? core : edge);
             }
         }
     }

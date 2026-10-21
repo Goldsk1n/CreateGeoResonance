@@ -161,7 +161,6 @@ public final class SeismicStationControllerLogic {
         host.onDataChanged();
         player.displayClientMessage(Component.translatable("block.creategeoresonance.seismic_station.output_taken")
             .withStyle(ChatFormatting.AQUA), true);
-        playFeedbackSound(host, SoundEvents.NOTE_BLOCK_BASS.value(), 0.65F, 1.3F);
         return true;
     }
 

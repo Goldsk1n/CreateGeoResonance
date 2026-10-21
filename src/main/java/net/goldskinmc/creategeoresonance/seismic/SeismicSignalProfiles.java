@@ -22,9 +22,9 @@ public final class SeismicSignalProfiles {
         profiles.put(SeismicAnomalyType.LAVA, new Profile(0xFF7828, MapColor.COLOR_ORANGE,
             SeismicSoundFamily.LIQUID, SoundEvents.LAVA_POP, 0.66F));
         profiles.put(SeismicAnomalyType.CAVE, new Profile(0xB4C8DC, MapColor.COLOR_LIGHT_GRAY,
-            SeismicSoundFamily.STONE, SoundEvents.BELL_BLOCK, 1.12F));
+            SeismicSoundFamily.STONE, SoundEvents.NOTE_BLOCK_XYLOPHONE.value(), 1.0F));
         profiles.put(SeismicAnomalyType.COAL, new Profile(0x8A8A8A, MapColor.COLOR_GRAY,
-            SeismicSoundFamily.STONE, SoundEvents.NOTE_BLOCK_BASS.value(), 0.62F));
+            SeismicSoundFamily.STONE, SoundEvents.NOTE_BLOCK_BASS.value(), 0.84F));
         profiles.put(SeismicAnomalyType.IRON, new Profile(0xD7D7D7, MapColor.METAL,
             SeismicSoundFamily.METAL, SoundEvents.NOTE_BLOCK_IRON_XYLOPHONE.value(), 0.72F));
         profiles.put(SeismicAnomalyType.COPPER, new Profile(0xD3844B, MapColor.COLOR_BROWN,
@@ -35,11 +35,11 @@ public final class SeismicSignalProfiles {
             SeismicSoundFamily.STONE, SoundEvents.REDSTONE_TORCH_BURNOUT, 0.95F));
         profiles.put(SeismicAnomalyType.LAPIS, new Profile(0x426CD0, MapColor.COLOR_BLUE,
             SeismicSoundFamily.CRYSTAL, SeismicSoundFamily.CRYSTAL.sound(), 1.06F));
-        profiles.put(SeismicAnomalyType.EMERALD, new Profile(0x31D271, MapColor.COLOR_GREEN,
+        profiles.put(SeismicAnomalyType.EMERALD, new Profile(0x31D271, MapColor.EMERALD,
             SeismicSoundFamily.CRYSTAL, SoundEvents.NOTE_BLOCK_FLUTE.value(), 1.28F));
-        profiles.put(SeismicAnomalyType.DIAMOND, new Profile(0x57EEDC, MapColor.COLOR_LIGHT_BLUE,
+        profiles.put(SeismicAnomalyType.DIAMOND, new Profile(0x57EEDC, MapColor.DIAMOND,
             SeismicSoundFamily.CRYSTAL, SoundEvents.AMETHYST_BLOCK_RESONATE, 1.34F));
-        profiles.put(SeismicAnomalyType.ZINC, new Profile(0x9CBECD, MapColor.COLOR_GRAY,
+        profiles.put(SeismicAnomalyType.ZINC, new Profile(0x9CBECD, MapColor.GLOW_LICHEN,
             SeismicSoundFamily.METAL, SoundEvents.CHAIN_STEP, 0.9F));
         profiles.put(SeismicAnomalyType.CRIMSITE, new Profile(0xB85C70, MapColor.TERRACOTTA_RED,
             SeismicSoundFamily.STONE, SeismicSoundFamily.STONE.sound(), 1.0F));
@@ -64,7 +64,7 @@ public final class SeismicSignalProfiles {
         profiles.put(SeismicAnomalyType.GALENA, new Profile(0x9E7BB8, MapColor.TERRACOTTA_PURPLE,
             SeismicSoundFamily.STONE, SoundEvents.DEEPSLATE_HIT, 0.74F));
         profiles.put(SeismicAnomalyType.LIGNITE, new Profile(0xB18B55, MapColor.TERRACOTTA_BROWN,
-            SeismicSoundFamily.STONE, SoundEvents.NOTE_BLOCK_BASS.value(), 0.58F));
+            SeismicSoundFamily.STONE, SoundEvents.NOTE_BLOCK_BASS.value(), 0.74F));
         profiles.put(SeismicAnomalyType.SULFUR, new Profile(0xDFD85A, MapColor.COLOR_YELLOW,
             SeismicSoundFamily.STONE, SeismicSoundFamily.STONE.sound(), 1.12F));
         profiles.put(SeismicAnomalyType.CRUDE_OIL, new Profile(0xA76C8E, MapColor.TERRACOTTA_MAGENTA,
@@ -123,7 +123,7 @@ public final class SeismicSignalProfiles {
             SeismicSoundFamily.CRYSTAL, SeismicSoundFamily.CRYSTAL.sound(), 1.18F));
         profiles.put(SeismicAnomalyType.CHEST, new Profile(0xAB7742, MapColor.WOOD,
             SeismicSoundFamily.SPECIAL, SoundEvents.CHEST_OPEN, 0.85F));
-        profiles.put(SeismicAnomalyType.SPAWNER, new Profile(0x52C4B5, MapColor.COLOR_CYAN,
+        profiles.put(SeismicAnomalyType.SPAWNER, new Profile(0xD457C8, MapColor.COLOR_MAGENTA,
             SeismicSoundFamily.SPECIAL, SeismicSoundFamily.SPECIAL.sound(), 0.85F));
         profiles.put(SeismicAnomalyType.SOLID, new Profile(0xA0A0A0, MapColor.STONE,
             SeismicSoundFamily.STONE, SoundEvents.NOTE_BLOCK_BASS.value(), 0.56F));

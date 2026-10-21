@@ -1,5 +1,27 @@
 # Signal Colors and Sounds
 
+## Current Tuning Trial
+
+These changes are applied for in-game evaluation, not claimed as perceptually validated:
+
+- Diamond/Emerald map markers use `DIAMOND` / `EMERALD`; Zinc uses `GLOW_LICHEN`. Their base RGBs and echo sounds are unchanged.
+- Every map marker remains 5x5, with a 3x3 `HIGH`-brightness center (9 pixels) and a `NORMAL`-brightness border (16 pixels).
+- Coal/Lignite returning bass pitches are 0.84/0.74. The strike's bass layer remains 0.58.
+- Cave echoes use `minecraft:block.note_block.xylophone` at base pitch 1.0 instead of the village bell. The station's completion bell is unchanged.
+- Spawner uses magenta `#D457C8` / `COLOR_MAGENTA`; its sculk clicking sound is unchanged.
+- Echo volumes, the 0.06 depth shift, travel delays, other pitches, custom-module defaults and hologram rendering/opacity are unchanged.
+- Make fresh surveys for new map pixels. Old saved maps are not recolored automatically; current projector colors do update.
+
+### Quick In-Game Check
+
+Run on both versions. Use comparable locations, sound sliders and graphics settings; take a screenshot or short recording if a choice feels worse.
+
+1. Make a fresh survey containing Coal, Iron, Diamond, Emerald, Zinc and Asurine. Check that Diamond/Asurine and Coal/Zinc are distinguishable, Emerald stands out, and markers are brighter without becoming larger. Inspect held maps and item frames, including crowded dots.
+2. Survey shallow and deep Coal/Lignite deposits with their modules (Lignite needs TFMG). Listen for a clearly separate returning echo after the unchanged strike, including overlapping returns.
+3. Use the hand hammer repeatedly over cave-heavy ground and run a module-free station survey. Cave returns should be short xylophone tones, not long village bells; the final station completion cue should still be the original bell.
+4. Survey Diamond and Spawner together. Compare cyan versus magenta waves, fresh map markers, sidebar text and holograms against stone/deepslate, at close range and about 32 blocks. Include Amethyst/Rune or another purple target if available to check the new tradeoff.
+5. Sanity check Lava's three pops, low-pressure gray/hat echoes and the existing exposed-ore masking. These should not change.
+
 ## Shared Profiles
 
 Built-in signal profiles live in `SeismicSignalProfiles.java`. Waves and holograms use the same base RGB.
@@ -7,7 +29,7 @@ Sidebar labels lighten each RGB channel 22% toward white. Map pixels use the pro
 Rock & Stone deposit variants reuse their corresponding mineral profile.
 Custom module RGB and audio come from the synchronized datapack definition.
 
-Iron is consistently silver-gray (`#D7D7D7`); Spawner is consistently teal (`#52C4B5`) with a sculk-sensor pulse.
+Iron is consistently silver-gray (`#D7D7D7`); Spawner is consistently magenta (`#D457C8`) with a sculk-sensor pulse.
 Coal, Magnetite, Oil and Lignite have brighter base colors.
 Cobalt/Lapis, Bauxite/Copper, Nitrate/Prosperity and Lignite/Soulium are more separated.
 Palette-limited map markers and naturally similar minerals still require names for reliable identification.
@@ -41,16 +63,16 @@ Family defaults: metal = note-block bell; crystal = amethyst chime; stone = calc
 | --- | --- | --- | --- | --- | --- |
 | WATER | `#50AAFF` | `WATER` | liquid | `BUBBLE_COLUMN_WHIRLPOOL_AMBIENT` | 0.84 |
 | LAVA | `#FF7828` | `COLOR_ORANGE` | liquid | `LAVA_POP` | 0.66 |
-| CAVE | `#B4C8DC` | `COLOR_LIGHT_GRAY` | stone | `BELL_BLOCK` | 1.12 |
-| COAL | `#8A8A8A` | `COLOR_GRAY` | stone | `NOTE_BLOCK_BASS` | 0.62 |
+| CAVE | `#B4C8DC` | `COLOR_LIGHT_GRAY` | stone | `NOTE_BLOCK_XYLOPHONE` | 1.00 |
+| COAL | `#8A8A8A` | `COLOR_GRAY` | stone | `NOTE_BLOCK_BASS` | 0.84 |
 | IRON | `#D7D7D7` | `METAL` | metal | `NOTE_BLOCK_IRON_XYLOPHONE` | 0.72 |
 | COPPER | `#D3844B` | `COLOR_BROWN` | metal | `METAL.sound()` | 1.00 |
 | GOLD | `#FFD73D` | `COLOR_YELLOW` | metal | `NOTE_BLOCK_CHIME` | 1.22 |
 | REDSTONE | `#E53131` | `COLOR_RED` | stone | `REDSTONE_TORCH_BURNOUT` | 0.95 |
 | LAPIS | `#426CD0` | `COLOR_BLUE` | crystal | `CRYSTAL.sound()` | 1.06 |
-| EMERALD | `#31D271` | `COLOR_GREEN` | crystal | `NOTE_BLOCK_FLUTE` | 1.28 |
-| DIAMOND | `#57EEDC` | `COLOR_LIGHT_BLUE` | crystal | `AMETHYST_BLOCK_RESONATE` | 1.34 |
-| ZINC | `#9CBECD` | `COLOR_GRAY` | metal | `CHAIN_STEP` | 0.90 |
+| EMERALD | `#31D271` | `EMERALD` | crystal | `NOTE_BLOCK_FLUTE` | 1.28 |
+| DIAMOND | `#57EEDC` | `DIAMOND` | crystal | `AMETHYST_BLOCK_RESONATE` | 1.34 |
+| ZINC | `#9CBECD` | `GLOW_LICHEN` | metal | `CHAIN_STEP` | 0.90 |
 | CRIMSITE | `#B85C70` | `TERRACOTTA_RED` | stone | `STONE.sound()` | 1.00 |
 | ASURINE | `#669FD0` | `COLOR_LIGHT_BLUE` | stone | `STONE.sound()` | 1.10 |
 | OCHRUM | `#D9AC55` | `TERRACOTTA_YELLOW` | stone | `STONE.sound()` | 0.95 |
@@ -62,7 +84,7 @@ Family defaults: metal = note-block bell; crystal = amethyst chime; stone = calc
 | LITHIUM | `#D896B6` | `COLOR_PINK` | metal | `METAL.sound()` | 1.24 |
 | BAUXITE | `#EFA76F` | `TERRACOTTA_ORANGE` | stone | `STONE.sound()` | 0.92 |
 | GALENA | `#9E7BB8` | `TERRACOTTA_PURPLE` | stone | `DEEPSLATE_HIT` | 0.74 |
-| LIGNITE | `#B18B55` | `TERRACOTTA_BROWN` | stone | `NOTE_BLOCK_BASS` | 0.58 |
+| LIGNITE | `#B18B55` | `TERRACOTTA_BROWN` | stone | `NOTE_BLOCK_BASS` | 0.74 |
 | SULFUR | `#DFD85A` | `COLOR_YELLOW` | stone | `STONE.sound()` | 1.12 |
 | CRUDE_OIL | `#A76C8E` | `TERRACOTTA_MAGENTA` | liquid | `LIQUID.sound()` | 0.60 |
 | WOLFRAMITE | `#90A9BF` | `COLOR_LIGHT_GRAY` | metal | `NOTE_BLOCK_IRON_XYLOPHONE` | 0.64 |
@@ -92,14 +114,14 @@ Family defaults: metal = note-block bell; crystal = amethyst chime; stone = calc
 | COBALT | `#655BE0` | `TERRACOTTA_BLUE` | metal | `METAL.sound()` | 0.90 |
 | AMETHYST | `#C08AE6` | `COLOR_PURPLE` | crystal | `CRYSTAL.sound()` | 1.18 |
 | CHEST | `#AB7742` | `WOOD` | special | `CHEST_OPEN` | 0.85 |
-| SPAWNER | `#52C4B5` | `COLOR_CYAN` | special | `SPECIAL.sound()` | 0.85 |
+| SPAWNER | `#D457C8` | `COLOR_MAGENTA` | special | `SPECIAL.sound()` | 0.85 |
 | SOLID | `#A0A0A0` | `STONE` | stone | `NOTE_BLOCK_BASS` | 0.56 |
 
 ## Manual Checks
 
 Perform on both Minecraft versions with the updated jar. Do not expect old seismogram map pixels to change.
 
-1. Make fresh Iron and Spawner surveys. Compare wave, sidebar and projector hues; Iron should stay silver-gray and Spawner teal. Check Spawner no longer sounds like cave-vines footsteps.
+1. Make fresh Iron and Spawner surveys. Compare wave, sidebar and projector hues; Iron should stay silver-gray and Spawner magenta. Spawner should retain its sculk clicking sound.
 2. Compare Coal, Magnetite, Oil and Lignite projections against stone, deepslate and grass, above and below water. Confirm they remain visible without making the scene too opaque.
 3. Compare Lapis/Cobalt, Copper/Bauxite, Nitrate/Prosperity, Lignite/Soulium and Autunite/Uraninite side by side using separate deposits and fresh maps. Distinct labels are still needed.
 4. Listen to Iron/Lead/Copper/Silver, Crimsite/Galena, Quartz/Diamond, Oil/Lava, Chest/Spawner and experience signals where available. Check family identity, comfortable perceived loudness and overlapping echoes. Equal playback volume does not guarantee equal perceived loudness across source sounds.
