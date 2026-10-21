@@ -3,6 +3,8 @@
   "signal_name": "Cyan Deposit",
   "icon": "minecraft:cyan_dye",
   "icon_size": "small",
+  "sound_family": "crystal",
+  "base_pitch": 1.3,
   "block_tag": "geo_example:cyan_deposits",
   "color": "#45C7D9"
 }

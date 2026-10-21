@@ -1,6 +1,7 @@
 package net.goldskinmc.creategeoresonance.client.render;
 
 import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+import net.goldskinmc.creategeoresonance.seismic.SeismicSignalProfiles;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -1343,61 +1344,8 @@ public class SeismicProjectorRenderer extends KineticBlockEntityRenderer<Seismic
     }
 
     private static float[] colorFor(SeismicAnomalyType type) {
-        return switch (type.kind()) {
-            case WATER -> rgb(80, 170, 255);
-            case LAVA -> rgb(255, 120, 40);
-            case CAVE -> rgb(180, 200, 220);
-            case COAL, COAL_DEPOSIT -> rgb(70, 70, 70);
-            case IRON, IRON_DEPOSIT -> rgb(216, 166, 129);
-            case COPPER, COPPER_DEPOSIT -> rgb(211, 132, 75);
-            case GOLD, GOLD_DEPOSIT -> rgb(255, 215, 61);
-            case REDSTONE, REDSTONE_DEPOSIT -> rgb(229, 49, 49);
-            case LAPIS, LAPIS_DEPOSIT -> rgb(66, 108, 208);
-            case EMERALD -> rgb(49, 210, 113);
-            case DIAMOND -> rgb(87, 238, 220);
-            case ZINC, ZINC_DEPOSIT -> rgb(156, 190, 205);
-            case CRIMSITE -> rgb(184, 92, 112);
-            case ASURINE -> rgb(102, 159, 208);
-            case OCHRUM -> rgb(217, 172, 85);
-            case VERIDIUM -> rgb(121, 184, 131);
-            case THORIUM, THORIUM_DEPOSIT -> rgb(198, 216, 107);
-            case MAGNETITE -> rgb(116, 126, 138);
-            case LEAD, LEAD_DEPOSIT -> rgb(132, 140, 184);
-            case NICKEL, NICKEL_DEPOSIT -> rgb(175, 195, 141);
-            case LITHIUM -> rgb(216, 150, 182);
-            case BAUXITE -> rgb(209, 139, 91);
-            case GALENA -> rgb(158, 123, 184);
-            case LIGNITE -> rgb(130, 96, 70);
-            case SULFUR -> rgb(223, 216, 90);
-            case CRUDE_OIL -> rgb(104, 78, 125);
-            case WOLFRAMITE, WOLFRAMITE_DEPOSIT -> rgb(144, 169, 191);
-            case URANIUM, URANIUM_DEPOSIT -> rgb(100, 206, 103);
-            case AUTUNITE -> rgb(173, 204, 87);
-            case NITRATE -> rgb(220, 230, 240);
-            case TIN, TIN_DEPOSIT -> rgb(166, 196, 190);
-            case SILVER, SILVER_DEPOSIT -> rgb(202, 220, 236);
-            case PLATINUM, PLATINUM_DEPOSIT -> rgb(193, 187, 232);
-            case OSMIUM, OSMIUM_DEPOSIT -> rgb(117, 146, 190);
-            case QUARTZ, QUARTZ_DEPOSIT -> rgb(242, 231, 214);
-            case ANCIENT_DEBRIS -> rgb(169, 127, 108);
-            case FLUORITE -> rgb(174, 184, 239);
-            case CERTUS_QUARTZ -> rgb(155, 205, 232);
-            case INFERIUM -> rgb(131, 183, 77);
-            case PROSPERITY -> rgb(217, 230, 233);
-            case SOULIUM -> rgb(128, 102, 74);
-            case ARCANE_CRYSTAL -> rgb(111, 148, 241);
-            case RUNE -> rgb(180, 128, 217);
-            case STELLARITE -> rgb(241, 196, 93);
-            case URANINITE -> rgb(157, 190, 85);
-            case DRACONIUM -> rgb(165, 124, 230);
-            case BLACK_QUARTZ -> rgb(139, 147, 166);
-            case COBALT, COBALT_DEPOSIT -> rgb(72, 109, 219);
-            case AMETHYST -> rgb(192, 138, 230);
-            case CHEST -> rgb(171, 119, 66);
-            case SPAWNER -> rgb(96, 168, 198);
-            case SOLID -> rgb(160, 160, 160);
-            case CUSTOM -> rgb(SeismicCustomModules.color(type) >> 16 & 255, SeismicCustomModules.color(type) >> 8 & 255, SeismicCustomModules.color(type) & 255);
-        };
+        int color = SeismicSignalProfiles.color(type);
+        return rgb(color >> 16 & 255, color >> 8 & 255, color & 255);
     }
 
     private static float[] rgb(int r, int g, int b) {

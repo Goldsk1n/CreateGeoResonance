@@ -3,6 +3,8 @@
   "signal_name": "Orange Deposit",
   "icon": "minecraft:orange_dye",
   "icon_size": "standard",
+  "sound_family": "metal",
+  "base_pitch": 0.85,
   "block_tag": "geo_example:orange_deposits",
   "color": "#E69246"
 }

@@ -1,6 +1,6 @@
 package net.goldskinmc.creategeoresonance.client;
 
-import net.goldskinmc.creategeoresonance.seismic.SeismicCustomModules;
+import net.goldskinmc.creategeoresonance.seismic.SeismicSignalProfiles;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -277,161 +277,17 @@ public final class GeoResonanceClient {
         if (scheduled.lowPressure()) {
             blur = Math.max(blur, 0.6F);
         }
-        int color = scheduled.lowPressure() ? 0x8A8A8A : switch (anomaly.type().kind()) {
-            case CAVE -> 0xB0B0B0;
-            case WATER -> 0x3EA4F2;
-            case LAVA -> 0xFF8A33;
-            case COAL, COAL_DEPOSIT -> 0x3F3F3F;
-            case IRON, IRON_DEPOSIT -> 0xD7D7D7;
-            case COPPER, COPPER_DEPOSIT -> 0xD17C41;
-            case GOLD, GOLD_DEPOSIT -> 0xF7D047;
-            case REDSTONE, REDSTONE_DEPOSIT -> 0xD04040;
-            case LAPIS, LAPIS_DEPOSIT -> 0x3B63D0;
-            case EMERALD -> 0x2DBA6B;
-            case DIAMOND -> 0x53DAD6;
-            case ZINC, ZINC_DEPOSIT -> 0xA5ABB8;
-            case CRIMSITE -> 0xB85C70;
-            case ASURINE -> 0x669FD0;
-            case OCHRUM -> 0xD9AC55;
-            case VERIDIUM -> 0x79B883;
-            case THORIUM, THORIUM_DEPOSIT -> 0xC6D86B;
-            case MAGNETITE -> 0x747E8A;
-            case LEAD, LEAD_DEPOSIT -> 0x848CB8;
-            case NICKEL, NICKEL_DEPOSIT -> 0xAFC38D;
-            case LITHIUM -> 0xD896B6;
-            case BAUXITE -> 0xD18B5B;
-            case GALENA -> 0x9E7BB8;
-            case LIGNITE -> 0x826046;
-            case SULFUR -> 0xDFD85A;
-            case CRUDE_OIL -> 0x684E7D;
-            case WOLFRAMITE, WOLFRAMITE_DEPOSIT -> 0x90A9BF;
-            case URANIUM, URANIUM_DEPOSIT -> 0x64CE67;
-            case AUTUNITE -> 0xADCC57;
-            case NITRATE -> 0xDCE6F0;
-            case TIN, TIN_DEPOSIT -> 0xA6C4BE;
-            case SILVER, SILVER_DEPOSIT -> 0xCADCEC;
-            case PLATINUM, PLATINUM_DEPOSIT -> 0xC1BBE8;
-            case OSMIUM, OSMIUM_DEPOSIT -> 0x7592BE;
-            case QUARTZ, QUARTZ_DEPOSIT -> 0xF2E7D6;
-            case ANCIENT_DEBRIS -> 0xA97F6C;
-            case FLUORITE -> 0xAEB8EF;
-            case CERTUS_QUARTZ -> 0x9BCDE8;
-            case INFERIUM -> 0x83B74D;
-            case PROSPERITY -> 0xD9E6E9;
-            case SOULIUM -> 0x80664A;
-            case ARCANE_CRYSTAL -> 0x6F94F1;
-            case RUNE -> 0xB480D9;
-            case STELLARITE -> 0xF1C45D;
-            case URANINITE -> 0x9DBE55;
-            case DRACONIUM -> 0xA57CE6;
-            case BLACK_QUARTZ -> 0x8B93A6;
-            case COBALT, COBALT_DEPOSIT -> 0x486DDB;
-            case AMETHYST -> 0xAE7BE0;
-            case CHEST -> 0xB9864A;
-            case SPAWNER -> 0x8A8A8A;
-            case SOLID -> 0x8E8378;
-            case CUSTOM -> SeismicCustomModules.color(anomaly.type());
-        };
+        int color = scheduled.lowPressure() ? 0x8A8A8A : SeismicSignalProfiles.color(anomaly.type());
         float lowConfidenceOpacity = Config.WAVE_ECHO_LOW_CONFIDENCE_OPACITY.get().floatValue();
         float highConfidenceOpacity = Config.WAVE_ECHO_HIGH_CONFIDENCE_OPACITY.get().floatValue();
         float opacity = Mth.lerp(confidence, lowConfidenceOpacity, highConfidenceOpacity);
         float radius = Math.max(2.0F, anomaly.radius() + confidence * 2.0F + blur);
         spawnWave(level, center, color, opacity, blur, 12, radius);
 
-        float depthRatio = scheduled.maxDepth() > 0 ? anomaly.depth() / (float) scheduled.maxDepth() : 1.0F;
-        SoundEvent echoSound = scheduled.lowPressure() ? SoundEvents.NOTE_BLOCK_HAT.value() : switch (anomaly.type().kind()) {
-            case CAVE -> SoundEvents.BELL_BLOCK;
-            case WATER -> SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT;
-            case LAVA -> SoundEvents.LAVA_POP;
-            case COAL, COAL_DEPOSIT -> SoundEvents.NOTE_BLOCK_BASS.value();
-            case IRON, IRON_DEPOSIT -> SoundEvents.ANVIL_PLACE;
-            case COPPER, COPPER_DEPOSIT -> SoundEvents.NOTE_BLOCK_BELL.value();
-            case GOLD, GOLD_DEPOSIT -> SoundEvents.NOTE_BLOCK_CHIME.value();
-            case REDSTONE, REDSTONE_DEPOSIT -> SoundEvents.REDSTONE_TORCH_BURNOUT;
-            case LAPIS, LAPIS_DEPOSIT -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case EMERALD -> SoundEvents.NOTE_BLOCK_FLUTE.value();
-            case DIAMOND -> SoundEvents.AMETHYST_BLOCK_RESONATE;
-            case ZINC, ZINC_DEPOSIT -> SoundEvents.CHAIN_STEP;
-            case CRIMSITE, ASURINE, OCHRUM, VERIDIUM, THORIUM, THORIUM_DEPOSIT, MAGNETITE, LEAD, LEAD_DEPOSIT, NICKEL,
-                NICKEL_DEPOSIT, LITHIUM, BAUXITE, GALENA, LIGNITE, SULFUR, WOLFRAMITE, WOLFRAMITE_DEPOSIT, URANIUM,
-                URANIUM_DEPOSIT, AUTUNITE, NITRATE, TIN, TIN_DEPOSIT, SILVER, SILVER_DEPOSIT, PLATINUM,
-                PLATINUM_DEPOSIT, OSMIUM, OSMIUM_DEPOSIT, QUARTZ, QUARTZ_DEPOSIT, COBALT,
-                COBALT_DEPOSIT -> SoundEvents.STONE_BREAK;
-            case CRUDE_OIL -> SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT;
-            case ANCIENT_DEBRIS -> SoundEvents.ANCIENT_DEBRIS_BREAK;
-            case FLUORITE -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case CERTUS_QUARTZ -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case INFERIUM -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case PROSPERITY -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case SOULIUM -> SoundEvents.NETHERRACK_BREAK;
-            case ARCANE_CRYSTAL -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case RUNE -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case STELLARITE -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case URANINITE -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case DRACONIUM -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case BLACK_QUARTZ -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case AMETHYST -> SoundEvents.AMETHYST_BLOCK_CHIME;
-            case CHEST -> SoundEvents.CHEST_OPEN;
-            case SPAWNER -> SoundEvents.CAVE_VINES_STEP;
-            case SOLID -> SoundEvents.NOTE_BLOCK_BASS.value();
-            case CUSTOM -> SoundEvents.AMETHYST_BLOCK_CHIME;
-        };
-        float basePitch = scheduled.lowPressure() ? 0.9F : switch (anomaly.type().kind()) {
-            case CAVE -> 1.12F;
-            case WATER -> 0.84F;
-            case LAVA -> 0.66F;
-            case COAL, COAL_DEPOSIT -> 0.62F;
-            case IRON, IRON_DEPOSIT -> 0.72F;
-            case COPPER, COPPER_DEPOSIT -> 1.0F;
-            case GOLD, GOLD_DEPOSIT -> 1.22F;
-            case REDSTONE, REDSTONE_DEPOSIT -> 0.95F;
-            case LAPIS, LAPIS_DEPOSIT -> 1.06F;
-            case EMERALD -> 1.28F;
-            case DIAMOND -> 1.34F;
-            case ZINC, ZINC_DEPOSIT -> 0.9F;
-            case CRIMSITE -> 1.0F;
-            case ASURINE -> 1.1F;
-            case OCHRUM -> 0.95F;
-            case VERIDIUM -> 1.05F;
-            case THORIUM, THORIUM_DEPOSIT -> 1.16F;
-            case MAGNETITE -> 0.76F;
-            case LEAD, LEAD_DEPOSIT -> 0.68F;
-            case NICKEL, NICKEL_DEPOSIT -> 0.88F;
-            case LITHIUM -> 1.24F;
-            case BAUXITE -> 0.92F;
-            case GALENA -> 0.74F;
-            case LIGNITE -> 0.58F;
-            case SULFUR -> 1.12F;
-            case CRUDE_OIL -> 0.60F;
-            case WOLFRAMITE, WOLFRAMITE_DEPOSIT -> 0.64F;
-            case URANIUM, URANIUM_DEPOSIT -> 1.02F;
-            case AUTUNITE -> 1.10F;
-            case NITRATE -> 1.26F;
-            case TIN, TIN_DEPOSIT -> 0.96F;
-            case SILVER, SILVER_DEPOSIT -> 1.20F;
-            case PLATINUM, PLATINUM_DEPOSIT -> 1.30F;
-            case OSMIUM, OSMIUM_DEPOSIT -> 0.82F;
-            case QUARTZ, QUARTZ_DEPOSIT -> 1.36F;
-            case ANCIENT_DEBRIS -> 0.70F;
-            case FLUORITE -> 1.30F;
-            case CERTUS_QUARTZ -> 1.42F;
-            case INFERIUM -> 1.05F;
-            case PROSPERITY -> 1.58F;
-            case SOULIUM -> 0.78F;
-            case ARCANE_CRYSTAL -> 1.22F;
-            case RUNE -> 1.06F;
-            case STELLARITE -> 1.66F;
-            case URANINITE -> 0.96F;
-            case DRACONIUM -> 0.78F;
-            case BLACK_QUARTZ -> 0.88F;
-            case COBALT, COBALT_DEPOSIT -> 0.90F;
-            case AMETHYST -> 1.18F;
-            case CHEST -> 0.85F;
-            case SPAWNER -> 0.7F;
-            case SOLID -> 0.56F;
-            case CUSTOM -> 1.0F;
-        };
-        float pitch = Mth.clamp(basePitch - depthRatio * 0.22F, 0.25F, 2.0F);
+        SoundEvent echoSound = scheduled.lowPressure() ? SoundEvents.NOTE_BLOCK_HAT.value()
+            : SeismicSignalProfiles.echoSound(anomaly.type());
+        float basePitch = scheduled.lowPressure() ? 0.9F : SeismicSignalProfiles.basePitch(anomaly.type());
+        float pitch = SeismicSignalProfiles.adjustedPitch(basePitch, anomaly.depth(), scheduled.maxDepth());
         if (scheduled.lowPressure()) {
             level.playLocalSound(center.x, center.y, center.z, echoSound, SoundSource.PLAYERS, 0.6F, pitch, false);
         } else if (anomaly.type() == SeismicAnomalyType.WATER) {
@@ -958,61 +814,7 @@ public final class GeoResonanceClient {
     }
 
     private static int signalTypeColor(SeismicAnomalyType type) {
-        return switch (type.kind()) {
-            case CAVE -> 0xCFCFCF;
-            case WATER -> 0x7FC6FF;
-            case LAVA -> 0xFFB061;
-            case COAL, COAL_DEPOSIT -> 0x707070;
-            case IRON, IRON_DEPOSIT -> 0xE2E2E2;
-            case COPPER, COPPER_DEPOSIT -> 0xD98A52;
-            case GOLD, GOLD_DEPOSIT -> 0xF0D977;
-            case REDSTONE, REDSTONE_DEPOSIT -> 0xE26868;
-            case LAPIS, LAPIS_DEPOSIT -> 0x7296F2;
-            case EMERALD -> 0x61D692;
-            case DIAMOND -> 0x9AECEC;
-            case ZINC, ZINC_DEPOSIT -> 0xC2C7D3;
-            case CRIMSITE -> 0xD78697;
-            case ASURINE -> 0x91BCE2;
-            case OCHRUM -> 0xE9C57B;
-            case VERIDIUM -> 0xA0D2A8;
-            case THORIUM, THORIUM_DEPOSIT -> 0xE0EAA3;
-            case MAGNETITE -> 0xA1ADBA;
-            case LEAD, LEAD_DEPOSIT -> 0xADB4D9;
-            case NICKEL, NICKEL_DEPOSIT -> 0xD0E0B4;
-            case LITHIUM -> 0xF0BAD8;
-            case BAUXITE -> 0xEDB183;
-            case GALENA -> 0xC8AAE1;
-            case LIGNITE -> 0xBC9575;
-            case SULFUR -> 0xF4EDA1;
-            case CRUDE_OIL -> 0xB998D0;
-            case WOLFRAMITE, WOLFRAMITE_DEPOSIT -> 0xBAC7D1;
-            case URANIUM, URANIUM_DEPOSIT -> 0x9BEAA0;
-            case AUTUNITE -> 0xD0E892;
-            case NITRATE -> 0xEEF4FA;
-            case TIN, TIN_DEPOSIT -> 0xA6C4BE;
-            case SILVER, SILVER_DEPOSIT -> 0xCADCEC;
-            case PLATINUM, PLATINUM_DEPOSIT -> 0xC1BBE8;
-            case OSMIUM, OSMIUM_DEPOSIT -> 0x7592BE;
-            case QUARTZ, QUARTZ_DEPOSIT -> 0xF2E7D6;
-            case ANCIENT_DEBRIS -> 0xD2B19F;
-            case FLUORITE -> 0xD7DDFB;
-            case CERTUS_QUARTZ -> 0xC7E8FA;
-            case INFERIUM -> 0xBBDD89;
-            case PROSPERITY -> 0xEDF6F8;
-            case SOULIUM -> 0xC5AD8B;
-            case ARCANE_CRYSTAL -> 0xB6CDFB;
-            case RUNE -> 0xD8B7F2;
-            case STELLARITE -> 0xFFE0A0;
-            case URANINITE -> 0xD4E99C;
-            case DRACONIUM -> 0xD6B7FF;
-            case BLACK_QUARTZ -> 0xCBD2E2;
-            case COBALT, COBALT_DEPOSIT -> 0x486DDB;
-            case AMETHYST -> 0xC69EFF;
-            case CHEST -> 0xD5A26B;
-            case SPAWNER -> 0xB6B6B6;
-            case SOLID -> 0xA19485;
-            case CUSTOM -> SeismicCustomModules.color(type);
-        };
+        return SeismicSignalProfiles.sidebarColor(type);
     }
 
     private static void addBlockedAreaBoundary(BufferBuilder builder, Matrix4f matrix,

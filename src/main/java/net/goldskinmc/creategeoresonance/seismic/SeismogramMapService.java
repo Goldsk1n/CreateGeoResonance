@@ -371,61 +371,7 @@ public final class SeismogramMapService {
     }
 
     private static MapColor colorFor(SeismicAnomalyType type) {
-        return switch (type.kind()) {
-            case CAVE -> MapColor.COLOR_LIGHT_GRAY;
-            case WATER -> MapColor.WATER;
-            case LAVA -> MapColor.COLOR_ORANGE;
-            case COAL, COAL_DEPOSIT -> MapColor.COLOR_BLACK;
-            case IRON, IRON_DEPOSIT -> MapColor.METAL;
-            case COPPER, COPPER_DEPOSIT -> MapColor.COLOR_BROWN;
-            case GOLD, GOLD_DEPOSIT -> MapColor.COLOR_YELLOW;
-            case REDSTONE, REDSTONE_DEPOSIT -> MapColor.COLOR_RED;
-            case LAPIS, LAPIS_DEPOSIT -> MapColor.COLOR_BLUE;
-            case EMERALD -> MapColor.COLOR_GREEN;
-            case DIAMOND -> MapColor.COLOR_LIGHT_BLUE;
-            case ZINC, ZINC_DEPOSIT -> MapColor.COLOR_GRAY;
-            case CRIMSITE -> MapColor.TERRACOTTA_RED;
-            case ASURINE -> MapColor.COLOR_LIGHT_BLUE;
-            case OCHRUM -> MapColor.TERRACOTTA_YELLOW;
-            case VERIDIUM -> MapColor.TERRACOTTA_GREEN;
-            case THORIUM, THORIUM_DEPOSIT -> MapColor.COLOR_LIGHT_GREEN;
-            case MAGNETITE -> MapColor.COLOR_GRAY;
-            case LEAD, LEAD_DEPOSIT -> MapColor.TERRACOTTA_BLUE;
-            case NICKEL, NICKEL_DEPOSIT -> MapColor.COLOR_LIGHT_GREEN;
-            case LITHIUM -> MapColor.COLOR_PINK;
-            case BAUXITE -> MapColor.TERRACOTTA_ORANGE;
-            case GALENA -> MapColor.TERRACOTTA_PURPLE;
-            case LIGNITE -> MapColor.COLOR_BROWN;
-            case SULFUR -> MapColor.COLOR_YELLOW;
-            case CRUDE_OIL -> MapColor.COLOR_BLACK;
-            case WOLFRAMITE, WOLFRAMITE_DEPOSIT -> MapColor.COLOR_LIGHT_GRAY;
-            case URANIUM, URANIUM_DEPOSIT -> MapColor.COLOR_GREEN;
-            case AUTUNITE -> MapColor.COLOR_LIGHT_GREEN;
-            case NITRATE -> MapColor.SNOW;
-            case TIN, TIN_DEPOSIT -> MapColor.METAL;
-            case SILVER, SILVER_DEPOSIT -> MapColor.COLOR_LIGHT_GRAY;
-            case PLATINUM, PLATINUM_DEPOSIT -> MapColor.COLOR_PURPLE;
-            case OSMIUM, OSMIUM_DEPOSIT -> MapColor.COLOR_BLUE;
-            case QUARTZ, QUARTZ_DEPOSIT -> MapColor.QUARTZ;
-            case ANCIENT_DEBRIS -> MapColor.TERRACOTTA_BROWN;
-            case FLUORITE -> MapColor.COLOR_LIGHT_BLUE;
-            case CERTUS_QUARTZ -> MapColor.COLOR_LIGHT_BLUE;
-            case INFERIUM -> MapColor.COLOR_LIGHT_GREEN;
-            case PROSPERITY -> MapColor.SNOW;
-            case SOULIUM -> MapColor.TERRACOTTA_BROWN;
-            case ARCANE_CRYSTAL -> MapColor.COLOR_BLUE;
-            case RUNE -> MapColor.COLOR_PURPLE;
-            case STELLARITE -> MapColor.COLOR_YELLOW;
-            case URANINITE -> MapColor.COLOR_LIGHT_GREEN;
-            case DRACONIUM -> MapColor.COLOR_PURPLE;
-            case BLACK_QUARTZ -> MapColor.COLOR_GRAY;
-            case COBALT, COBALT_DEPOSIT -> MapColor.COLOR_BLUE;
-            case AMETHYST -> MapColor.COLOR_PURPLE;
-            case CHEST -> MapColor.WOOD;
-            case SPAWNER -> MapColor.COLOR_BLACK;
-            case SOLID -> MapColor.STONE;
-            case CUSTOM -> SeismicCustomModules.mapColor(type);
-        };
+        return SeismicSignalProfiles.mapColor(type);
     }
 
     @Nullable

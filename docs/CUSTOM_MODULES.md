@@ -26,12 +26,16 @@ For example, `data/my_pack/seismic_modules/ruby.json` defines the stable ID `my_
   "signal_name": "Ruby",
   "icon": "examplemod:ruby",
   "icon_size": "small",
+  "sound_family": "crystal",
+  "base_pitch": 1.15,
   "block_tag": "my_pack:ruby_ores",
   "color": "#E84B70"
 }
 ```
 
 The five original fields are required. Optional `icon_size` accepts `"standard"` or `"small"`, defaulting to `"standard"`.
+Optional `sound_family` defaults to `"crystal"`; optional `base_pitch` defaults to `1.0`.
+Existing definitions that omit the sound fields retain their crystal-chime signature.
 Unknown fields and unsupported icon sizes are rejected to catch spelling mistakes.
 Names must contain 1-80 characters. Icon must identify an installed, non-air item, not the custom module itself.
 Use explicit namespaces. Color is exactly six hexadecimal digits, prefixed with #.
@@ -115,7 +119,26 @@ Optional client translations override the supplied names:
 - `module.my_pack.ruby.signal`: signal name.
 
 For paths containing /, replace / with . in translation keys.
-Map pixels use the closest vanilla map color. Echoes, sidebar text, and holograms use the configured RGB color.
+Map pixels use the closest vanilla map color. Echoes and holograms use the configured RGB color; sidebar labels use a lighter version for readability.
+
+## Echo Sounds
+
+Choose one of these `sound_family` values:
+
+| Value | Returning echo |
+| --- | --- |
+| `metal` | Note-block bell |
+| `crystal` | Amethyst chime |
+| `stone` | Short calcite hit |
+| `liquid` | Whirlpool bubbles |
+| `special` | Sculk-sensor clicking |
+
+`base_pitch` must be a finite number between `0.5` and `2.0`.
+Depth lowers it by at most `0.06`, with playback clamped to `0.5-2.0`.
+Echo travel delay is unchanged. Low-pressure hammer echoes retain the generic hat sound and gray color.
+Both fields synchronize from the server and update after `/reload`; existing items do not need to be recreated.
+These settings affect returning echoes, not station strikes or module insertion sounds.
+The example Orange module uses `metal / 0.85`; Cyan uses `crystal / 1.3`.
 
 ## Behavior and Compatibility
 
@@ -126,6 +149,7 @@ Map pixels use the closest vanilla map color. Echoes, sidebar text, and hologram
 - A matching custom target takes precedence over a built-in target for the same non-fluid block.
 - No installed target modules keeps the normal cave/water/lava scan.
 - Definitions are synchronized from the server at login and after reload. Clients do not need a separate copy of the datapack.
+- Clients and servers must run matching builds; the audio-definition schema uses network protocol 3.
 - Creative entries refresh after definitions synchronize. Recipes are ordinary crafting recipes for recipe viewers.
 - Optional JEI support distinguishes custom module IDs and refreshes custom ingredients after synchronization. JEI is not required.
 - Existing built-in signal names in saved data remain supported.
@@ -142,6 +166,7 @@ Run these checks separately on Forge 1.20.1 and NeoForge 1.21.1.
 1. Enable the supplied example, reload, and confirm two correctly named/iconed variants appear in the mod tab and Creative Search, without a blank custom module.
    Compare Orange's standard icon with Cyan's smaller icon in inventory/JEI, in hand, and installed in placed/train stations. Change one size and reload; omit the field to verify the standard default.
 2. Inspect both recipes in JEI: each custom variant should have only its own recipe. Craft each in Survival and verify the output keeps the correct name, icon, and target. Check Shift tooltips and advanced ID text (F3+H). Also check a launch without JEI.
+   Listen to both examples: Orange should have a metallic bell and Cyan a higher crystal chime. Change `sound_family`/`base_pitch`, reload, and check existing modules on both client and server use the new sound.
 3. Make a controlled test site: small, separated orange and cyan concrete clusters a few blocks below the surface, with two stations at least the configured minimum distance apart and within survey range.
 4. Install both modules in each station. Both should be accepted; installing the same ID twice should be rejected. Confirm station stress increases by 128 SU, to 384 SU with just these two modules.
 5. Supply enough power, paper and ink, then survey. Both signal names/colors should appear, with no cave/water/lava background signals. Try adding a normal Copper Module and verify all three types can appear.
@@ -152,6 +177,6 @@ Run these checks separately on Forge 1.20.1 and NeoForge 1.21.1.
 10. Remove one definition while retaining its saved item, installed module and old records. Reload/rejoin: no crash, a clear missing-definition warning, safe extraction, no ghost exact hologram for that missing target. Restore the same file/ID and verify recognition returns.
 11. On a dedicated server with the datapack installed only on the server, join with two clients. Check names, icons and projections match, then reload and rejoin. Also switch to a world/server without the example and verify no example entries leak across worlds.
 12. Test overlapping custom tags: make both definitions target the same test block, reverse insertion order, and verify the later module owns that block's signal.
-13. In a disposable copy of the pack, try an invalid color, missing icon item, unsupported icon size, misspelled field or malformed JSON. Reload must report a useful error, not silently enable a broken module.
+13. In a disposable copy of the pack, try an invalid color, missing icon item, unsupported icon size/sound family, out-of-range pitch, misspelled field or malformed JSON. Reload must report a useful error, not silently enable a broken module.
 
 Only build/compile checks are performed automatically for this change; this checklist covers visual and gameplay behavior.

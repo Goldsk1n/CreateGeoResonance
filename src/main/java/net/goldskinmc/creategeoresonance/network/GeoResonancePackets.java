@@ -23,7 +23,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.List;
 
 public final class GeoResonancePackets {
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
     private static final double BROADCAST_RADIUS = 48.0D;
     private static final CatnipPacketRegistry REGISTRY = new CatnipPacketRegistry(CreateGeoResonanceMod.MODID, PROTOCOL_VERSION);
 
