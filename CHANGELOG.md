@@ -6,7 +6,11 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 
 ## [Unreleased]
 
+## [1.20.1-1.2.0] - 2026-10-21
+
 ### Added
+- Datapack-defined custom modules with configurable names, target block tags, colors, item icons, standard/small icon sizes, sound families, and base pitches. Include server-to-client definition synchronization, reload support, documentation, and an example datapack.
+- Reverse newly placed projectors with Shift-RMB; ordinary placement keeps the shaft facing the player. Existing projector orientations are unchanged.
 - Lava Module for targeted lava surveys, alone or balanced with other selected targets, including on parked trains. Uses one slot and 64 SU, with a lava-bucket-and-obsidian recipe that returns the empty bucket, a vanilla bucket icon, and EN/RU/UK summaries.
 - Retrieve the last inserted projector seismogram with empty-hand Shift-RMB, including on trains and without power; preserve original map items, recover legacy survey-only saves, and drop remaining sheets when the projector is broken. Add English, Russian, and Ukrainian tooltip guidance.
 - Three client-side impact and confidence-dependent echo opacity settings shared by normal and low-pressure waves, all defaulting to 1.0.
@@ -31,6 +35,11 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Separate Crimsite, Asurine, Ochrum, and Veridium station modules with recipes, localized tooltips, and distinct scan and projection signals.
 
 ### Changed
+- Refine mineral signal colors and echo sound families, including clearer Coal/Lignite echoes, a short Cave echo distinct from the completion bell, and a magenta Spawner signal.
+- Improve seismogram readability with brighter 3x3 marker centers and revised Diamond, Emerald, and Zinc map colors. New map colors apply to fresh surveys.
+- Set default hologram outline/fill opacity to 200/70 and mask hologram fragments behind directly visible opaque deposit blocks without hiding buried deposits behind ordinary terrain.
+- Remove the note-block sound when taking a station seismogram, including on trains; retain survey completion and other interaction sounds. Remove decorative interaction particles when handling station supplies, modules, and output.
+- Rename the Crude Oil Module to Oil Module without changing its saved item ID.
 - Balance visible projector veins round-robin across resource types instead of letting nearby abundant deposits monopolize the display limit. Prioritize nearest surveyed centers within each type, share turns between ore/deposit variants, redistribute unused slots, and use deterministic nearest-type ordering for placed and mounted projectors. Keep the default limit at 10.
 - Retire Noise Cancellation: module-free stations report caves, water, and lava; target modules automatically restrict surveys to their targets, with empty results when none are found. Apply the same rules to parked trains.
 - Preserve legacy Noise Cancellation items and recover installed modules after active modules via Shift-RMB or when breaking the station, without active-slot or SU costs. Remove recipes and Creative/JEI entries; update EN/RU/UK tooltips and Ponder.
@@ -44,15 +53,17 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Combine native-provider recipes for Lead, Nickel, Silver, Tin, Uranium, Bauxite, Sulfur, and Crude Oil into single guarded recipes with optional ingredient tags and mixed-provider support.
 - Use an ordinary iron ingot for every Crude Oil module recipe, including oil buckets and Thermal oil-sand samples.
 - Remove added random seismogram height error; approximate Y represents the detected signal's estimated center.
-- Reduce default hologram opacity and cull back-facing filled surfaces to improve projection readability.
+- Cull back-facing filled surfaces to improve projection readability.
 - Honor configured fill and outline opacity for exact holograms, including mounted projectors and Ponder.
 
 ### Fixed
+- Restore vanilla filled map textures instead of displaying a missing-texture square.
+- Correct English, Russian, and Ukrainian terminology and tooltip guidance, including configured RPM/SU requirements.
 - Measure active projector render distance from the full projection bounds, including deep deposits and guide beams, rather than only the projector block. Retain the 128-block distance limit outside those bounds and normal inactive-projector culling; cache bounds per projector position and invalidate them with survey data changes, without force-loading chunks or changing power/station-range rules.
 - Clarify projector loading feedback: two loaded seismograms prompt for rear-shaft power when a placed projector cannot run, rather than claiming exact veins are ready. Preserve unpowered loading and mounted-projector behavior; update EN/RU/UK messages.
 - Blend station pen/weight reactions with a shared damped spring instead of restarting the shake on every strike or echo. Preserve the interpolated pose during overlap, use a weaker echo impulse, increase both reactions by 1.5x with a 7.5-degree swing limit, and settle correctly off-screen for placed and train-mounted stations.
 - Preserve the station hammer's animation phase when paper, ink, or other inventory updates sync mid-strike; identify new cycles by replay/reveal transitions, and reconstruct late-loaded animations using the full cycle duration rather than the remaining countdown.
-- Apply station module priorities before merging and capping scan signals, so water and lava cannot crowd out installed mineral targets. Share selection between placed and train-mounted stations, retain last-module priority and Noise Cancellation, and keep hand-hammer selection unchanged.
+- Apply station module priorities before merging and capping scan signals, so ambient signals cannot crowd out installed mineral targets. Share selection between placed and train-mounted stations, retain last-module tie priority, and keep hand-hammer selection unchanged.
 - Remap New Age's ESL library explicitly in the Forge dev runtime to prevent a world-entry Creative search crash triggered by Immersive Engineering's powerpack tooltip; release dependencies are unchanged.
 - Rank visible holograms by their original surveyed centers so mining individual blocks does not hide a partially mined vein at the display limit, including on trains.
 - Draw projector holograms and beams after translucent scenery so water does not obscure them; preserve placed and train-mounted projection coordinates.
@@ -65,6 +76,14 @@ The format is based on Keep a Changelog and this project aims to follow Semantic
 - Add missing seismic Ponder category translations and remove the itemless placed-hammer entry that crashed when clicked.
 - Match mineral module icon sizes to the Noise Cancellation module.
 - Prevent signal grouping collisions when scanning the new mineral types.
+
+### Upgrade Notes
+- Back up existing worlds before updating. Update clients and servers together; custom-module synchronization uses network protocol 3.
+- Below Zero and Noise Cancellation are retired, not deleted. Existing items remain valid; installed retired modules use no active slots or SU and can be recovered after active modules with Shift-RMB, or by breaking the station.
+- Stations scan below Y=0 without Below Zero. Target modules automatically filter surveys; with no target modules, stations report caves, water, and lava.
+- All integrations are optional. Addon-only modules and recipes require a supported provider; no integration mods or profiling tools are bundled with the release.
+- Existing configuration values are retained. Fresh surveys are needed to see the new marker palette; existing seismograms remain usable.
+- See `docs/RELEASE_1.2.0.md` for the publication summary and `docs/CUSTOM_MODULES.md` for datapack instructions.
 
 ## [1.20.1-1.1.1] - 2026-09-21
 
